@@ -1,7 +1,7 @@
-# AI-Economist trained with PPO+Interpretable Decision Trees
+# AIE trained with PPO and Interpretable Decision Trees
 
 ## Project goal
-Train AI-Economist agents with PPO (as in the paper) and the social planner with interpretable decision trees and compare the results with those of the original paper.
+Train AI-Economist agents with PPO (as in the paper) and the social planner with interpretable decision trees, then compare the results with those of the original paper.
 
 ## AI-Economist
 [The AI Economist: Optimal Economic Policy Design via Two-level Deep Reinforcement Learning](https://arxiv.org/abs/2108.02755)
