@@ -1,5 +1,5 @@
 # AIE trained with PPO and Interpretable Decision Trees
-# Project not in developement
+# Project in developement
 
 ## Project goal
 Train AI-Economist agents with PPO (as in the paper) and the social planner with interpretable decision trees, then compare the results with those of the original paper.
