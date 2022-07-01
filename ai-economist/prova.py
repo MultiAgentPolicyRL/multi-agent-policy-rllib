@@ -54,4 +54,5 @@ env_config = {
 env = foundation.make_env_instance(**env_config)
 
 env.seed(1)
+
 print(env)
