@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.scenarios.simple_wood_and_stone.layout_from_file &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.scenarios.simple_wood_and_stone.layout_from_file</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.scenarios.simple_wood_and_stone.layout_from_file</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">signal</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.base_env</span> <span class="kn">import</span> <span class="n">BaseEnvironment</span><span class="p">,</span> <span class="n">scenario_registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.scenarios.utils</span> <span class="kn">import</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">social_metrics</span>
+
+
+<div class="viewcode-block" id="LayoutFromFile"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile">[docs]</a><span class="nd">@scenario_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">LayoutFromFile</span><span class="p">(</span><span class="n">BaseEnvironment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    World containing stone and wood with stochastic regeneration. Refers to a fixed</span>
+<span class="sd">    layout file (see ./map_txt/ for examples) to determine the spatial arrangement of</span>
+<span class="sd">    stone, wood, and water tiles.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        planner_gets_spatial_obs (bool): Whether the planner agent receives spatial</span>
+<span class="sd">            observations from the world.</span>
+<span class="sd">        full_observability (bool): Whether the mobile agents&#39; spatial observation</span>
+<span class="sd">            includes the full world view or is instead an egocentric view.</span>
+<span class="sd">        mobile_agent_observation_range (int): If not using full_observability,</span>
+<span class="sd">            the spatial range (on each side of the agent) that is visible in the</span>
+<span class="sd">            spatial observations.</span>
+<span class="sd">        env_layout_file (str): Name of the layout file in ./map_txt/ to use.</span>
+<span class="sd">            Note: The world dimensions of that layout must match the world dimensions</span>
+<span class="sd">            argument used to construct the environment.</span>
+<span class="sd">        resource_regen_prob (float): Probability that an empty source tile will</span>
+<span class="sd">            regenerate a new resource unit.</span>
+<span class="sd">        fixed_four_skill_and_loc (bool): Whether to use a fixed set of build skills and</span>
+<span class="sd">            starting locations, with agents grouped into starting locations based on</span>
+<span class="sd">            which skill quartile they are in. False, by default.</span>
+<span class="sd">            True, for experiments in https://arxiv.org/abs/2004.13332.</span>
+<span class="sd">            Note: Requires that the environment uses the &quot;Build&quot; component with</span>
+<span class="sd">            skill_dist=&quot;pareto&quot;.</span>
+<span class="sd">        starting_agent_coin (int, float): Amount of coin agents have at t=0. Defaults</span>
+<span class="sd">            to zero coin.</span>
+<span class="sd">        isoelastic_eta (float): Parameter controlling the shape of agent utility</span>
+<span class="sd">            wrt coin endowment.</span>
+<span class="sd">        energy_cost (float): Coefficient for converting labor to negative utility.</span>
+<span class="sd">        energy_warmup_constant (float): Decay constant that controls the rate at which</span>
+<span class="sd">            the effective energy cost is annealed from 0 to energy_cost. Set to 0</span>
+<span class="sd">            (default) to disable annealing, meaning that the effective energy cost is</span>
+<span class="sd">            always energy_cost. The units of the decay constant depend on the choice of</span>
+<span class="sd">            energy_warmup_method.</span>
+<span class="sd">        energy_warmup_method (str): How to schedule energy annealing (warmup). If</span>
+<span class="sd">            &quot;decay&quot; (default), use the number of completed episodes. If &quot;auto&quot;,</span>
+<span class="sd">            use the number of timesteps where the average agent reward was positive.</span>
+<span class="sd">        planner_reward_type (str): The type of reward used for the planner. Options</span>
+<span class="sd">            are &quot;coin_eq_times_productivity&quot; (default),</span>
+<span class="sd">            &quot;inv_income_weighted_coin_endowment&quot;, and &quot;inv_income_weighted_utility&quot;.</span>
+<span class="sd">        mixing_weight_gini_vs_coin (float): Degree to which equality is ignored w/</span>
+<span class="sd">            &quot;coin_eq_times_productivity&quot;. Default is 0, which weights equality and</span>
+<span class="sd">            productivity equally. If set to 1, only productivity is rewarded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;layout_from_file/simple_wood_and_stone&quot;</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">,</span> <span class="s2">&quot;BasicPlanner&quot;</span><span class="p">]</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Wood&quot;</span><span class="p">,</span> <span class="s2">&quot;Stone&quot;</span><span class="p">,</span> <span class="s2">&quot;Water&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">base_env_args</span><span class="p">,</span>
+        <span class="n">planner_gets_spatial_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">full_observability</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">mobile_agent_observation_range</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">env_layout_file</span><span class="o">=</span><span class="s2">&quot;quadrant_25x25_20each_30clump.txt&quot;</span><span class="p">,</span>
+        <span class="n">resource_regen_prob</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">fixed_four_skill_and_loc</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">starting_agent_coin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">isoelastic_eta</span><span class="o">=</span><span class="mf">0.23</span><span class="p">,</span>
+        <span class="n">energy_cost</span><span class="o">=</span><span class="mf">0.21</span><span class="p">,</span>
+        <span class="n">energy_warmup_constant</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">energy_warmup_method</span><span class="o">=</span><span class="s2">&quot;decay&quot;</span><span class="p">,</span>
+        <span class="n">planner_reward_type</span><span class="o">=</span><span class="s2">&quot;coin_eq_times_productivity&quot;</span><span class="p">,</span>
+        <span class="n">mixing_weight_gini_vs_coin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">base_env_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">base_env_args</span><span class="p">,</span> <span class="o">**</span><span class="n">base_env_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Whether agents receive spatial information in their observation tensor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_planner_gets_spatial_info</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">planner_gets_spatial_info</span><span class="p">)</span>
+
+        <span class="c1"># Whether the (non-planner) agents can see the whole world map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_full_observability</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">full_observability</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mobile_agent_observation_range</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">mobile_agent_observation_range</span><span class="p">)</span>
+
+        <span class="c1"># Load in the layout</span>
+        <span class="n">path_to_layout_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">/map_txt/</span><span class="si">{</span><span class="n">env_layout_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_to_layout_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env_layout_string</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env_layout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_layout_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Convert the layout to landmark maps</span>
+        <span class="n">landmark_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;W&quot;</span><span class="p">:</span> <span class="s2">&quot;Wood&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="s2">&quot;Stone&quot;</span><span class="p">,</span> <span class="s2">&quot;@&quot;</span><span class="p">:</span> <span class="s2">&quot;Water&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_source_maps</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">r</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">landmark_lookup</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">symbol_row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env_layout</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbol_row</span><span class="p">):</span>
+                <span class="n">landmark</span> <span class="o">=</span> <span class="n">landmark_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">landmark</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_source_maps</span><span class="p">[</span><span class="n">landmark</span><span class="p">][</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># For controlling how resource regeneration behavior</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layout_specs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">Wood</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;regen_weight&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">resource_regen_prob</span><span class="p">),</span>
+                <span class="s2">&quot;regen_halfwidth&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;max_health&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">Stone</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;regen_weight&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">resource_regen_prob</span><span class="p">),</span>
+                <span class="s2">&quot;regen_halfwidth&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;max_health&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_specs</span><span class="p">[</span><span class="s2">&quot;Wood&quot;</span><span class="p">][</span><span class="s2">&quot;regen_weight&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_specs</span><span class="p">[</span><span class="s2">&quot;Stone&quot;</span><span class="p">][</span><span class="s2">&quot;regen_weight&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+
+        <span class="c1"># How much coin do agents begin with at upon reset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">starting_agent_coin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">starting_agent_coin</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">starting_agent_coin</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+
+        <span class="c1"># Controls the diminishing marginal utility of coin.</span>
+        <span class="c1"># isoelastic_eta=0 means no diminishing utility.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isoelastic_eta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">isoelastic_eta</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">isoelastic_eta</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># The amount that labor is weighted in utility computation</span>
+        <span class="c1"># (once annealing is finished)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_cost</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">energy_cost</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_cost</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+        <span class="c1"># Which method to use for calculating the progress of energy annealing</span>
+        <span class="c1"># If method = &#39;decay&#39;: #completed episodes</span>
+        <span class="c1"># If method = &#39;auto&#39; : #timesteps where avg. agent reward &gt; 0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_method</span> <span class="o">=</span> <span class="n">energy_warmup_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">]</span>
+        <span class="c1"># Decay constant for annealing to full energy cost</span>
+        <span class="c1"># (if energy_warmup_constant == 0, there is no annealing)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_constant</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">energy_warmup_constant</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_constant</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_auto_warmup_integrator</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Which social welfare function to use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planner_reward_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">planner_reward_type</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="c1"># How much to weight equality if using SWF=eq*prod:</span>
+        <span class="c1"># 0 -&gt; SWF=eq * prod</span>
+        <span class="c1"># 1 -&gt; SWF=prod</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixing_weight_gini_vs_coin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mixing_weight_gini_vs_coin</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixing_weight_gini_vs_coin</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># Use this to calculate marginal changes and deliver that as reward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_optimization_metric</span> <span class="o">=</span> <span class="p">{</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_optimization_metric</span> <span class="o">=</span> <span class="p">{</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="p">{</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fixed Four Skill and Loc</span>
+<span class="sd">        ------------------------</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent_starting_pos</span> <span class="o">=</span> <span class="p">{</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fixed_four_skill_and_loc</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">fixed_four_skill_and_loc</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_four_skill_and_loc</span><span class="p">:</span>
+            <span class="n">bm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_component</span><span class="p">(</span><span class="s2">&quot;Build&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">bm</span><span class="o">.</span><span class="n">skill_dist</span> <span class="o">==</span> <span class="s2">&quot;pareto&quot;</span>
+            <span class="n">pmsm</span> <span class="o">=</span> <span class="n">bm</span><span class="o">.</span><span class="n">payment_max_skill_multiplier</span>
+
+            <span class="c1"># Temporarily switch to a fixed seed for controlling randomness</span>
+            <span class="n">seed_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Generate a batch (100000) of num_agents (sorted/clipped) Pareto samples.</span>
+            <span class="n">pareto_samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">pareto</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">))</span>
+            <span class="n">clipped_skills</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">pmsm</span><span class="p">,</span> <span class="p">(</span><span class="n">pmsm</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">pareto_samples</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">sorted_clipped_skills</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">clipped_skills</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># The skill level of the i-th skill-ranked agent is the average of the</span>
+            <span class="c1"># i-th ranked samples throughout the batch.</span>
+            <span class="n">average_ranked_skills</span> <span class="o">=</span> <span class="n">sorted_clipped_skills</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_avg_ranked_skill</span> <span class="o">=</span> <span class="n">average_ranked_skills</span> <span class="o">*</span> <span class="n">bm</span><span class="o">.</span><span class="n">payment</span>
+
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">seed_state</span><span class="p">)</span>
+
+            <span class="c1"># Fill in the starting location associated with each skill rank</span>
+            <span class="n">starting_ranked_locs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="c1"># Worst group of agents goes in top right</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="c1"># Second-worst group of agents goes in bottom left</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="c1"># Second-best group of agents goes in top left</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="c1"># Best group of agents goes in bottom right</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ranked_locs</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># Based on skill, assign each agent to one of the location groups</span>
+            <span class="n">skill_groups</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+            <span class="n">n_in_group</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">skill_groups</span><span class="p">:</span>
+                <span class="c1"># The position within the group is given by the number of agents</span>
+                <span class="c1"># counted in the group thus far.</span>
+                <span class="n">g_pos</span> <span class="o">=</span> <span class="n">n_in_group</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
+
+                <span class="c1"># Top right</span>
+                <span class="k">if</span> <span class="n">g</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">%</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ranked_locs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+
+                <span class="c1"># Bottom left</span>
+                <span class="k">elif</span> <span class="n">g</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">%</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ranked_locs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+
+                <span class="c1"># Top left</span>
+                <span class="k">elif</span> <span class="n">g</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">%</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ranked_locs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+
+                <span class="c1"># Bottom right</span>
+                <span class="k">elif</span> <span class="n">g</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="n">starting_ranked_locs</span><span class="p">[</span><span class="n">g</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">g_pos</span> <span class="o">%</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ranked_locs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span>
+
+                <span class="c1"># Count the agent we just placed.</span>
+                <span class="n">n_in_group</span><span class="p">[</span><span class="n">g</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_in_group</span><span class="p">[</span><span class="n">g</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">energy_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Energy annealing progress. Multiply with self.energy_cost to get the</span>
+<span class="sd">        effective energy coefficient.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_constant</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_method</span> <span class="o">==</span> <span class="s2">&quot;decay&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_completions</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_constant</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_method</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span>
+                <span class="mf">1.0</span>
+                <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_auto_warmup_integrator</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_warmup_constant</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="LayoutFromFile.get_current_optimization_metrics"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.get_current_optimization_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_optimization_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute optimization metrics based on the current state. Used to compute reward.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            curr_optimization_metric (dict): A dictionary of {agent.idx: metric}</span>
+<span class="sd">                with an entry for each agent (including the planner) in the env.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># (for agents)</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">curr_optimization_metric</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">isoelastic_coin_minus_labor</span><span class="p">(</span>
+                <span class="n">coin_endowment</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">total_endowment</span><span class="p">(</span><span class="s2">&quot;Coin&quot;</span><span class="p">),</span>
+                <span class="n">total_labor</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">][</span><span class="s2">&quot;Labor&quot;</span><span class="p">],</span>
+                <span class="n">isoelastic_eta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">isoelastic_eta</span><span class="p">,</span>
+                <span class="n">labor_coefficient</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_cost</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># (for the planner)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner_reward_type</span> <span class="o">==</span> <span class="s2">&quot;coin_eq_times_productivity&quot;</span><span class="p">:</span>
+            <span class="n">curr_optimization_metric</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">coin_eq_times_productivity</span><span class="p">(</span>
+                <span class="n">coin_endowments</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">total_endowment</span><span class="p">(</span><span class="s2">&quot;Coin&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="n">equality_weight</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixing_weight_gini_vs_coin</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner_reward_type</span> <span class="o">==</span> <span class="s2">&quot;inv_income_weighted_coin_endowments&quot;</span><span class="p">:</span>
+            <span class="n">curr_optimization_metric</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">inv_income_weighted_coin_endowments</span><span class="p">(</span>
+                <span class="n">coin_endowments</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">total_endowment</span><span class="p">(</span><span class="s2">&quot;Coin&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner_reward_type</span> <span class="o">==</span> <span class="s2">&quot;inv_income_weighted_utility&quot;</span><span class="p">:</span>
+            <span class="n">curr_optimization_metric</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">inv_income_weighted_utility</span><span class="p">(</span>
+                <span class="n">coin_endowments</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">total_endowment</span><span class="p">(</span><span class="s2">&quot;Coin&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="n">utilities</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">curr_optimization_metric</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No valid planner reward selected!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="k">return</span> <span class="n">curr_optimization_metric</span></div>
+
+    <span class="c1"># The following methods must be implemented for each scenario</span>
+    <span class="c1"># -----------------------------------------------------------</span>
+
+<div class="viewcode-block" id="LayoutFromFile.reset_starting_layout"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.reset_starting_layout">[docs]</a>    <span class="k">def</span> <span class="nf">reset_starting_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Part 1/2 of scenario reset. This method handles resetting the state of the</span>
+<span class="sd">        environment managed by the scenario (i.e. resource &amp; landmark layout).</span>
+
+<span class="sd">        Here, reset to the layout in the fixed layout file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">landmark</span><span class="p">,</span> <span class="n">landmark_map</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_maps</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">landmark</span><span class="p">,</span> <span class="n">landmark_map</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">landmark</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Stone&quot;</span><span class="p">,</span> <span class="s2">&quot;Wood&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">landmark</span> <span class="o">+</span> <span class="s2">&quot;SourceBlock&quot;</span><span class="p">,</span> <span class="n">landmark_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayoutFromFile.reset_agent_states"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.reset_agent_states">[docs]</a>    <span class="k">def</span> <span class="nf">reset_agent_states</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Part 2/2 of scenario reset. This method handles resetting the state of the</span>
+<span class="sd">        agents themselves (i.e. inventory, locations, etc.).</span>
+
+<span class="sd">        Here, empty inventories and place mobile agents in random, accessible</span>
+<span class="sd">        locations to start. Note: If using fixed_four_skill_and_loc, the starting</span>
+<span class="sd">        locations will be overridden in self.additional_reset_steps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">clear_agent_locs</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;escrow&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">endogenous</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+            <span class="c1"># Add starting coin</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span><span class="s2">&quot;Coin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_agent_coin</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;escrow&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">escrow</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">n_tries</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">can_agent_occupy</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">n_tries</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">n_tries</span> <span class="o">&gt;</span> <span class="mi">200</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TimeoutError</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">set_agent_loc</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayoutFromFile.scenario_step"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.scenario_step">[docs]</a>    <span class="k">def</span> <span class="nf">scenario_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the state of the world according to whatever rules this scenario</span>
+<span class="sd">        implements.</span>
+
+<span class="sd">        This gets called in the &#39;step&#39; method (of base_env) after going through each</span>
+<span class="sd">        component step and before generating observations, rewards, etc.</span>
+
+<span class="sd">        In this class of scenarios, the scenario step handles stochastic resource</span>
+<span class="sd">        regeneration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">resources</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Wood&quot;</span><span class="p">,</span> <span class="s2">&quot;Stone&quot;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">resources</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_specs</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="s2">&quot;regen_halfwidth&quot;</span><span class="p">])</span>
+            <span class="n">kernel</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">layout_specs</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="s2">&quot;regen_weight&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">resource_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+            <span class="n">resource_source_blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resource</span> <span class="o">+</span> <span class="s2">&quot;SourceBlock&quot;</span><span class="p">)</span>
+            <span class="n">spawnable</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">empty</span> <span class="o">+</span> <span class="n">resource_map</span> <span class="o">+</span> <span class="n">resource_source_blocks</span>
+            <span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="n">spawnable</span> <span class="o">*=</span> <span class="n">resource_source_blocks</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+            <span class="n">health</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">resource_map</span><span class="p">,</span> <span class="n">resource_source_blocks</span><span class="p">)</span>
+            <span class="n">respawn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="o">*</span><span class="n">health</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">signal</span><span class="o">.</span><span class="n">convolve2d</span><span class="p">(</span>
+                <span class="n">health</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="s2">&quot;same&quot;</span>
+            <span class="p">)</span>
+            <span class="n">respawn</span> <span class="o">*=</span> <span class="n">spawnable</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="n">resource</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+                    <span class="n">resource_map</span> <span class="o">+</span> <span class="n">respawn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_specs</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="s2">&quot;max_health&quot;</span><span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayoutFromFile.generate_observations"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.generate_observations">[docs]</a>    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate observations associated with this scenario.</span>
+
+<span class="sd">        A scenario does not need to produce observations and can provide observations</span>
+<span class="sd">        for only some agent types; however, for a given agent type, it should either</span>
+<span class="sd">        always or never yield an observation. If it does yield an observation,</span>
+<span class="sd">        that observation should always have the same structure/sizes!</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            obs (dict): A dictionary of {agent.idx: agent_obs_dict}. In words,</span>
+<span class="sd">                return a dictionary with an entry for each agent (which can including</span>
+<span class="sd">                the planner) for which this scenario provides an observation. For each</span>
+<span class="sd">                entry, the key specifies the index of the agent and the value contains</span>
+<span class="sd">                its associated observation dictionary.</span>
+
+<span class="sd">        Here, non-planner agents receive spatial observations (depending on the env</span>
+<span class="sd">        config) as well as the contents of their inventory and endogenous quantities.</span>
+<span class="sd">        The planner also receives spatial observations (again, depending on the env</span>
+<span class="sd">        config) as well as the inventory of each of the mobile agents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">curr_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">state</span>
+
+        <span class="n">owner_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">owner_state</span>
+        <span class="n">loc_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">loc_map</span>
+        <span class="n">agent_idx_maps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">owner_map</span><span class="p">,</span> <span class="n">loc_map</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">agent_idx_maps</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="n">agent_idx_maps</span><span class="p">[</span><span class="n">agent_idx_maps</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">agent_locs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="p">{</span>
+                <span class="s2">&quot;loc-row&quot;</span><span class="p">:</span> <span class="n">agent</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s2">&quot;loc-col&quot;</span><span class="p">:</span> <span class="n">agent</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">}</span>
+        <span class="n">agent_invs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="p">{</span>
+                <span class="s2">&quot;inventory-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_scale</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">}</span>
+
+        <span class="n">obs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;inventory-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_scale</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_planner_gets_spatial_info</span><span class="p">:</span>
+            <span class="n">obs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="nb">dict</span><span class="p">(</span><span class="nb">map</span><span class="o">=</span><span class="n">curr_map</span><span class="p">,</span> <span class="n">idx_map</span><span class="o">=</span><span class="n">agent_idx_maps</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Mobile agents see the full map. Convey location info via one-hot map channels.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_full_observability</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+                <span class="n">my_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">agent_idx_maps</span><span class="p">)</span>
+                <span class="n">my_map</span><span class="p">[</span><span class="n">my_map</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">sidx</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>
+                <span class="n">obs</span><span class="p">[</span><span class="n">sidx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;map&quot;</span><span class="p">:</span> <span class="n">curr_map</span><span class="p">,</span> <span class="s2">&quot;idx_map&quot;</span><span class="p">:</span> <span class="n">my_map</span><span class="p">}</span>
+                <span class="n">obs</span><span class="p">[</span><span class="n">sidx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">agent_invs</span><span class="p">[</span><span class="n">sidx</span><span class="p">])</span>
+
+        <span class="c1"># Mobile agents only see within a window around their position</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_mobile_agent_observation_range</span>
+            <span class="p">)</span>  <span class="c1"># View halfwidth (only applicable without full observability)</span>
+
+            <span class="n">padded_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">curr_map</span><span class="p">,</span>
+                <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">)],</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+                <span class="n">constant_values</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span>
+            <span class="p">)</span>
+
+            <span class="n">padded_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">agent_idx_maps</span><span class="p">,</span>
+                <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">)],</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+                <span class="n">constant_values</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+                <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="o">+</span> <span class="n">w</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">loc</span><span class="p">]</span>
+                <span class="n">visible_map</span> <span class="o">=</span> <span class="n">padded_map</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">visible_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="n">padded_idx</span><span class="p">[:,</span> <span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                <span class="p">)</span>
+
+                <span class="n">visible_idx</span><span class="p">[</span><span class="n">visible_idx</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+                <span class="n">sidx</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>
+
+                <span class="n">obs</span><span class="p">[</span><span class="n">sidx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;map&quot;</span><span class="p">:</span> <span class="n">visible_map</span><span class="p">,</span> <span class="s2">&quot;idx_map&quot;</span><span class="p">:</span> <span class="n">visible_idx</span><span class="p">}</span>
+                <span class="n">obs</span><span class="p">[</span><span class="n">sidx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">agent_locs</span><span class="p">[</span><span class="n">sidx</span><span class="p">])</span>
+                <span class="n">obs</span><span class="p">[</span><span class="n">sidx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">agent_invs</span><span class="p">[</span><span class="n">sidx</span><span class="p">])</span>
+
+                <span class="c1"># Agent-wise planner info (gets crunched into the planner obs in the</span>
+                <span class="c1"># base scenario code)</span>
+                <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;p&quot;</span> <span class="o">+</span> <span class="n">sidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">agent_invs</span><span class="p">[</span><span class="n">sidx</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_planner_gets_spatial_info</span><span class="p">:</span>
+                    <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;p&quot;</span> <span class="o">+</span> <span class="n">sidx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">agent_locs</span><span class="p">[</span><span class="n">sidx</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">obs</span></div>
+
+<div class="viewcode-block" id="LayoutFromFile.compute_reward"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.compute_reward">[docs]</a>    <span class="k">def</span> <span class="nf">compute_reward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the reward function(s) associated with this scenario to get the rewards</span>
+<span class="sd">        from this step.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            rew (dict): A dictionary of {agent.idx: agent_obs_dict}. In words,</span>
+<span class="sd">                return a dictionary with an entry for each agent in the environment</span>
+<span class="sd">                (including the planner). For each entry, the key specifies the index of</span>
+<span class="sd">                the agent and the value contains the scalar reward earned this timestep.</span>
+
+<span class="sd">        Rewards are computed as the marginal utility (agents) or marginal social</span>
+<span class="sd">        welfare (planner) experienced on this timestep. Ignoring discounting,</span>
+<span class="sd">        this means that agents&#39; (planner&#39;s) objective is to maximize the utility</span>
+<span class="sd">        (social welfare) associated with the terminal state of the episode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># &quot;curr_optimization_metric&quot; hasn&#39;t been updated yet, so it gives us the</span>
+        <span class="c1"># utility from the last step.</span>
+        <span class="n">utility_at_end_of_last_time_step</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span><span class="p">)</span>
+
+        <span class="c1"># compute current objectives and store the values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_optimization_metrics</span><span class="p">()</span>
+
+        <span class="c1"># reward = curr - prev objectives</span>
+        <span class="n">rew</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">utility_at_end_of_last_time_step</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="c1"># store the previous objective values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_optimization_metric</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">utility_at_end_of_last_time_step</span><span class="p">)</span>
+
+        <span class="c1"># Automatic Energy Cost Annealing</span>
+        <span class="c1"># -------------------------------</span>
+        <span class="n">avg_agent_rew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">rew</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">])</span>
+        <span class="c1"># Count the number of timesteps where the avg agent reward was &gt; 0</span>
+        <span class="k">if</span> <span class="n">avg_agent_rew</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_auto_warmup_integrator</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">rew</span></div>
+
+    <span class="c1"># Optional methods for customization</span>
+    <span class="c1"># ----------------------------------</span>
+
+<div class="viewcode-block" id="LayoutFromFile.additional_reset_steps"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extra scenario-specific steps that should be performed at the end of the reset</span>
+<span class="sd">        cycle.</span>
+
+<span class="sd">        For each reset cycle...</span>
+<span class="sd">            First, reset_starting_layout() and reset_agent_states() will be called.</span>
+
+<span class="sd">            Second, &lt;component&gt;.reset() will be called for each registered component.</span>
+
+<span class="sd">            Lastly, this method will be called to allow for any final customization of</span>
+<span class="sd">            the reset cycle.</span>
+
+<span class="sd">        For this scenario, this method resets optimization metric trackers. If using</span>
+<span class="sd">        fixed_four_skill_and_loc, this is where each agent gets assigned to one of</span>
+<span class="sd">        the four fixed skill/loc combinations. The agent--&gt;skill/loc assignment is</span>
+<span class="sd">        permuted so that all four skill/loc combinations are used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_four_skill_and_loc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">clear_agent_locs</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">agent</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">get_random_order_agents</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">set_agent_loc</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_ranked_locs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;build_payment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avg_ranked_skill</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># compute current objectives</span>
+        <span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_optimization_metrics</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">curr_optimization_metric</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_optimization_metric</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">curr_optimization_metric</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_optimization_metric</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">curr_optimization_metric</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayoutFromFile.scenario_metrics"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.scenario_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">scenario_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Allows the scenario to generate metrics (collected along with component metrics</span>
+<span class="sd">        in the &#39;metrics&#39; property).</span>
+
+<span class="sd">        To have the scenario add metrics, this function needs to return a dictionary of</span>
+<span class="sd">        {metric_key: value} where &#39;value&#39; is a scalar (no nesting or lists!)</span>
+
+<span class="sd">        Here, summarize social metrics, endowments, utilities, and labor cost annealing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="n">coin_endowments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">total_endowment</span><span class="p">(</span><span class="s2">&quot;Coin&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;social/productivity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">social_metrics</span><span class="o">.</span><span class="n">get_productivity</span><span class="p">(</span>
+            <span class="n">coin_endowments</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;social/equality&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">social_metrics</span><span class="o">.</span><span class="n">get_equality</span><span class="p">(</span><span class="n">coin_endowments</span><span class="p">)</span>
+
+        <span class="n">utilities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span>
+            <span class="s2">&quot;social_welfare/coin_eq_times_productivity&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">coin_eq_times_productivity</span><span class="p">(</span>
+            <span class="n">coin_endowments</span><span class="o">=</span><span class="n">coin_endowments</span><span class="p">,</span> <span class="n">equality_weight</span><span class="o">=</span><span class="mf">1.0</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span>
+            <span class="s2">&quot;social_welfare/inv_income_weighted_coin_endow&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">inv_income_weighted_coin_endowments</span><span class="p">(</span><span class="n">coin_endowments</span><span class="o">=</span><span class="n">coin_endowments</span><span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span>
+            <span class="s2">&quot;social_welfare/inv_income_weighted_utility&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">rewards</span><span class="o">.</span><span class="n">inv_income_weighted_utility</span><span class="p">(</span>
+            <span class="n">coin_endowments</span><span class="o">=</span><span class="n">coin_endowments</span><span class="p">,</span> <span class="n">utilities</span><span class="o">=</span><span class="n">utilities</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">resource</span><span class="p">,</span> <span class="n">quantity</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">metrics</span><span class="p">[</span>
+                    <span class="s2">&quot;endow/</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span> <span class="n">resource</span><span class="p">)</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">total_endowment</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">agent</span><span class="o">.</span><span class="n">endogenous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">resource</span><span class="p">,</span> <span class="n">quantity</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">endogenous</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;endogenous/</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span> <span class="n">resource</span><span class="p">)]</span> <span class="o">=</span> <span class="n">quantity</span>
+
+            <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;util/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span><span class="p">[</span>
+                <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+            <span class="p">]</span>
+
+        <span class="c1"># Labor weight</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;labor/weighted_cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_cost</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_weight</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;labor/warmup_integrator&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_auto_warmup_integrator</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">metrics</span></div></div>
+
+
+<div class="viewcode-block" id="SplitLayout"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout">[docs]</a><span class="nd">@scenario_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">SplitLayout</span><span class="p">(</span><span class="n">LayoutFromFile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extends layout_from_file/simple_wood_and_stone to impose a row of water midway</span>
+<span class="sd">    through the map, uses a fixed set of pareto-distributed building skills (requires a</span>
+<span class="sd">    Build component), and places agents in the top/bottom depending on skill rank.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        water_row (int): Row of the map where the water barrier is placed. Defaults</span>
+<span class="sd">        to half the world height.</span>
+<span class="sd">        skill_rank_of_top_agents (int, float, tuple, list): Index/indices specifying</span>
+<span class="sd">            which agent(s) to place in the top of the map. Indices refer to the skill</span>
+<span class="sd">            ranking, with 0 referring to the highest-skilled agent. Defaults to only</span>
+<span class="sd">            the highest-skilled agent in the top.</span>
+<span class="sd">        planner_gets_spatial_obs (bool): Whether the planner agent receives spatial</span>
+<span class="sd">            observations from the world.</span>
+<span class="sd">        full_observability (bool): Whether the mobile agents&#39; spatial observation</span>
+<span class="sd">            includes the full world view or is instead an egocentric view.</span>
+<span class="sd">        mobile_agent_observation_range (int): If not using full_observability,</span>
+<span class="sd">            the spatial range (on each side of the agent) that is visible in the</span>
+<span class="sd">            spatial observations.</span>
+<span class="sd">        env_layout_file (str): Name of the layout file in ./map_txt/ to use.</span>
+<span class="sd">            Note: The world dimensions of that layout must match the world dimensions</span>
+<span class="sd">            argument used to construct the environment.</span>
+<span class="sd">        resource_regen_prob (float): Probability that an empty source tile will</span>
+<span class="sd">            regenerate a new resource unit.</span>
+<span class="sd">        starting_agent_coin (int, float): Amount of coin agents have at t=0. Defaults</span>
+<span class="sd">            to zero coin.</span>
+<span class="sd">        isoelastic_eta (float): Parameter controlling the shape of agent utility</span>
+<span class="sd">            wrt coin endowment.</span>
+<span class="sd">        energy_cost (float): Coefficient for converting labor to negative utility.</span>
+<span class="sd">        energy_warmup_constant (float): Decay constant that controls the rate at which</span>
+<span class="sd">            the effective energy cost is annealed from 0 to energy_cost. Set to 0</span>
+<span class="sd">            (default) to disable annealing, meaning that the effective energy cost is</span>
+<span class="sd">            always energy_cost. The units of the decay constant depend on the choice of</span>
+<span class="sd">            energy_warmup_method.</span>
+<span class="sd">        energy_warmup_method (str): How to schedule energy annealing (warmup). If</span>
+<span class="sd">            &quot;decay&quot; (default), use the number of completed episodes. If &quot;auto&quot;,</span>
+<span class="sd">            use the number of timesteps where the average agent reward was positive.</span>
+<span class="sd">        planner_reward_type (str): The type of reward used for the planner. Options</span>
+<span class="sd">            are &quot;coin_eq_times_productivity&quot; (default),</span>
+<span class="sd">            &quot;inv_income_weighted_coin_endowment&quot;, and &quot;inv_income_weighted_utility&quot;.</span>
+<span class="sd">        mixing_weight_gini_vs_coin (float): Degree to which equality is ignored w/</span>
+<span class="sd">            &quot;coin_eq_times_productivity&quot;. Default is 0, which weights equality and</span>
+<span class="sd">            productivity equally. If set to 1, only productivity is rewarded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;split_layout/simple_wood_and_stone&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">water_row</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">skill_rank_of_top_agents</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_four_skill_and_loc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The split layout scenario does not support &quot;</span>
+                <span class="s2">&quot;fixed_four_skill_and_loc. Set this to False.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Augment the fixed layout to include a row of water through the middle</span>
+        <span class="k">if</span> <span class="n">water_row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_water_line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_water_line</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">water_row</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_water_line</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">landmark</span><span class="p">,</span> <span class="n">landmark_map</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_maps</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">landmark_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_water_line</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">landmark</span> <span class="o">==</span> <span class="s2">&quot;Water&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_source_maps</span><span class="p">[</span><span class="n">landmark</span><span class="p">]</span> <span class="o">=</span> <span class="n">landmark_map</span>
+
+        <span class="c1"># Controls logic for which agents (by skill rank) get placed on the top</span>
+        <span class="k">if</span> <span class="n">skill_rank_of_top_agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">skill_rank_of_top_agents</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">skill_rank_of_top_agents</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skill_rank_of_top_agents</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">skill_rank_of_top_agents</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">skill_rank_of_top_agents</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skill_rank_of_top_agents</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">skill_rank_of_top_agents</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;skill_rank_of_top_agents must be a scalar &quot;</span>
+                <span class="s2">&quot;index, or a list of scalar indices.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">rank</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">skill_rank_of_top_agents</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skill_rank_of_top_agents</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span>
+
+        <span class="c1"># Set the skill associated with each skill rank</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_component</span><span class="p">(</span><span class="s2">&quot;Build&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">bm</span><span class="o">.</span><span class="n">skill_dist</span> <span class="o">==</span> <span class="s2">&quot;pareto&quot;</span>
+        <span class="n">pmsm</span> <span class="o">=</span> <span class="n">bm</span><span class="o">.</span><span class="n">payment_max_skill_multiplier</span>
+        <span class="c1"># Generate a batch (100000) of num_agents (sorted/clipped) Pareto samples.</span>
+        <span class="n">pareto_samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">pareto</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">))</span>
+        <span class="n">clipped_skills</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">pmsm</span><span class="p">,</span> <span class="p">(</span><span class="n">pmsm</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">pareto_samples</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">sorted_clipped_skills</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">clipped_skills</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># The skill level of the i-th skill-ranked agent is the average of the</span>
+        <span class="c1"># i-th ranked samples throughout the batch.</span>
+        <span class="n">average_ranked_skills</span> <span class="o">=</span> <span class="n">sorted_clipped_skills</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_avg_ranked_skill</span> <span class="o">=</span> <span class="n">average_ranked_skills</span> <span class="o">*</span> <span class="n">bm</span><span class="o">.</span><span class="n">payment</span>
+        <span class="c1"># Reverse the order so index 0 is the highest-skilled</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_avg_ranked_skill</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avg_ranked_skill</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="SplitLayout.additional_reset_steps"><a class="viewcode-back" href="../../../../foundation.scenarios.simple_wood_and_stone.html#foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extra scenario-specific steps that should be performed at the end of the reset</span>
+<span class="sd">        cycle.</span>
+
+<span class="sd">        For each reset cycle...</span>
+<span class="sd">            First, reset_starting_layout() and reset_agent_states() will be called.</span>
+
+<span class="sd">            Second, &lt;component&gt;.reset() will be called for each registered component.</span>
+
+<span class="sd">            Lastly, this method will be called to allow for any final customization of</span>
+<span class="sd">            the reset cycle.</span>
+
+<span class="sd">        For this scenario, this method resets optimization metric trackers. This is</span>
+<span class="sd">        where each agent gets assigned to one of the skills and the starting</span>
+<span class="sd">        locations are reset according to self.skill_rank_of_top_agents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">clear_agent_locs</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">agent</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">get_random_order_agents</span><span class="p">()):</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;build_payment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avg_ranked_skill</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">skill_rank_of_top_agents</span><span class="p">:</span>
+                <span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_water_line</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_water_line</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">)</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">n_tries</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">can_agent_occupy</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">r_min</span><span class="p">,</span> <span class="n">r_max</span><span class="p">)</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">n_tries</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">n_tries</span> <span class="o">&gt;</span> <span class="mi">200</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TimeoutError</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">set_agent_loc</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+
+        <span class="c1"># compute current objectives</span>
+        <span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_optimization_metrics</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_optimization_metric</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">curr_optimization_metric</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_optimization_metric</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">curr_optimization_metric</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_optimization_metric</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">curr_optimization_metric</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

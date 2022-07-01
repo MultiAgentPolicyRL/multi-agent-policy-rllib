@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.components.covid19_components &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.components.covid19_components</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.components.covid19_components</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2021, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">import</span> <span class="nn">GPUtil</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.base_component</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseComponent</span><span class="p">,</span>
+    <span class="n">component_registry</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">num_gpus_available</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">GPUtil</span><span class="o">.</span><span class="n">getAvailable</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Inside covid19_components.py: </span><span class="si">{</span><span class="n">num_gpus_available</span><span class="si">}</span><span class="s2"> GPUs are available.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num_gpus_available</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No GPUs found! Running the simulation on a CPU.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">warp_drive.utils.constants</span> <span class="kn">import</span> <span class="n">Constants</span>
+        <span class="kn">from</span> <span class="nn">warp_drive.utils.data_feed</span> <span class="kn">import</span> <span class="n">DataFeed</span>
+
+        <span class="n">_OBSERVATIONS</span> <span class="o">=</span> <span class="n">Constants</span><span class="o">.</span><span class="n">OBSERVATIONS</span>
+        <span class="n">_ACTIONS</span> <span class="o">=</span> <span class="n">Constants</span><span class="o">.</span><span class="n">ACTIONS</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;Warning: The &#39;WarpDrive&#39; package is not found and cannot be used! &quot;</span>
+        <span class="s2">&quot;If you wish to use WarpDrive, please run &quot;</span>
+        <span class="s2">&quot;&#39;pip install rl-warp-drive&#39; first.&quot;</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No GPUs found! Running the simulation on a CPU.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus">[docs]</a><span class="nd">@component_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">ControlUSStateOpenCloseStatus</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets the open/close stringency levels for states.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        n_stringency_levels (int): number of stringency levels the states can chose</span>
+<span class="sd">            from. (Must match the number in the model constants dictionary referenced by</span>
+<span class="sd">            the parent scenario.)</span>
+<span class="sd">        action_cooldown_period (int): action cooldown period in days.</span>
+<span class="sd">            Once a stringency level is set, the state(s) cannot switch to another level</span>
+<span class="sd">            for a certain number of days (referred to as the &quot;action_cooldown_period&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ControlUSStateOpenCloseStatus&quot;</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span>
+        <span class="n">n_stringency_levels</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">action_cooldown_period</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_cooldown_period</span> <span class="o">=</span> <span class="n">action_cooldown_period</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span> <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_int_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_stringency_levels</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checked_n_stringency_levels</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_agent_action_mask</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_op_agent_action_mask</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">no_op_agent_action_mask</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span>
+            <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># (This will be overwritten during reset; see below)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.get_additional_state_fields"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.get_additional_state_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_additional_state_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Store the times when the next set of actions can be taken.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.get_n_actions"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.get_n_actions">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.generate_masks"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.generate_masks">[docs]</a>    <span class="k">def</span> <span class="nf">generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_real_world_policies</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][:,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_agent_action_mask</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]:</span>
+                    <span class="c1"># Keep masking the actions</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][:,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_op_agent_action_mask</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># self.world.timestep == self.action_in_cooldown_until[agent.idx]</span>
+                    <span class="c1"># Cooldown period has ended; unmask the &quot;subsequent&quot; action</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][:,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_agent_action_mask</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.get_data_dictionary"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.get_data_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a dictionary of data to push to the GPU (device).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_dict</span> <span class="o">=</span> <span class="n">DataFeed</span><span class="p">()</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;action_cooldown_period&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">action_cooldown_period</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;action_in_cooldown_until&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span><span class="p">,</span>
+            <span class="n">save_copy_and_apply_at_reset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;num_stringency_levels&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default_agent_action_mask&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_agent_action_mask</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_op_agent_action_mask&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_op_agent_action_mask</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">data_dict</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.get_tensor_dictionary"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.get_tensor_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_tensor_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a dictionary of (Pytorch-accessible) data to push to the GPU (device).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tensor_dict</span> <span class="o">=</span> <span class="n">DataFeed</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">tensor_dict</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.component_step"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.component_step">[docs]</a>    <span class="k">def</span> <span class="nf">component_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_component_step</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">](</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;stringency_level&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;action_cooldown_period&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;action_in_cooldown_until&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;default_agent_action_mask&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;no_op_agent_action_mask&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;num_stringency_levels&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_ACTIONS</span><span class="si">}</span><span class="s2">_a&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_a_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-agent_policy_indicators&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_a_action_mask&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_p_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-agent_policy_indicators&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;_timestep_&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;n_agents&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;episode_length&quot;</span><span class="p">),</span>
+                <span class="n">block</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">block</span><span class="p">,</span>
+                <span class="n">grid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checked_n_stringency_levels</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">n_stringency_levels</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;The environment was not configured correctly. For the given &quot;</span>
+                        <span class="s2">&quot;model fit, you need to set the number of stringency levels to &quot;</span>
+                        <span class="s2">&quot;be </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">n_stringency_levels</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_checked_n_stringency_levels</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_real_world_policies</span><span class="p">:</span>
+                    <span class="c1"># Use the action taken in the previous timestep</span>
+                    <span class="n">action</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">real_world_stringency_policy</span><span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">action</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_component_action</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">action</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span>
+
+                <span class="c1"># We only update the stringency level if the action is not a NO-OP.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">global_state</span><span class="p">[</span><span class="s2">&quot;Stringency Level&quot;</span><span class="p">][</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">global_state</span><span class="p">[</span><span class="s2">&quot;Stringency Level&quot;</span><span class="p">][</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+                    <span class="p">]</span>
+                    <span class="o">*</span> <span class="p">(</span><span class="n">action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">action</span>
+                <span class="p">)</span>
+
+                <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span>
+                    <span class="s2">&quot;Current Open Close Stringency Level&quot;</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">global_state</span><span class="p">[</span><span class="s2">&quot;Stringency Level&quot;</span><span class="p">][</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+                <span class="p">]</span>
+
+                <span class="c1"># Check if the action cooldown period has ended, and set the next</span>
+                <span class="c1"># time until action cooldown. If current action is a no-op</span>
+                <span class="c1"># (i.e., no new action was taken), the agent can take an action</span>
+                <span class="c1"># in the very next step, otherwise it needs to wait for</span>
+                <span class="c1"># self.action_cooldown_period steps. When in the action cooldown</span>
+                <span class="c1"># period, whatever actions the agents take are masked out,</span>
+                <span class="c1"># so it&#39;s always a NO-OP (see generate_masks() above)</span>
+                <span class="c1"># The logic below influences the action masks.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># NO-OP</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">action_in_cooldown_until</span><span class="p">[</span>
+                            <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+                        <span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_cooldown_period</span></div>
+
+<div class="viewcode-block" id="ControlUSStateOpenCloseStatus.generate_observations"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.ControlUSStateOpenCloseStatus.generate_observations">[docs]</a>    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># Normalized observations</span>
+        <span class="n">obs_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">agent_policy_indicators</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">global_state</span><span class="p">[</span><span class="s2">&quot;Stringency Level&quot;</span><span class="p">][</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span>
+        <span class="p">]</span>
+        <span class="n">obs_dict</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;agent_policy_indicators&quot;</span><span class="p">:</span> <span class="n">agent_policy_indicators</span>
+            <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span>
+        <span class="p">}</span>
+        <span class="n">obs_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;agent_policy_indicators&quot;</span><span class="p">:</span> <span class="n">agent_policy_indicators</span>
+            <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_stringency_levels</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">obs_dict</span></div></div>
+
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy">[docs]</a><span class="nd">@component_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">FederalGovernmentSubsidy</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        subsidy_interval (int): The number of days over which the total subsidy amount</span>
+<span class="sd">            is evenly rolled out.</span>
+<span class="sd">            Note: shortening the subsidy interval increases the total amount of money</span>
+<span class="sd">            that the planner could possibly spend. For instance, if the subsidy</span>
+<span class="sd">            interval is 30, the planner can create a subsidy every 30 days.</span>
+<span class="sd">        num_subsidy_levels (int): The number of subsidy levels.</span>
+<span class="sd">            Note: with max_annual_subsidy_per_person=10000, one round of subsidies at</span>
+<span class="sd">            the maximum subsidy level equals an expenditure of roughly $3.3 trillion</span>
+<span class="sd">            (given the US population of 330 million).</span>
+<span class="sd">            If the planner chooses the maximum subsidy amount, the $3.3 trillion</span>
+<span class="sd">            is rolled out gradually over the subsidy interval.</span>
+<span class="sd">        max_annual_subsidy_per_person (float): The maximum annual subsidy that may be</span>
+<span class="sd">            allocated per person.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;FederalGovernmentSubsidy&quot;</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BasicPlanner&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span>
+        <span class="n">subsidy_interval</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+        <span class="n">num_subsidy_levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">max_annual_subsidy_per_person</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">subsidy_interval</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_subsidy_levels</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_annual_subsidy_per_person</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">max_annual_subsidy_per_person</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_annual_subsidy_per_person</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_int_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+
+        <span class="c1"># (This will be overwritten during component_step; see below)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_amount_per_level</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_level_array</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span> <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_planner_action_mask</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_op_planner_action_mask</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span><span class="p">)]</span>
+
+        <span class="c1"># (This will be overwritten during reset; see below)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_daily_subsidy_per_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_int_dtype</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.get_additional_state_fields"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.get_additional_state_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_additional_state_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicPlanner&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;Total Subsidy&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Current Subsidy Level&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Pre-compute maximum state-specific subsidy levels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_daily_subsidy_per_state</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">us_state_population</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_annual_subsidy_per_person</span> <span class="o">/</span> <span class="mi">365</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.get_n_actions"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.get_n_actions">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicPlanner&quot;</span><span class="p">:</span>
+            <span class="c1"># Number of non-zero subsidy levels</span>
+            <span class="c1"># (the action 0 pertains to the no-subsidy case)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.generate_masks"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.generate_masks">[docs]</a>    <span class="k">def</span> <span class="nf">generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_real_world_policies</span><span class="p">:</span>
+            <span class="n">masks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_planner_action_mask</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">masks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_planner_action_mask</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">masks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_op_planner_action_mask</span>
+        <span class="k">return</span> <span class="n">masks</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.get_data_dictionary"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.get_data_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a dictionary of data to push to the device</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_dict</span> <span class="o">=</span> <span class="n">DataFeed</span><span class="p">()</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;subsidy_interval&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;num_subsidy_levels&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;max_daily_subsidy_per_state&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_daily_subsidy_per_state</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default_planner_action_mask&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_planner_action_mask</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_op_planner_action_mask&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_op_planner_action_mask</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">data_dict</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.get_tensor_dictionary"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.get_tensor_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_tensor_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a dictionary of (Pytorch-accessible) data to push to the device</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tensor_dict</span> <span class="o">=</span> <span class="n">DataFeed</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">tensor_dict</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.component_step"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.component_step">[docs]</a>    <span class="k">def</span> <span class="nf">component_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_component_step</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">](</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;subsidy_level&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;subsidy&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;subsidy_interval&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;num_subsidy_levels&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;max_daily_subsidy_per_state&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;default_planner_action_mask&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;no_op_planner_action_mask&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_ACTIONS</span><span class="si">}</span><span class="s2">_p&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_a_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-t_until_next_subsidy&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_a_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-current_subsidy_level&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_p_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-t_until_next_subsidy&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_p_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-current_subsidy_level&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_p_action_mask&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;_timestep_&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;n_agents&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;episode_length&quot;</span><span class="p">),</span>
+                <span class="n">block</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">block</span><span class="p">,</span>
+                <span class="n">grid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_real_world_policies</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_amount_per_level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_amount_per_level</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">us_population</span>
+                        <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_annual_subsidy_per_person</span>
+                        <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span>
+                        <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span>
+                        <span class="o">/</span> <span class="mi">365</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_level_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="c1"># Use the action taken in the previous timestep</span>
+                <span class="n">current_subsidy_amount</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">real_world_subsidy</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">current_subsidy_amount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">_subsidy_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">current_subsidy_amount</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_amount_per_level</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">t_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="nb">min</span><span class="p">(</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_level_array</span><span class="p">),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_level_array</span><span class="p">[</span><span class="n">t_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">_subsidy_level</span>
+                <span class="n">subsidy_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subsidy_level_array</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Update the subsidy level only every self.subsidy_interval, since the</span>
+                <span class="c1"># other actions are masked out.</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">subsidy_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">get_component_action</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">subsidy_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;Current Subsidy Level&quot;</span><span class="p">]</span>
+
+            <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">subsidy_level</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;Current Subsidy Level&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="n">subsidy_level</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">np_int_dtype</span><span class="p">)</span>
+
+            <span class="c1"># Update subsidy level</span>
+            <span class="n">subsidy_level_frac</span> <span class="o">=</span> <span class="n">subsidy_level</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span>
+            <span class="n">daily_statewise_subsidy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">subsidy_level_frac</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_daily_subsidy_per_state</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">global_state</span><span class="p">[</span><span class="s2">&quot;Subsidy&quot;</span><span class="p">][</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">daily_statewise_subsidy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;Total Subsidy&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">daily_statewise_subsidy</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FederalGovernmentSubsidy.generate_observations"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.FederalGovernmentSubsidy.generate_observations">[docs]</a>    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Allow the agents/planner to know when the next subsidy might come.</span>
+        <span class="c1"># Obs should = 0 when the next timestep could include a subsidy</span>
+        <span class="n">t_since_last_subsidy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span>
+        <span class="c1"># (this is normalized to 0&lt;--&gt;1)</span>
+        <span class="n">t_until_next_subsidy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span> <span class="o">-</span> <span class="n">t_since_last_subsidy</span>
+        <span class="n">t_vec</span> <span class="o">=</span> <span class="n">t_until_next_subsidy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+
+        <span class="n">current_subsidy_level</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;Current Subsidy Level&quot;</span><span class="p">]</span>
+        <span class="n">sl_vec</span> <span class="o">=</span> <span class="n">current_subsidy_level</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+
+        <span class="c1"># Normalized observations</span>
+        <span class="n">obs_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">obs_dict</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;t_until_next_subsidy&quot;</span><span class="p">:</span> <span class="n">t_vec</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span><span class="p">,</span>
+            <span class="s2">&quot;current_subsidy_level&quot;</span><span class="p">:</span> <span class="n">sl_vec</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">obs_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;t_until_next_subsidy&quot;</span><span class="p">:</span> <span class="n">t_until_next_subsidy</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsidy_interval</span><span class="p">,</span>
+            <span class="s2">&quot;current_subsidy_level&quot;</span><span class="p">:</span> <span class="n">current_subsidy_level</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_subsidy_levels</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">obs_dict</span></div></div>
+
+
+<div class="viewcode-block" id="VaccinationCampaign"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign">[docs]</a><span class="nd">@component_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">VaccinationCampaign</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a (passive) component for delivering vaccines to agents once a certain</span>
+<span class="sd">    amount of time has elapsed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        daily_vaccines_per_million_people (int): The number of vaccines available per</span>
+<span class="sd">            million people everyday.</span>
+<span class="sd">        delivery_interval (int): The number of days between vaccine deliveries.</span>
+<span class="sd">        vaccine_delivery_start_date (string): The date (YYYY-MM-DD) when the</span>
+<span class="sd">            vaccination begins.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;VaccinationCampaign&quot;</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span>
+        <span class="n">daily_vaccines_per_million_people</span><span class="o">=</span><span class="mi">4500</span><span class="p">,</span>
+        <span class="n">delivery_interval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">vaccine_delivery_start_date</span><span class="o">=</span><span class="s2">&quot;2020-12-22&quot;</span><span class="p">,</span>
+        <span class="n">observe_rate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">daily_vaccines_per_million_people</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">daily_vaccines_per_million_people</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">daily_vaccines_per_million_people</span> <span class="o">&lt;=</span> <span class="mf">1e6</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">delivery_interval</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span> <span class="o">&lt;=</span> <span class="mi">5000</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vaccine_delivery_start_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span>
+                <span class="n">vaccine_delivery_start_date</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Incorrect data format, should be YYYY-MM-DD&quot;</span><span class="p">)</span>
+
+        <span class="c1"># (This will  be overwritten during component_step (see below))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_time_when_vaccine_delivery_begins</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_int_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">observe_rate</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">observe_rate</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span> <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># (This will be overwritten during reset; see below)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_vaccines_per_delivery</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># Convenience for obs (see usage below):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">num_vaccines_per_delivery</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_vaccines_per_delivery</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Pre-compute dispersal numbers</span>
+            <span class="n">millions_of_residents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">us_state_population</span> <span class="o">/</span> <span class="mf">1e6</span>
+            <span class="n">daily_vaccines</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">millions_of_residents</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">daily_vaccines_per_million_people</span>
+            <span class="p">)</span>
+            <span class="n">num_vaccines_per_delivery</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span> <span class="o">*</span> <span class="n">daily_vaccines</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_vaccines_per_delivery</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="n">num_vaccines_per_delivery</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_int_dtype</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_vaccines_per_delivery</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_when_vaccine_delivery_begins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_when_vaccine_delivery_begins</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_time_when_vaccine_delivery_begins</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">vaccine_delivery_start_date</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">start_date</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">days</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_when_vaccine_delivery_begins</span>
+
+<div class="viewcode-block" id="VaccinationCampaign.get_additional_state_fields"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.get_additional_state_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_additional_state_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;Total Vaccinated&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Vaccines Available&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.get_n_actions"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.get_n_actions">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="k">return</span>  <span class="c1"># Passive component</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.generate_masks"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.generate_masks">[docs]</a>    <span class="k">def</span> <span class="nf">generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{}</span>  <span class="c1"># Passive component</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.get_data_dictionary"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.get_data_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a dictionary of data to push to the device</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_dict</span> <span class="o">=</span> <span class="n">DataFeed</span><span class="p">()</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;num_vaccines_per_delivery&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_vaccines_per_delivery</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;delivery_interval&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;time_when_vaccine_delivery_begins&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_when_vaccine_delivery_begins</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;num_vaccines_available_t&quot;</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">),</span>
+            <span class="n">save_copy_and_apply_at_reset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">data_dict</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.get_tensor_dictionary"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.get_tensor_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_tensor_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a dictionary of (Pytorch-accessible) data to push to the device</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tensor_dict</span> <span class="o">=</span> <span class="n">DataFeed</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">tensor_dict</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.component_step"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.component_step">[docs]</a>    <span class="k">def</span> <span class="nf">component_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_component_step</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">](</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;vaccinated&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;num_vaccines_per_delivery&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;num_vaccines_available_t&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;delivery_interval&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="s2">&quot;time_when_vaccine_delivery_begins&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_a_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-t_until_next_vaccines&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_OBSERVATIONS</span><span class="si">}</span><span class="s2">_p_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-t_until_next_vaccines&quot;</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">device_data</span><span class="p">(</span><span class="s2">&quot;_timestep_&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;n_agents&quot;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;episode_length&quot;</span><span class="p">),</span>
+                <span class="n">block</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">block</span><span class="p">,</span>
+                <span class="n">grid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Do nothing if vaccines are not available yet</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_when_vaccine_delivery_begins</span><span class="p">:</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Do nothing if this is not the start of a delivery interval.</span>
+            <span class="c1"># Vaccines are delivered at the start of each interval.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Deliver vaccines to each state</span>
+            <span class="k">for</span> <span class="n">aidx</span><span class="p">,</span> <span class="n">vaccines</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_vaccines_per_delivery</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="n">aidx</span><span class="p">]</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;Vaccines Available&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vaccines</span></div>
+
+<div class="viewcode-block" id="VaccinationCampaign.generate_observations"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.covid19_components.VaccinationCampaign.generate_observations">[docs]</a>    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Allow the agents/planner to know when the next vaccines might come.</span>
+        <span class="c1"># Obs should = 0 when the next timestep will deliver vaccines</span>
+        <span class="c1"># (this is normalized to 0&lt;--&gt;1)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_when_vaccine_delivery_begins</span><span class="p">)</span>
+            <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">next_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">next_t</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span><span class="p">:</span>
+            <span class="n">t_until_next_vac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_t_first_delivery</span> <span class="o">-</span> <span class="n">next_t</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span>
+            <span class="p">)</span>
+            <span class="n">next_vax_rate</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">t_since_last_vac</span> <span class="o">=</span> <span class="n">next_t</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span>
+            <span class="n">t_until_next_vac</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span> <span class="o">-</span> <span class="n">t_since_last_vac</span>
+            <span class="n">next_vax_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">daily_vaccines_per_million_people</span> <span class="o">/</span> <span class="mf">1e6</span>
+        <span class="n">t_vec</span> <span class="o">=</span> <span class="n">t_until_next_vac</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+        <span class="n">r_vec</span> <span class="o">=</span> <span class="n">next_vax_rate</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+
+        <span class="c1"># Normalized observations</span>
+        <span class="n">obs_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">obs_dict</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;t_until_next_vaccines&quot;</span><span class="p">:</span> <span class="n">t_vec</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span><span class="p">}</span>
+        <span class="n">obs_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;t_until_next_vaccines&quot;</span><span class="p">:</span> <span class="n">t_until_next_vac</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_interval</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observe_rate</span><span class="p">:</span>
+            <span class="n">obs_dict</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][</span><span class="s2">&quot;next_vaccination_rate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r_vec</span>
+            <span class="n">obs_dict</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">][</span><span class="s2">&quot;next_vaccination_rate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">next_vax_rate</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">obs_dict</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

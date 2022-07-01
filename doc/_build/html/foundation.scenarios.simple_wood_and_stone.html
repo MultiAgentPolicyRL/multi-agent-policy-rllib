@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.scenarios.simple_wood_and_stone package &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="foundation.scenarios.utils package" href="foundation.scenarios.utils.html" />
+    <link rel="prev" title="foundation.scenarios.one_step_economy package" href="foundation.scenarios.one_step_economy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">foundation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="foundation.html">foundation package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="foundation.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="foundation.agents.html">foundation.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="foundation.base.html">foundation.base package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="foundation.components.html">foundation.components package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="foundation.entities.html">foundation.entities package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="foundation.scenarios.html">foundation.scenarios package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#module-foundation.env_wrapper">foundation.env_wrapper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#module-foundation.utils">foundation.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#module-foundation">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">foundation</a> &raquo;</li>
+          <li><a href="foundation.html">foundation package</a> &raquo;</li>
+          <li><a href="foundation.scenarios.html">foundation.scenarios package</a> &raquo;</li>
+      <li>foundation.scenarios.simple_wood_and_stone package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/foundation.scenarios.simple_wood_and_stone.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="foundation-scenarios-simple-wood-and-stone-package">
+<h1>foundation.scenarios.simple_wood_and_stone package<a class="headerlink" href="#foundation-scenarios-simple-wood-and-stone-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-foundation.scenarios.simple_wood_and_stone.dynamic_layout">
+<span id="foundation-scenarios-simple-wood-and-stone-dynamic-layout-module"></span><h2>foundation.scenarios.simple_wood_and_stone.dynamic_layout module<a class="headerlink" href="#module-foundation.scenarios.simple_wood_and_stone.dynamic_layout" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.scenarios.simple_wood_and_stone.dynamic_layout.</span></span><span class="sig-name descname"><span class="pre">MultiZone</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_partitions_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_partitions_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_wood_zones</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_stone_zones</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_wood_and_stone_zones</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#MultiZone"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform" title="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform"><code class="xref py py-class docutils literal notranslate"><span class="pre">foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform</span></code></a></p>
+<p>World containing stone and wood clustered in “zones” with stochastic regeneration.</p>
+<dl>
+<dt>For controlling how resource regeneration behavior…</dt><dd><dl class="simple">
+<dt>Regen Halfwidth: width of regen kernel = 1 + (2 * halfwidth); set &gt;0 to create</dt><dd><p>spatial social dilemma</p>
+</dd>
+</dl>
+<p>Regen Weight: regen probability per tile counted by the regen kernel
+Max Health: how many resource units can populate a source block</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_partitions_row</strong> (<em>int</em>) – Number of height-wise partitions (controls #zones).</p></li>
+<li><p><strong>num_partitions_col</strong> (<em>int</em>) – Number of width-wise partitions (controls #zones).</p></li>
+<li><p><strong>num_wood_zones</strong> (<em>int</em>) – Number of zones where wood will appear.</p></li>
+<li><p><strong>num_stone_zones</strong> (<em>int</em>) – Number of zones where stone will appear.</p></li>
+<li><p><strong>num_wood_and_stone_zones</strong> (<em>int</em>) – Number of zones where both wood and stone will
+appear.</p></li>
+<li><p><strong>planner_gets_spatial_obs</strong> (<em>bool</em>) – Whether the planner agent receives spatial
+observations from the world.</p></li>
+<li><p><strong>full_observability</strong> (<em>bool</em>) – Whether the mobile agents’ spatial observation
+includes the full world view or is instead an egocentric view.</p></li>
+<li><p><strong>mobile_agent_observation_range</strong> (<em>int</em>) – If not using full_observability,
+the spatial range (on each side of the agent) that is visible in the
+spatial observations.</p></li>
+<li><p><strong>wood_regen_halfwidth</strong> (<em>int</em>) – Regen halfwidth for wood.</p></li>
+<li><p><strong>wood_regen_weight</strong> (<em>float</em>) – Regen weight for wood.</p></li>
+<li><p><strong>wood_max_health</strong> (<em>int</em>) – Max wood units per wood source tile.</p></li>
+<li><p><strong>stone_regen_halfwidth</strong> (<em>int</em>) – Regen halfwidth for stone.</p></li>
+<li><p><strong>stone_regen_weight</strong> (<em>float</em>) – Regen weight for stone.</p></li>
+<li><p><strong>stone_max_health</strong> (<em>int</em>) – Max stone units per stone source tile.</p></li>
+<li><p><strong>starting_agent_coin</strong> (<em>int</em><em>, </em><em>float</em>) – Amount of coin agents have at t=0.</p></li>
+<li><p><strong>isoelastic_eta</strong> (<em>float</em>) – Parameter controlling the shape of agent utility
+wrt coin endowment.</p></li>
+<li><p><strong>energy_cost</strong> (<em>float</em>) – Coefficient for converting labor to negative utility.</p></li>
+<li><p><strong>energy_warmup_constant</strong> (<em>float</em>) – Decay constant that controls the rate at which
+the effective energy cost is annealed from 0 to energy_cost. Set to 0
+(default) to disable annealing, meaning that the effective energy cost is
+always energy_cost. The units of the decay constant depend on the choice of
+energy_warmup_method.</p></li>
+<li><p><strong>energy_warmup_method</strong> (<em>str</em>) – How to schedule energy annealing (warmup). If
+“decay” (default), use the number of completed episodes. If “auto”,
+use the number of timesteps where the average agent reward was positive.</p></li>
+<li><p><strong>planner_reward_type</strong> (<em>str</em>) – The type of reward used for the planner. Options
+are “coin_eq_times_productivity” (default),
+“inv_income_weighted_coin_endowment”, and “inv_income_weighted_utility”.</p></li>
+<li><p><strong>mixing_weight_gini_vs_coin</strong> (<em>float</em>) – Degree to which equality is ignored w/
+“coin_eq_times_productivity”. Default is 0, which weights equality and
+productivity equally. If set to 1, only productivity is rewarded.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone.make_source_prob_maps">
+<span class="sig-name descname"><span class="pre">make_source_prob_maps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#MultiZone.make_source_prob_maps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone.make_source_prob_maps" title="Permalink to this definition"></a></dt>
+<dd><p>Make maps specifying how likely each location is to be assigned as a resource
+source tile.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Contains a source probability map for both</dt><dd><p>stone and wood.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>source_prob_maps (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'multi_zone/simple_wood_and_stone'</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone.reset_starting_layout">
+<span class="sig-name descname"><span class="pre">reset_starting_layout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#MultiZone.reset_starting_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.MultiZone.reset_starting_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the starting layout of the world. Modifies parent scenario method such
+that, before doing the reset, it first remakes the source prob maps.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.scenarios.simple_wood_and_stone.dynamic_layout.</span></span><span class="sig-name descname"><span class="pre">Quadrant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Quadrant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform" title="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform"><code class="xref py py-class docutils literal notranslate"><span class="pre">foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform</span></code></a></p>
+<p>World containing wood and stone, with water creating 4 nearly closed-off quadrants.
+Wood is concentrated along the left of the map, stone along the top, creating
+different resource concentrations within each of the quadrants.</p>
+<dl>
+<dt>For controlling how resource regeneration behavior…</dt><dd><dl class="simple">
+<dt>Coverage: if fraction, target fraction of total tiles; if integer, target number</dt><dd><p>of tiles</p>
+</dd>
+<dt>Regen Halfwidth: width of regen kernel = 1 + (2 * halfwidth); set &gt;0 to create</dt><dd><p>a spatial social dilemma</p>
+</dd>
+</dl>
+<p>Regen Weight: regen probability per tile counted by the regen kernel
+Max Health: how many resource units can populate a source block
+Clumpiness: degree to which resources are spatially clustered
+Gradient Steepness: degree to which stone/wood are restricted to the top/bottom</p>
+<blockquote>
+<div><p>of the map</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>planner_gets_spatial_obs</strong> (<em>bool</em>) – Whether the planner agent receives spatial
+observations from the world.</p></li>
+<li><p><strong>full_observability</strong> (<em>bool</em>) – Whether the mobile agents’ spatial observation
+includes the full world view or is instead an egocentric view.</p></li>
+<li><p><strong>mobile_agent_observation_range</strong> (<em>int</em>) – If not using full_observability,
+the spatial range (on each side of the agent) that is visible in the
+spatial observations.</p></li>
+<li><p><strong>starting_wood_coverage</strong> (<em>int</em><em>, </em><em>float</em>) – Target coverage of wood at t=0.</p></li>
+<li><p><strong>wood_regen_halfwidth</strong> (<em>int</em>) – Regen halfwidth for wood.</p></li>
+<li><p><strong>wood_regen_weight</strong> (<em>float</em>) – Regen weight for wood.</p></li>
+<li><p><strong>wood_max_health</strong> (<em>int</em>) – Max wood units per wood source tile.</p></li>
+<li><p><strong>wood_clumpiness</strong> (<em>float</em>) – Degree of wood clumping.</p></li>
+<li><p><strong>starting_stone_coverage</strong> (<em>int</em><em>, </em><em>float</em>) – Target coverage of stone at t=0.</p></li>
+<li><p><strong>stone_regen_halfwidth</strong> (<em>int</em>) – Regen halfwidth for stone.</p></li>
+<li><p><strong>stone_regen_weight</strong> (<em>float</em>) – Regen weight for stone.</p></li>
+<li><p><strong>stone_max_health</strong> (<em>int</em>) – Max stone units per stone source tile.</p></li>
+<li><p><strong>stone_clumpiness</strong> (<em>float</em>) – Degree of stone clumping.</p></li>
+<li><p><strong>gradient_steepness</strong> (<em>int</em><em>, </em><em>float</em>) – How steeply source tile probability falls
+off from the top/bottom of the map.</p></li>
+<li><p><strong>checker_source_blocks</strong> (<em>bool</em>) – Whether to space source tiles in a “checker”
+formation.</p></li>
+<li><p><strong>starting_agent_coin</strong> (<em>int</em><em>, </em><em>float</em>) – Amount of coin agents have at t=0.</p></li>
+<li><p><strong>isoelastic_eta</strong> (<em>float</em>) – Parameter controlling the shape of agent utility
+wrt coin endowment.</p></li>
+<li><p><strong>energy_cost</strong> (<em>float</em>) – Coefficient for converting labor to negative utility.</p></li>
+<li><p><strong>energy_warmup_constant</strong> (<em>float</em>) – Decay constant that controls the rate at which
+the effective energy cost is annealed from 0 to energy_cost. Set to 0
+(default) to disable annealing, meaning that the effective energy cost is
+always energy_cost. The units of the decay constant depend on the choice of
+energy_warmup_method.</p></li>
+<li><p><strong>energy_warmup_method</strong> (<em>str</em>) – How to schedule energy annealing (warmup). If
+“decay” (default), use the number of completed episodes. If “auto”,
+use the number of timesteps where the average agent reward was positive.</p></li>
+<li><p><strong>planner_reward_type</strong> (<em>str</em>) – The type of reward used for the planner. Options
+are “coin_eq_times_productivity” (default),
+“inv_income_weighted_coin_endowment”, and “inv_income_weighted_utility”.</p></li>
+<li><p><strong>mixing_weight_gini_vs_coin</strong> (<em>float</em>) – Degree to which equality is ignored w/
+“coin_eq_times_productivity”. Default is 0, which weights equality and
+productivity equally. If set to 1, only productivity is rewarded.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.make_source_prob_maps">
+<span class="sig-name descname"><span class="pre">make_source_prob_maps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Quadrant.make_source_prob_maps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.make_source_prob_maps" title="Permalink to this definition"></a></dt>
+<dd><p>Make maps specifying how likely each location is to be assigned as a resource
+source tile.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Contains a source probability map for both</dt><dd><p>stone and wood</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>source_prob_maps (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'quadrant/simple_wood_and_stone'</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.required_entities">
+<span class="sig-name descname"><span class="pre">required_entities</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Wood',</span> <span class="pre">'Stone',</span> <span class="pre">'Water']</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.required_entities" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.reset_starting_layout">
+<span class="sig-name descname"><span class="pre">reset_starting_layout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Quadrant.reset_starting_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Quadrant.reset_starting_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the starting layout of the world. Modifies parent scenario method to
+add water and remove resources from water locations.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.scenarios.simple_wood_and_stone.dynamic_layout.</span></span><span class="sig-name descname"><span class="pre">Uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">base_env_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planner_gets_spatial_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_observability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_agent_observation_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starting_wood_coverage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.025</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wood_regen_halfwidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wood_regen_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wood_max_health</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starting_stone_coverage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.025</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stone_regen_halfwidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stone_regen_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stone_max_health</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wood_clumpiness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.35</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stone_clumpiness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_steepness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checker_source_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starting_agent_coin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isoelastic_eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.23</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_cost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_warmup_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_warmup_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'decay'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planner_reward_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coin_eq_times_productivity'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mixing_weight_gini_vs_coin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">base_env_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ai_economist.foundation.base.base_env.BaseEnvironment</span></code></p>
+<p>World containing spatially-segregated stone and wood with stochastic regeneration.</p>
+<dl>
+<dt>For controlling how resource regeneration behavior…</dt><dd><dl class="simple">
+<dt>Coverage: if fraction, target fraction of total tiles; if integer, target number</dt><dd><p>of tiles</p>
+</dd>
+<dt>Regen Halfwidth: width of regen kernel = 1 + (2 * halfwidth); set &gt;0 to create</dt><dd><p>a spatial social dilemma</p>
+</dd>
+</dl>
+<p>Regen Weight: regen probability per tile counted by the regen kernel
+Max Health: how many resource units can populate a source block
+Clumpiness: degree to which resources are spatially clustered
+Gradient Steepness: degree to which stone/wood are restricted to the top/bottom</p>
+<blockquote>
+<div><p>of the map</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>planner_gets_spatial_obs</strong> (<em>bool</em>) – Whether the planner agent receives spatial
+observations from the world.</p></li>
+<li><p><strong>full_observability</strong> (<em>bool</em>) – Whether the mobile agents’ spatial observation
+includes the full world view or is instead an egocentric view.</p></li>
+<li><p><strong>mobile_agent_observation_range</strong> (<em>int</em>) – If not using full_observability,
+the spatial range (on each side of the agent) that is visible in the
+spatial observations.</p></li>
+<li><p><strong>starting_wood_coverage</strong> (<em>int</em><em>, </em><em>float</em>) – Target coverage of wood at t=0.</p></li>
+<li><p><strong>wood_regen_halfwidth</strong> (<em>int</em>) – Regen halfwidth for wood.</p></li>
+<li><p><strong>wood_regen_weight</strong> (<em>float</em>) – Regen weight for wood.</p></li>
+<li><p><strong>wood_max_health</strong> (<em>int</em>) – Max wood units per wood source tile.</p></li>
+<li><p><strong>wood_clumpiness</strong> (<em>float</em>) – Degree of wood clumping.</p></li>
+<li><p><strong>starting_stone_coverage</strong> (<em>int</em><em>, </em><em>float</em>) – Target coverage of stone at t=0.</p></li>
+<li><p><strong>stone_regen_halfwidth</strong> (<em>int</em>) – Regen halfwidth for stone.</p></li>
+<li><p><strong>stone_regen_weight</strong> (<em>float</em>) – Regen weight for stone.</p></li>
+<li><p><strong>stone_max_health</strong> (<em>int</em>) – Max stone units per stone source tile.</p></li>
+<li><p><strong>stone_clumpiness</strong> (<em>float</em>) – Degree of stone clumping.</p></li>
+<li><p><strong>gradient_steepness</strong> (<em>int</em><em>, </em><em>float</em>) – How steeply source tile probability falls
+off from the top/bottom of the map.</p></li>
+<li><p><strong>checker_source_blocks</strong> (<em>bool</em>) – Whether to space source tiles in a “checker”
+formation.</p></li>
+<li><p><strong>starting_agent_coin</strong> (<em>int</em><em>, </em><em>float</em>) – Amount of coin agents have at t=0. Defaults
+to zero coin.</p></li>
+<li><p><strong>isoelastic_eta</strong> (<em>float</em>) – Parameter controlling the shape of agent utility
+wrt coin endowment.</p></li>
+<li><p><strong>energy_cost</strong> (<em>float</em>) – Coefficient for converting labor to negative utility.</p></li>
+<li><p><strong>energy_warmup_constant</strong> (<em>float</em>) – Decay constant that controls the rate at which
+the effective energy cost is annealed from 0 to energy_cost. Set to 0
+(default) to disable annealing, meaning that the effective energy cost is
+always energy_cost. The units of the decay constant depend on the choice of
+energy_warmup_method.</p></li>
+<li><p><strong>energy_warmup_method</strong> (<em>str</em>) – How to schedule energy annealing (warmup). If
+“decay” (default), use the number of completed episodes. If “auto”,
+use the number of timesteps where the average agent reward was positive.</p></li>
+<li><p><strong>planner_reward_type</strong> (<em>str</em>) – The type of reward used for the planner. Options
+are “coin_eq_times_productivity” (default),
+“inv_income_weighted_coin_endowment”, and “inv_income_weighted_utility”.</p></li>
+<li><p><strong>mixing_weight_gini_vs_coin</strong> (<em>float</em>) – Degree to which equality is ignored w/
+“coin_eq_times_productivity”. Default is 0, which weights equality and
+productivity equally. If set to 1, only productivity is rewarded.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.additional_reset_steps">
+<span class="sig-name descname"><span class="pre">additional_reset_steps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.additional_reset_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.additional_reset_steps" title="Permalink to this definition"></a></dt>
+<dd><p>Extra scenario-specific steps that should be performed at the end of the reset
+cycle.</p>
+<dl>
+<dt>For each reset cycle…</dt><dd><p>First, reset_starting_layout() and reset_agent_states() will be called.</p>
+<p>Second, &lt;component&gt;.reset() will be called for each registered component.</p>
+<p>Lastly, this method will be called to allow for any final customization of
+the reset cycle.</p>
+</dd>
+</dl>
+<p>For this scenario, this method resets optimization metric trackers.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.agent_subclasses">
+<span class="sig-name descname"><span class="pre">agent_subclasses</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['BasicMobileAgent',</span> <span class="pre">'BasicPlanner']</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.agent_subclasses" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.compute_reward">
+<span class="sig-name descname"><span class="pre">compute_reward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.compute_reward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.compute_reward" title="Permalink to this definition"></a></dt>
+<dd><p>Apply the reward function(s) associated with this scenario to get the rewards
+from this step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a dictionary with an entry for each agent in the environment
+(including the planner). For each entry, the key specifies the index of
+the agent and the value contains the scalar reward earned this timestep.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>rew (dict)</p>
+</dd>
+</dl>
+<p>Rewards are computed as the marginal utility (agents) or marginal social
+welfare (planner) experienced on this timestep. Ignoring discounting,
+this means that agents’ (planner’s) objective is to maximize the utility
+(social welfare) associated with the terminal state of the episode.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.energy_weight">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">energy_weight</span></span><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.energy_weight" title="Permalink to this definition"></a></dt>
+<dd><p>Energy annealing progress. Multiply with self.energy_cost to get the
+effective energy coefficient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.generate_observations">
+<span class="sig-name descname"><span class="pre">generate_observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.generate_observations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.generate_observations" title="Permalink to this definition"></a></dt>
+<dd><p>Generate observations associated with this scenario.</p>
+<p>A scenario does not need to produce observations and can provide observations
+for only some agent types; however, for a given agent type, it should either
+always or never yield an observation. If it does yield an observation,
+that observation should always have the same structure/sizes!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a dictionary with an entry for each agent (which can including
+the planner) for which this scenario provides an observation. For each
+entry, the key specifies the index of the agent and the value contains
+its associated observation dictionary.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>obs (dict)</p>
+</dd>
+</dl>
+<p>Here, non-planner agents receive spatial observations (depending on the env
+config) as well as the contents of their inventory and endogenous quantities.
+The planner also receives spatial observations (again, depending on the env
+config) as well as the inventory of each of the mobile agents.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.get_current_optimization_metrics">
+<span class="sig-name descname"><span class="pre">get_current_optimization_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.get_current_optimization_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.get_current_optimization_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Compute optimization metrics based on the current state. Used to compute reward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: metric}</dt><dd><p>with an entry for each agent (including the planner) in the env.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>curr_optimization_metric (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.make_source_prob_maps">
+<span class="sig-name descname"><span class="pre">make_source_prob_maps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.make_source_prob_maps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.make_source_prob_maps" title="Permalink to this definition"></a></dt>
+<dd><p>Make maps specifying how likely each location is to be assigned as a resource
+source tile.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Contains a source probability map for both</dt><dd><p>stone and wood</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>source_prob_maps (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'uniform/simple_wood_and_stone'</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.required_entities">
+<span class="sig-name descname"><span class="pre">required_entities</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Wood',</span> <span class="pre">'Stone']</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.required_entities" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.reset_agent_states">
+<span class="sig-name descname"><span class="pre">reset_agent_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.reset_agent_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.reset_agent_states" title="Permalink to this definition"></a></dt>
+<dd><p>Part 2/2 of scenario reset. This method handles resetting the state of the
+agents themselves (i.e. inventory, locations, etc.).</p>
+<p>Here, empty inventories, give mobile agents any starting coin, and place them
+in random accessible locations to start.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.reset_starting_layout">
+<span class="sig-name descname"><span class="pre">reset_starting_layout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.reset_starting_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.reset_starting_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Part 1/2 of scenario reset. This method handles resetting the state of the
+environment managed by the scenario (i.e. resource &amp; landmark layout).</p>
+<p>Here, generate a resource source layout consistent with target parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.scenario_metrics">
+<span class="sig-name descname"><span class="pre">scenario_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.scenario_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.scenario_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Allows the scenario to generate metrics (collected along with component metrics
+in the ‘metrics’ property).</p>
+<p>To have the scenario add metrics, this function needs to return a dictionary of
+{metric_key: value} where ‘value’ is a scalar (no nesting or lists!)</p>
+<p>Here, summarize social metrics, endowments, utilities, and labor cost annealing</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.scenario_step">
+<span class="sig-name descname"><span class="pre">scenario_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/dynamic_layout.html#Uniform.scenario_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.dynamic_layout.Uniform.scenario_step" title="Permalink to this definition"></a></dt>
+<dd><p>Update the state of the world according to whatever rules this scenario
+implements.</p>
+<p>This gets called in the ‘step’ method (of base_env) after going through each
+component step and before generating observations, rewards, etc.</p>
+<p>In this class of scenarios, the scenario step handles stochastic resource
+regeneration.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-foundation.scenarios.simple_wood_and_stone.layout_from_file">
+<span id="foundation-scenarios-simple-wood-and-stone-layout-from-file-module"></span><h2>foundation.scenarios.simple_wood_and_stone.layout_from_file module<a class="headerlink" href="#module-foundation.scenarios.simple_wood_and_stone.layout_from_file" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.scenarios.simple_wood_and_stone.layout_from_file.</span></span><span class="sig-name descname"><span class="pre">LayoutFromFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">base_env_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planner_gets_spatial_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_observability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_agent_observation_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_layout_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quadrant_25x25_20each_30clump.txt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource_regen_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_four_skill_and_loc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starting_agent_coin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isoelastic_eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.23</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_cost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_warmup_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_warmup_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'decay'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planner_reward_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coin_eq_times_productivity'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mixing_weight_gini_vs_coin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">base_env_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ai_economist.foundation.base.base_env.BaseEnvironment</span></code></p>
+<p>World containing stone and wood with stochastic regeneration. Refers to a fixed
+layout file (see ./map_txt/ for examples) to determine the spatial arrangement of
+stone, wood, and water tiles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>planner_gets_spatial_obs</strong> (<em>bool</em>) – Whether the planner agent receives spatial
+observations from the world.</p></li>
+<li><p><strong>full_observability</strong> (<em>bool</em>) – Whether the mobile agents’ spatial observation
+includes the full world view or is instead an egocentric view.</p></li>
+<li><p><strong>mobile_agent_observation_range</strong> (<em>int</em>) – If not using full_observability,
+the spatial range (on each side of the agent) that is visible in the
+spatial observations.</p></li>
+<li><p><strong>env_layout_file</strong> (<em>str</em>) – Name of the layout file in ./map_txt/ to use.
+Note: The world dimensions of that layout must match the world dimensions
+argument used to construct the environment.</p></li>
+<li><p><strong>resource_regen_prob</strong> (<em>float</em>) – Probability that an empty source tile will
+regenerate a new resource unit.</p></li>
+<li><p><strong>fixed_four_skill_and_loc</strong> (<em>bool</em>) – Whether to use a fixed set of build skills and
+starting locations, with agents grouped into starting locations based on
+which skill quartile they are in. False, by default.
+True, for experiments in <a class="reference external" href="https://arxiv.org/abs/2004.13332">https://arxiv.org/abs/2004.13332</a>.
+Note: Requires that the environment uses the “Build” component with
+skill_dist=”pareto”.</p></li>
+<li><p><strong>starting_agent_coin</strong> (<em>int</em><em>, </em><em>float</em>) – Amount of coin agents have at t=0. Defaults
+to zero coin.</p></li>
+<li><p><strong>isoelastic_eta</strong> (<em>float</em>) – Parameter controlling the shape of agent utility
+wrt coin endowment.</p></li>
+<li><p><strong>energy_cost</strong> (<em>float</em>) – Coefficient for converting labor to negative utility.</p></li>
+<li><p><strong>energy_warmup_constant</strong> (<em>float</em>) – Decay constant that controls the rate at which
+the effective energy cost is annealed from 0 to energy_cost. Set to 0
+(default) to disable annealing, meaning that the effective energy cost is
+always energy_cost. The units of the decay constant depend on the choice of
+energy_warmup_method.</p></li>
+<li><p><strong>energy_warmup_method</strong> (<em>str</em>) – How to schedule energy annealing (warmup). If
+“decay” (default), use the number of completed episodes. If “auto”,
+use the number of timesteps where the average agent reward was positive.</p></li>
+<li><p><strong>planner_reward_type</strong> (<em>str</em>) – The type of reward used for the planner. Options
+are “coin_eq_times_productivity” (default),
+“inv_income_weighted_coin_endowment”, and “inv_income_weighted_utility”.</p></li>
+<li><p><strong>mixing_weight_gini_vs_coin</strong> (<em>float</em>) – Degree to which equality is ignored w/
+“coin_eq_times_productivity”. Default is 0, which weights equality and
+productivity equally. If set to 1, only productivity is rewarded.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.additional_reset_steps">
+<span class="sig-name descname"><span class="pre">additional_reset_steps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.additional_reset_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.additional_reset_steps" title="Permalink to this definition"></a></dt>
+<dd><p>Extra scenario-specific steps that should be performed at the end of the reset
+cycle.</p>
+<dl>
+<dt>For each reset cycle…</dt><dd><p>First, reset_starting_layout() and reset_agent_states() will be called.</p>
+<p>Second, &lt;component&gt;.reset() will be called for each registered component.</p>
+<p>Lastly, this method will be called to allow for any final customization of
+the reset cycle.</p>
+</dd>
+</dl>
+<p>For this scenario, this method resets optimization metric trackers. If using
+fixed_four_skill_and_loc, this is where each agent gets assigned to one of
+the four fixed skill/loc combinations. The agent–&gt;skill/loc assignment is
+permuted so that all four skill/loc combinations are used.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.agent_subclasses">
+<span class="sig-name descname"><span class="pre">agent_subclasses</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['BasicMobileAgent',</span> <span class="pre">'BasicPlanner']</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.agent_subclasses" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.compute_reward">
+<span class="sig-name descname"><span class="pre">compute_reward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.compute_reward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.compute_reward" title="Permalink to this definition"></a></dt>
+<dd><p>Apply the reward function(s) associated with this scenario to get the rewards
+from this step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a dictionary with an entry for each agent in the environment
+(including the planner). For each entry, the key specifies the index of
+the agent and the value contains the scalar reward earned this timestep.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>rew (dict)</p>
+</dd>
+</dl>
+<p>Rewards are computed as the marginal utility (agents) or marginal social
+welfare (planner) experienced on this timestep. Ignoring discounting,
+this means that agents’ (planner’s) objective is to maximize the utility
+(social welfare) associated with the terminal state of the episode.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.curr_optimization_metric">
+<span class="sig-name descname"><span class="pre">curr_optimization_metric</span></span><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.curr_optimization_metric" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.energy_weight">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">energy_weight</span></span><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.energy_weight" title="Permalink to this definition"></a></dt>
+<dd><p>Energy annealing progress. Multiply with self.energy_cost to get the
+effective energy coefficient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.generate_observations">
+<span class="sig-name descname"><span class="pre">generate_observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.generate_observations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.generate_observations" title="Permalink to this definition"></a></dt>
+<dd><p>Generate observations associated with this scenario.</p>
+<p>A scenario does not need to produce observations and can provide observations
+for only some agent types; however, for a given agent type, it should either
+always or never yield an observation. If it does yield an observation,
+that observation should always have the same structure/sizes!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a dictionary with an entry for each agent (which can including
+the planner) for which this scenario provides an observation. For each
+entry, the key specifies the index of the agent and the value contains
+its associated observation dictionary.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>obs (dict)</p>
+</dd>
+</dl>
+<p>Here, non-planner agents receive spatial observations (depending on the env
+config) as well as the contents of their inventory and endogenous quantities.
+The planner also receives spatial observations (again, depending on the env
+config) as well as the inventory of each of the mobile agents.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.get_current_optimization_metrics">
+<span class="sig-name descname"><span class="pre">get_current_optimization_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.get_current_optimization_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.get_current_optimization_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Compute optimization metrics based on the current state. Used to compute reward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: metric}</dt><dd><p>with an entry for each agent (including the planner) in the env.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>curr_optimization_metric (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'layout_from_file/simple_wood_and_stone'</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.required_entities">
+<span class="sig-name descname"><span class="pre">required_entities</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Wood',</span> <span class="pre">'Stone',</span> <span class="pre">'Water']</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.required_entities" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.reset_agent_states">
+<span class="sig-name descname"><span class="pre">reset_agent_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.reset_agent_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.reset_agent_states" title="Permalink to this definition"></a></dt>
+<dd><p>Part 2/2 of scenario reset. This method handles resetting the state of the
+agents themselves (i.e. inventory, locations, etc.).</p>
+<p>Here, empty inventories and place mobile agents in random, accessible
+locations to start. Note: If using fixed_four_skill_and_loc, the starting
+locations will be overridden in self.additional_reset_steps.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.reset_starting_layout">
+<span class="sig-name descname"><span class="pre">reset_starting_layout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.reset_starting_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.reset_starting_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Part 1/2 of scenario reset. This method handles resetting the state of the
+environment managed by the scenario (i.e. resource &amp; landmark layout).</p>
+<p>Here, reset to the layout in the fixed layout file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.scenario_metrics">
+<span class="sig-name descname"><span class="pre">scenario_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.scenario_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.scenario_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Allows the scenario to generate metrics (collected along with component metrics
+in the ‘metrics’ property).</p>
+<p>To have the scenario add metrics, this function needs to return a dictionary of
+{metric_key: value} where ‘value’ is a scalar (no nesting or lists!)</p>
+<p>Here, summarize social metrics, endowments, utilities, and labor cost annealing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.scenario_step">
+<span class="sig-name descname"><span class="pre">scenario_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#LayoutFromFile.scenario_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile.scenario_step" title="Permalink to this definition"></a></dt>
+<dd><p>Update the state of the world according to whatever rules this scenario
+implements.</p>
+<p>This gets called in the ‘step’ method (of base_env) after going through each
+component step and before generating observations, rewards, etc.</p>
+<p>In this class of scenarios, the scenario step handles stochastic resource
+regeneration.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.scenarios.simple_wood_and_stone.layout_from_file.</span></span><span class="sig-name descname"><span class="pre">SplitLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">water_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skill_rank_of_top_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#SplitLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile" title="foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">foundation.scenarios.simple_wood_and_stone.layout_from_file.LayoutFromFile</span></code></a></p>
+<p>Extends layout_from_file/simple_wood_and_stone to impose a row of water midway
+through the map, uses a fixed set of pareto-distributed building skills (requires a
+Build component), and places agents in the top/bottom depending on skill rank.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>water_row</strong> (<em>int</em>) – Row of the map where the water barrier is placed. Defaults</p></li>
+<li><p><strong>height.</strong> (<em>to half the world</em>) – </p></li>
+<li><p><strong>skill_rank_of_top_agents</strong> (<em>int</em><em>, </em><em>float</em><em>, </em><em>tuple</em><em>, </em><em>list</em>) – Index/indices specifying
+which agent(s) to place in the top of the map. Indices refer to the skill
+ranking, with 0 referring to the highest-skilled agent. Defaults to only
+the highest-skilled agent in the top.</p></li>
+<li><p><strong>planner_gets_spatial_obs</strong> (<em>bool</em>) – Whether the planner agent receives spatial
+observations from the world.</p></li>
+<li><p><strong>full_observability</strong> (<em>bool</em>) – Whether the mobile agents’ spatial observation
+includes the full world view or is instead an egocentric view.</p></li>
+<li><p><strong>mobile_agent_observation_range</strong> (<em>int</em>) – If not using full_observability,
+the spatial range (on each side of the agent) that is visible in the
+spatial observations.</p></li>
+<li><p><strong>env_layout_file</strong> (<em>str</em>) – Name of the layout file in ./map_txt/ to use.
+Note: The world dimensions of that layout must match the world dimensions
+argument used to construct the environment.</p></li>
+<li><p><strong>resource_regen_prob</strong> (<em>float</em>) – Probability that an empty source tile will
+regenerate a new resource unit.</p></li>
+<li><p><strong>starting_agent_coin</strong> (<em>int</em><em>, </em><em>float</em>) – Amount of coin agents have at t=0. Defaults
+to zero coin.</p></li>
+<li><p><strong>isoelastic_eta</strong> (<em>float</em>) – Parameter controlling the shape of agent utility
+wrt coin endowment.</p></li>
+<li><p><strong>energy_cost</strong> (<em>float</em>) – Coefficient for converting labor to negative utility.</p></li>
+<li><p><strong>energy_warmup_constant</strong> (<em>float</em>) – Decay constant that controls the rate at which
+the effective energy cost is annealed from 0 to energy_cost. Set to 0
+(default) to disable annealing, meaning that the effective energy cost is
+always energy_cost. The units of the decay constant depend on the choice of
+energy_warmup_method.</p></li>
+<li><p><strong>energy_warmup_method</strong> (<em>str</em>) – How to schedule energy annealing (warmup). If
+“decay” (default), use the number of completed episodes. If “auto”,
+use the number of timesteps where the average agent reward was positive.</p></li>
+<li><p><strong>planner_reward_type</strong> (<em>str</em>) – The type of reward used for the planner. Options
+are “coin_eq_times_productivity” (default),
+“inv_income_weighted_coin_endowment”, and “inv_income_weighted_utility”.</p></li>
+<li><p><strong>mixing_weight_gini_vs_coin</strong> (<em>float</em>) – Degree to which equality is ignored w/
+“coin_eq_times_productivity”. Default is 0, which weights equality and
+productivity equally. If set to 1, only productivity is rewarded.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout.additional_reset_steps">
+<span class="sig-name descname"><span class="pre">additional_reset_steps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/scenarios/simple_wood_and_stone/layout_from_file.html#SplitLayout.additional_reset_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout.additional_reset_steps" title="Permalink to this definition"></a></dt>
+<dd><p>Extra scenario-specific steps that should be performed at the end of the reset
+cycle.</p>
+<dl>
+<dt>For each reset cycle…</dt><dd><p>First, reset_starting_layout() and reset_agent_states() will be called.</p>
+<p>Second, &lt;component&gt;.reset() will be called for each registered component.</p>
+<p>Lastly, this method will be called to allow for any final customization of
+the reset cycle.</p>
+</dd>
+</dl>
+<p>For this scenario, this method resets optimization metric trackers. This is
+where each agent gets assigned to one of the skills and the starting
+locations are reset according to self.skill_rank_of_top_agents.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'split_layout/simple_wood_and_stone'</span></em><a class="headerlink" href="#foundation.scenarios.simple_wood_and_stone.layout_from_file.SplitLayout.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-foundation.scenarios.simple_wood_and_stone">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-foundation.scenarios.simple_wood_and_stone" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="foundation.scenarios.one_step_economy.html" class="btn btn-neutral float-left" title="foundation.scenarios.one_step_economy package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="foundation.scenarios.utils.html" class="btn btn-neutral float-right" title="foundation.scenarios.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

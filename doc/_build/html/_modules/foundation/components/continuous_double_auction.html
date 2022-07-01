@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.components.continuous_double_auction &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.components.continuous_double_auction</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.components.continuous_double_auction</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.base_component</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseComponent</span><span class="p">,</span>
+    <span class="n">component_registry</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.entities</span> <span class="kn">import</span> <span class="n">resource_registry</span>
+
+
+<div class="viewcode-block" id="ContinuousDoubleAuction"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction">[docs]</a><span class="nd">@component_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">ContinuousDoubleAuction</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Allows mobile agents to buy/sell collectible resources with one another.</span>
+
+<span class="sd">    Implements a commodity-exchange-style market where agents may sell a unit of</span>
+<span class="sd">        resource by submitting an ask (saying the minimum it will accept in payment)</span>
+<span class="sd">        or may buy a resource by submitting a bid (saying the maximum it will pay in</span>
+<span class="sd">        exchange for a unit of a given resource).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        max_bid_ask (int): Maximum amount of coin that an agent can bid or ask for.</span>
+<span class="sd">            Must be &gt;= 1. Default is 10 coin.</span>
+<span class="sd">        order_labor (float): Amount of labor incurred when an agent creates an order.</span>
+<span class="sd">            Must be &gt;= 0. Default is 0.25.</span>
+<span class="sd">        order_duration (int): Number of environment timesteps before an unfilled</span>
+<span class="sd">            bid/ask expires. Must be &gt;= 1. Default is 50 timesteps.</span>
+<span class="sd">        max_num_orders (int, optional): Maximum number of bids + asks that an agent can</span>
+<span class="sd">            have open for a given resource. Must be &gt;= 1. Default is no limit to</span>
+<span class="sd">            number of orders.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ContinuousDoubleAuction&quot;</span>
+    <span class="n">component_type</span> <span class="o">=</span> <span class="s2">&quot;Trade&quot;</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Coin&quot;</span><span class="p">,</span> <span class="s2">&quot;Labor&quot;</span><span class="p">]</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">max_bid_ask</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">order_labor</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+        <span class="n">order_duration</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">max_num_orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># The max amount (in coin) that an agent can bid/ask for 1 unit of a commodity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_bid_ask</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_bid_ask</span><span class="p">)</span>
+
+        <span class="c1"># The amount of time (in timesteps) that an order stays in the books</span>
+        <span class="c1"># before it expires</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_duration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">order_duration</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_duration</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="c1"># The maximum number of bid+ask orders an agent can have open</span>
+        <span class="c1"># for each type of commodity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_num_orders</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_num_orders</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_duration</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_orders</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="c1"># The labor cost associated with creating a bid or ask order</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_labor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">order_labor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_labor</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order_labor</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="c1"># Each collectible resource in the world can be traded via this component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">resources</span> <span class="k">if</span> <span class="n">resource_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">collectible</span>
+        <span class="p">]</span>
+
+        <span class="c1"># These get reset at the start of an episode:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">asks</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bids</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">executed_trades</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price_history</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+
+    <span class="c1"># Convenience methods</span>
+    <span class="c1"># -------------------</span>
+
+    <span class="k">def</span> <span class="nf">_price_zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR!&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.available_asks"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.available_asks">[docs]</a>    <span class="k">def</span> <span class="nf">available_asks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a histogram of asks for resource to which agent could bid against.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            resource (str): Name of the resource</span>
+<span class="sd">            agent (BasicMobileAgent or None): Object of agent for which available</span>
+<span class="sd">                asks are being queried. If None, all asks are considered available.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ask_hist (ndarray): For each possible price level, the number of</span>
+<span class="sd">                available asks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">agent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">a_idx</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+        <span class="n">ask_hist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">a_idx</span> <span class="o">!=</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">ask_hist</span> <span class="o">+=</span> <span class="n">h</span>
+        <span class="k">return</span> <span class="n">ask_hist</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.available_bids"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.available_bids">[docs]</a>    <span class="k">def</span> <span class="nf">available_bids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a histogram of bids for resource to which agent could ask against.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            resource (str): Name of the resource</span>
+<span class="sd">            agent (BasicMobileAgent or None): Object of agent for which available</span>
+<span class="sd">                bids are being queried. If None, all bids are considered available.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bid_hist (ndarray): For each possible price level, the number of</span>
+<span class="sd">                available bids.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">agent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">a_idx</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+        <span class="n">bid_hist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">a_idx</span> <span class="o">!=</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">bid_hist</span> <span class="o">+=</span> <span class="n">h</span>
+        <span class="k">return</span> <span class="n">bid_hist</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.can_bid"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.can_bid">[docs]</a>    <span class="k">def</span> <span class="nf">can_bid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If agent can submit a bid for resource.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_orders</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.can_ask"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.can_ask">[docs]</a>    <span class="k">def</span> <span class="nf">can_ask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If agent can submit an ask for resource.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_orders</span>
+            <span class="ow">and</span> <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span><span class="n">resource</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">)</span></div>
+
+    <span class="c1"># Core components for this market</span>
+    <span class="c1"># -------------------------------</span>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.create_bid"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.create_bid">[docs]</a>    <span class="k">def</span> <span class="nf">create_bid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">max_payment</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a new bid for resource, with agent offering max_payment.</span>
+
+<span class="sd">        On a successful trade, payment will be at most max_payment, possibly less.</span>
+
+<span class="sd">        The agent places the bid coin into escrow so that it may not be spent on</span>
+<span class="sd">        something else while the order exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># The agent is past the max number of orders</span>
+        <span class="c1"># or doesn&#39;t have enough money, do nothing</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_bid</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">))</span> <span class="ow">or</span> <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;Coin&quot;</span>
+        <span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_payment</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span> <span class="o">&lt;=</span> <span class="n">max_payment</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span>
+
+        <span class="n">bid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;buyer&quot;</span><span class="p">:</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span> <span class="s2">&quot;bid&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_payment</span><span class="p">),</span> <span class="s2">&quot;bid_lifetime&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+        <span class="c1"># Add this to the bid book</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bids</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">bid</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">]][</span><span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Set aside whatever money the agent is willing to pay</span>
+        <span class="c1"># (will get excess back if price ends up being less)</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory_to_escrow</span><span class="p">(</span><span class="s2">&quot;Coin&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_payment</span><span class="p">))</span>
+
+        <span class="c1"># Incur the labor cost of creating an order</span>
+        <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">][</span><span class="s2">&quot;Labor&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_labor</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.create_ask"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.create_ask">[docs]</a>    <span class="k">def</span> <span class="nf">create_ask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">min_income</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new ask for resource, with agent asking for min_income.</span>
+
+<span class="sd">        On a successful trade, income will be at least min_income, possibly more.</span>
+
+<span class="sd">        The agent places one unit of resource into escrow so that it may not be used</span>
+<span class="sd">        for something else while the order exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The agent is past the max number of orders</span>
+        <span class="c1"># or doesn&#39;t the resource it&#39;s trying to sell, do nothing</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_ask</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="c1"># is there an upper limit?</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span> <span class="o">&lt;=</span> <span class="n">min_income</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span>
+
+        <span class="n">ask</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;seller&quot;</span><span class="p">:</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span> <span class="s2">&quot;ask&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_income</span><span class="p">),</span> <span class="s2">&quot;ask_lifetime&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+        <span class="c1"># Add this to the ask book</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">asks</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ask</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">ask</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]][</span><span class="n">ask</span><span class="p">[</span><span class="s2">&quot;ask&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Set aside the resource the agent is willing to sell</span>
+        <span class="n">amount</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory_to_escrow</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">amount</span> <span class="o">==</span> <span class="mi">1</span>
+
+        <span class="c1"># Incur the labor cost of creating an order</span>
+        <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">][</span><span class="s2">&quot;Labor&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_labor</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.match_orders"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.match_orders">[docs]</a>    <span class="k">def</span> <span class="nf">match_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This implements the continuous double auction by identifying valid bid/ask</span>
+<span class="sd">        pairs and executing trades accordingly.</span>
+
+<span class="sd">        Higher (lower) bids (asks) are given priority over lower (higher) bids (asks).</span>
+<span class="sd">        Trades are executed using the price of whichever bid/ask order was placed</span>
+<span class="sd">        first: bid price if bid was placed first, ask price otherwise.</span>
+
+<span class="sd">        Trading removes the payment and resource from bidder&#39;s and asker&#39;s escrow,</span>
+<span class="sd">        respectively, and puts them in the other&#39;s inventory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">executed_trades</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+            <span class="n">possible_match</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)]</span>
+            <span class="n">keep_checking</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">bids</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bids</span><span class="p">[</span><span class="n">resource</span><span class="p">],</span>
+                <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="s2">&quot;bid_lifetime&quot;</span><span class="p">]),</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">asks</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">asks</span><span class="p">[</span><span class="n">resource</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="s2">&quot;ask&quot;</span><span class="p">],</span> <span class="o">-</span><span class="n">a</span><span class="p">[</span><span class="s2">&quot;ask_lifetime&quot;</span><span class="p">])</span>
+            <span class="p">)</span>
+
+            <span class="k">while</span> <span class="nb">any</span><span class="p">(</span><span class="n">possible_match</span><span class="p">)</span> <span class="ow">and</span> <span class="n">keep_checking</span><span class="p">:</span>
+                <span class="n">idx_bid</span><span class="p">,</span> <span class="n">idx_ask</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="c1"># Out of bids to check. Exit both loops.</span>
+                    <span class="k">if</span> <span class="n">idx_bid</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bids</span><span class="p">):</span>
+                        <span class="n">keep_checking</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+
+                    <span class="c1"># Already know this buyer is no good for this round.</span>
+                    <span class="c1"># Skip to next bid.</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">possible_match</span><span class="p">[</span><span class="n">bids</span><span class="p">[</span><span class="n">idx_bid</span><span class="p">][</span><span class="s2">&quot;buyer&quot;</span><span class="p">]]:</span>
+                        <span class="n">idx_bid</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="c1"># Out of asks to check. This buyer won&#39;t find a match on this round.</span>
+                    <span class="c1"># (maybe) Restart inner loop.</span>
+                    <span class="k">elif</span> <span class="n">idx_ask</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">asks</span><span class="p">):</span>
+                        <span class="n">possible_match</span><span class="p">[</span><span class="n">bids</span><span class="p">[</span><span class="n">idx_bid</span><span class="p">][</span><span class="s2">&quot;buyer&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+
+                    <span class="c1"># Skip to next ask if this ask comes from the buyer</span>
+                    <span class="c1"># of the current bid.</span>
+                    <span class="k">elif</span> <span class="n">asks</span><span class="p">[</span><span class="n">idx_ask</span><span class="p">][</span><span class="s2">&quot;seller&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">bids</span><span class="p">[</span><span class="n">idx_bid</span><span class="p">][</span><span class="s2">&quot;buyer&quot;</span><span class="p">]:</span>
+                        <span class="n">idx_ask</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="c1"># If this bid/ask pair can&#39;t be matched, this buyer</span>
+                    <span class="c1"># can&#39;t be matched. (maybe) Restart inner loop.</span>
+                    <span class="k">elif</span> <span class="n">bids</span><span class="p">[</span><span class="n">idx_bid</span><span class="p">][</span><span class="s2">&quot;bid&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">asks</span><span class="p">[</span><span class="n">idx_ask</span><span class="p">][</span><span class="s2">&quot;ask&quot;</span><span class="p">]:</span>
+                        <span class="n">possible_match</span><span class="p">[</span><span class="n">bids</span><span class="p">[</span><span class="n">idx_bid</span><span class="p">][</span><span class="s2">&quot;buyer&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+
+                    <span class="c1"># TRADE! (then restart inner loop)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">bid</span> <span class="o">=</span> <span class="n">bids</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">idx_bid</span><span class="p">)</span>
+                        <span class="n">ask</span> <span class="o">=</span> <span class="n">asks</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">idx_ask</span><span class="p">)</span>
+
+                        <span class="n">trade</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;commodity&quot;</span><span class="p">:</span> <span class="n">resource</span><span class="p">}</span>
+                        <span class="n">trade</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">bid</span><span class="p">)</span>
+                        <span class="n">trade</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">ask</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid_lifetime&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">ask</span><span class="p">[</span><span class="s2">&quot;ask_lifetime&quot;</span><span class="p">]</span>
+                        <span class="p">):</span>  <span class="c1"># Ask came earlier. (in other words,</span>
+                            <span class="c1"># trade triggered by new bid)</span>
+                            <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;ask&quot;</span><span class="p">])</span>
+                        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Bid came earlier. (in other words,</span>
+                            <span class="c1"># trade triggered by new ask)</span>
+                            <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">])</span>
+                        <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span>  <span class="c1"># What the buyer pays in total</span>
+                        <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;income&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trade</span><span class="p">[</span>
+                            <span class="s2">&quot;price&quot;</span>
+                        <span class="p">]</span>  <span class="c1"># What the seller receives in total</span>
+
+                        <span class="n">buyer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">]]</span>
+                        <span class="n">seller</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]]</span>
+
+                        <span class="c1"># Bookkeeping</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">bid</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">]][</span>
+                            <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span>
+                        <span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">ask</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]][</span>
+                            <span class="n">ask</span><span class="p">[</span><span class="s2">&quot;ask&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span>
+                        <span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;commodity&quot;</span><span class="p">]][</span><span class="n">seller</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;commodity&quot;</span><span class="p">]][</span><span class="n">buyer</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">executed_trades</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trade</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">price_history</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]][</span>
+                            <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">]</span>
+                        <span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                        <span class="c1"># The resource goes from the seller&#39;s escrow</span>
+                        <span class="c1"># to the buyer&#39;s inventory</span>
+                        <span class="n">seller</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;escrow&quot;</span><span class="p">][</span><span class="n">resource</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">buyer</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span><span class="n">resource</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                        <span class="c1"># Buyer&#39;s money (already set aside) leaves escrow</span>
+                        <span class="n">pre_payment</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">])</span>
+                        <span class="n">buyer</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;escrow&quot;</span><span class="p">][</span><span class="s2">&quot;Coin&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">pre_payment</span>
+                        <span class="k">assert</span> <span class="n">buyer</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;escrow&quot;</span><span class="p">][</span><span class="s2">&quot;Coin&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+                        <span class="c1"># Payment is removed from the pre_payment</span>
+                        <span class="c1"># and given to the seller. Excess returned to buyer.</span>
+                        <span class="n">payment_to_seller</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">trade</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">])</span>
+                        <span class="n">excess_payment_from_buyer</span> <span class="o">=</span> <span class="n">pre_payment</span> <span class="o">-</span> <span class="n">payment_to_seller</span>
+                        <span class="k">assert</span> <span class="n">excess_payment_from_buyer</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                        <span class="n">seller</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span><span class="s2">&quot;Coin&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">payment_to_seller</span>
+                        <span class="n">buyer</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span><span class="s2">&quot;Coin&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">excess_payment_from_buyer</span>
+
+                        <span class="c1"># Restart the inner loop</span>
+                        <span class="k">break</span>
+
+            <span class="c1"># Keep the unfilled bids/asks</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bids</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span> <span class="o">=</span> <span class="n">bids</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">asks</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span> <span class="o">=</span> <span class="n">asks</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.remove_expired_orders"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.remove_expired_orders">[docs]</a>    <span class="k">def</span> <span class="nf">remove_expired_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Increment the time counter for any unfilled bids/asks and remove expired</span>
+<span class="sd">        orders from the market.</span>
+
+<span class="sd">        When orders expire, the payment or resource is removed from escrow and</span>
+<span class="sd">        returned to the inventory and the associated order is removed from the order</span>
+<span class="sd">        books.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+
+            <span class="n">bids_</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bids</span><span class="p">[</span><span class="n">resource</span><span class="p">]:</span>
+                <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid_lifetime&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># If the bid is not expired, keep it in the bids</span>
+                <span class="k">if</span> <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid_lifetime&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_duration</span><span class="p">:</span>
+                    <span class="n">bids_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bid</span><span class="p">)</span>
+                <span class="c1"># Otherwise, remove it and do the associated bookkeeping</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Return the set aside money to the buyer</span>
+                    <span class="n">amount</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="n">bid</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">escrow_to_inventory</span><span class="p">(</span>
+                        <span class="s2">&quot;Coin&quot;</span><span class="p">,</span> <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">assert</span> <span class="n">amount</span> <span class="o">==</span> <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">]</span>
+                    <span class="c1"># Adjust the bid histogram to reflect the removal of the bid</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">bid</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">]][</span>
+                        <span class="n">bid</span><span class="p">[</span><span class="s2">&quot;bid&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span>
+                    <span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="c1"># Adjust the order counter</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">bid</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">]]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="n">asks_</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">asks</span><span class="p">[</span><span class="n">resource</span><span class="p">]:</span>
+                <span class="n">ask</span><span class="p">[</span><span class="s2">&quot;ask_lifetime&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># If the ask is not expired, keep it in the asks</span>
+                <span class="k">if</span> <span class="n">ask</span><span class="p">[</span><span class="s2">&quot;ask_lifetime&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_duration</span><span class="p">:</span>
+                    <span class="n">asks_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ask</span><span class="p">)</span>
+                <span class="c1"># Otherwise, remove it and do the associated bookkeeping</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Return the set aside resource to the seller</span>
+                    <span class="n">resource_unit</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="n">ask</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">escrow_to_inventory</span><span class="p">(</span>
+                        <span class="n">resource</span><span class="p">,</span> <span class="mi">1</span>
+                    <span class="p">)</span>
+                    <span class="k">assert</span> <span class="n">resource_unit</span> <span class="o">==</span> <span class="mi">1</span>
+                    <span class="c1"># Adjust the ask histogram to reflect the removal of the ask</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">ask</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]][</span>
+                        <span class="n">ask</span><span class="p">[</span><span class="s2">&quot;ask&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span>
+                    <span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="c1"># Adjust the order counter</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">ask</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">]]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">bids</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span> <span class="o">=</span> <span class="n">bids_</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">asks</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span> <span class="o">=</span> <span class="n">asks_</span></div>
+
+    <span class="c1"># Required methods for implementing components</span>
+    <span class="c1"># --------------------------------------------</span>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.get_n_actions"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.get_n_actions">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Adds 2*C action spaces [ (bid+ask) * n_commodities ], each with 1 + max_bid_ask</span>
+<span class="sd">        actions corresponding to price levels 0 to max_bid_ask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This component adds 2*(1+max_bid_ask)*n_resources possible actions:</span>
+        <span class="c1"># buy/sell x each-price x each-resource</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">:</span>
+            <span class="n">trades</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+                <span class="n">trades</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="s2">&quot;Buy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span><span class="p">)</span>
+                <span class="p">)</span>  <span class="c1"># How much willing to pay for c</span>
+                <span class="n">trades</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="s2">&quot;Sell_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span><span class="p">)</span>
+                <span class="p">)</span>  <span class="c1"># How much need to receive to sell c</span>
+            <span class="k">return</span> <span class="n">trades</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.get_additional_state_fields"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.get_additional_state_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_additional_state_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This component doesn&#39;t add any state fields</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.component_step"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.component_step">[docs]</a>    <span class="k">def</span> <span class="nf">component_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Create new bids and asks, match and execute valid order pairs, and manage</span>
+<span class="sd">        order expiration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">price_history</span><span class="p">[</span><span class="n">resource</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">0.995</span>
+
+                <span class="c1"># Create bid action</span>
+                <span class="c1"># -----------------</span>
+                <span class="n">resource_action</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_component_action</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;Buy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="c1"># No-op</span>
+                <span class="k">if</span> <span class="n">resource_action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+                <span class="c1"># Create a bid</span>
+                <span class="k">elif</span> <span class="n">resource_action</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_bid</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">max_payment</span><span class="o">=</span><span class="n">resource_action</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span>
+
+                <span class="c1"># Create ask action</span>
+                <span class="c1"># -----------------</span>
+                <span class="n">resource_action</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_component_action</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;Sell_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="c1"># No-op</span>
+                <span class="k">if</span> <span class="n">resource_action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+                <span class="c1"># Create an ask</span>
+                <span class="k">elif</span> <span class="n">resource_action</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_ask</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">min_income</span><span class="o">=</span><span class="n">resource_action</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="c1"># Here&#39;s where the magic happens:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">match_orders</span><span class="p">()</span>  <span class="c1"># Pair bids and asks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_expired_orders</span><span class="p">()</span>  <span class="c1"># Get rid of orders that have expired</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.generate_observations"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.generate_observations">[docs]</a>    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Here, agents and the planner both observe historical market behavior and</span>
+<span class="sd">        outstanding bids/asks for each tradable commodity. Agents only see the</span>
+<span class="sd">        outstanding bids/asks to which they could respond (that is, that they did not</span>
+<span class="sd">        submit). Agents also see their own outstanding bids/asks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="n">obs</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span> <span class="o">+</span> <span class="p">[</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="p">]}</span>
+
+        <span class="n">prices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">price_floor</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">price_ceiling</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+            <span class="n">net_price_history</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">price_history</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)]),</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">market_rate</span> <span class="o">=</span> <span class="n">prices</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">net_price_history</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+                <span class="mf">0.001</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">net_price_history</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">scaled_price_history</span> <span class="o">=</span> <span class="n">net_price_history</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_scale</span>
+
+            <span class="n">full_asks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_asks</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">full_bids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_bids</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+            <span class="n">obs</span><span class="p">[</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;market_rate-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">market_rate</span><span class="p">,</span>
+                    <span class="s2">&quot;price_history-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">scaled_price_history</span><span class="p">,</span>
+                    <span class="s2">&quot;full_asks-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">full_asks</span><span class="p">,</span>
+                    <span class="s2">&quot;full_bids-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">full_bids</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">agent</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">):</span>
+                <span class="c1"># Private to the agent</span>
+                <span class="n">obs</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;market_rate-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">market_rate</span><span class="p">,</span>
+                        <span class="s2">&quot;price_history-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">scaled_price_history</span><span class="p">,</span>
+                        <span class="s2">&quot;available_asks-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">full_asks</span>
+                        <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">],</span>
+                        <span class="s2">&quot;available_bids-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="n">full_bids</span>
+                        <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">],</span>
+                        <span class="s2">&quot;my_asks-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">],</span>
+                        <span class="s2">&quot;my_bids-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">obs</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.generate_masks"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.generate_masks">[docs]</a>    <span class="k">def</span> <span class="nf">generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Agents cannot submit bids/asks for resources where they are at the order</span>
+<span class="sd">        limit. In addition, they may only submit asks for resources they possess and</span>
+<span class="sd">        bids for which they can pay.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="n">masks</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="n">can_pay</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">agent</span><span class="o">.</span><span class="n">inventory</span><span class="p">[</span><span class="s2">&quot;Coin&quot;</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_ask</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>  <span class="c1"># asks_maxed:</span>
+                    <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;Sell_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;Sell_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                        <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_bid</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+                    <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;Buy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bid_ask</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;Buy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">)]</span> <span class="o">=</span> <span class="n">can_pay</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+                    <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">masks</span></div>
+
+    <span class="c1"># For non-required customization</span>
+    <span class="c1"># ------------------------------</span>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.get_metrics"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.get_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">get_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Metrics that capture what happened through this component.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            metrics (dict): A dictionary of {&quot;metric_name&quot;: metric_value},</span>
+<span class="sd">                where metric_value is a scalar.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="n">trade_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="s2">&quot;cost&quot;</span><span class="p">,</span> <span class="s2">&quot;income&quot;</span><span class="p">]</span>
+
+        <span class="n">selling_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">trade_keys</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;n_sales&quot;</span><span class="p">]}</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">}</span>
+        <span class="n">buying_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">trade_keys</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;n_sales&quot;</span><span class="p">]}</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">}</span>
+
+        <span class="n">n_trades</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">trades</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">executed_trades</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">trade</span> <span class="ow">in</span> <span class="n">trades</span><span class="p">:</span>
+                <span class="n">n_trades</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">i_s</span><span class="p">,</span> <span class="n">i_b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;seller&quot;</span><span class="p">],</span> <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;buyer&quot;</span><span class="p">],</span> <span class="n">trade</span><span class="p">[</span><span class="s2">&quot;commodity&quot;</span><span class="p">]</span>
+                <span class="n">selling_stats</span><span class="p">[</span><span class="n">i_s</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="s2">&quot;n_sales&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">buying_stats</span><span class="p">[</span><span class="n">i_b</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="s2">&quot;n_sales&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">trade_keys</span><span class="p">:</span>
+                    <span class="n">selling_stats</span><span class="p">[</span><span class="n">i_s</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="n">trade</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                    <span class="n">buying_stats</span><span class="p">[</span><span class="n">i_b</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="n">trade</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="n">out_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">stats</span><span class="p">,</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">selling_stats</span><span class="p">,</span> <span class="n">buying_stats</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;Sell&quot;</span><span class="p">,</span> <span class="s2">&quot;Buy&quot;</span><span class="p">]</span>
+                <span class="p">):</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="s2">&quot;n_sales&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">trade_keys</span><span class="p">:</span>
+                            <span class="n">stats</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">trade_keys</span><span class="p">:</span>
+                            <span class="n">stats</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">/=</span> <span class="n">n</span>
+
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;n_trades&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_trades</span>
+
+        <span class="k">return</span> <span class="n">out_dict</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Reset the order books.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bids</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">asks</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_orders</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">price_history</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bid_hists</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ask_hists</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">c</span><span class="p">:</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_price_zeros</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)}</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">executed_trades</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="ContinuousDoubleAuction.get_dense_log"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.continuous_double_auction.ContinuousDoubleAuction.get_dense_log">[docs]</a>    <span class="k">def</span> <span class="nf">get_dense_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Log executed trades.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            trades (list): A list of trade events. Each entry corresponds to a single</span>
+<span class="sd">                timestep and contains a description of any trades that occurred on</span>
+<span class="sd">                that timestep.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">executed_trades</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

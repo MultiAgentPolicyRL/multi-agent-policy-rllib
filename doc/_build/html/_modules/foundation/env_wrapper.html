@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.env_wrapper &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+          <li><a href="../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.env_wrapper</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.env_wrapper</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2021, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The env wrapper class</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">GPUtil</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">num_gpus_available</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">GPUtil</span><span class="o">.</span><span class="n">getAvailable</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Inside env_wrapper.py: </span><span class="si">{</span><span class="n">num_gpus_available</span><span class="si">}</span><span class="s2"> GPUs are available.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num_gpus_available</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No GPUs found! Running the simulation on a CPU.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">warp_drive.managers.data_manager</span> <span class="kn">import</span> <span class="n">CUDADataManager</span>
+        <span class="kn">from</span> <span class="nn">warp_drive.managers.function_manager</span> <span class="kn">import</span> <span class="p">(</span>
+            <span class="n">CUDAEnvironmentReset</span><span class="p">,</span>
+            <span class="n">CUDAFunctionManager</span><span class="p">,</span>
+        <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;Warning: The &#39;WarpDrive&#39; package is not found and cannot be used! &quot;</span>
+        <span class="s2">&quot;If you wish to use WarpDrive, please run &quot;</span>
+        <span class="s2">&quot;&#39;pip install rl-warp-drive&#39; first.&quot;</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No GPUs found! Running the simulation on a CPU.&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">gym.spaces</span> <span class="kn">import</span> <span class="n">Box</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Discrete</span><span class="p">,</span> <span class="n">MultiDiscrete</span>
+
+<span class="n">BIG_NUMBER</span> <span class="o">=</span> <span class="mf">1e20</span>
+
+
+<div class="viewcode-block" id="recursive_obs_dict_to_spaces_dict"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.recursive_obs_dict_to_spaces_dict">[docs]</a><span class="k">def</span> <span class="nf">recursive_obs_dict_to_spaces_dict</span><span class="p">(</span><span class="n">obs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Recursively return the observation space dictionary</span>
+<span class="sd">    for a dictionary of observations</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obs (dict): A dictionary of observations keyed by agent index</span>
+<span class="sd">        for a multi-agent environment</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict: A dictionary (space.Dict) of observation spaces</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+    <span class="n">dict_of_spaces</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+        <span class="c1"># list of lists are listified np arrays</span>
+        <span class="n">_v</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">)):</span>
+            <span class="n">_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">v</span><span class="p">])</span>
+
+        <span class="c1"># assign Space</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">BIG_NUMBER</span><span class="p">)</span>
+            <span class="n">box</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="n">x</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">_v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_v</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">low_high_valid</span> <span class="o">=</span> <span class="p">(</span><span class="n">box</span><span class="o">.</span><span class="n">low</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">box</span><span class="o">.</span><span class="n">high</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="c1"># This loop avoids issues with overflow to make sure low/high are good.</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">low_high_valid</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">//</span> <span class="mi">2</span>
+                <span class="n">box</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="n">x</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">_v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_v</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">low_high_valid</span> <span class="o">=</span> <span class="p">(</span><span class="n">box</span><span class="o">.</span><span class="n">low</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">box</span><span class="o">.</span><span class="n">high</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="n">dict_of_spaces</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">box</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">dict_of_spaces</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">recursive_obs_dict_to_spaces_dict</span><span class="p">(</span><span class="n">_v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+    <span class="k">return</span> <span class="n">Dict</span><span class="p">(</span><span class="n">dict_of_spaces</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FoundationEnvWrapper"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper">[docs]</a><span class="k">class</span> <span class="nc">FoundationEnvWrapper</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The environment wrapper class for Foundation.</span>
+<span class="sd">    This wrapper determines whether the environment reset and steps happen on the</span>
+<span class="sd">    CPU or the GPU, and proceeds accordingly.</span>
+<span class="sd">    If the environment runs on the CPU, the reset() and step() calls also occur on</span>
+<span class="sd">    the CPU.</span>
+<span class="sd">    If the environment runs on the GPU, only the first reset() happens on the CPU,</span>
+<span class="sd">    all the relevant data is copied over the GPU after, and the subsequent steps</span>
+<span class="sd">    all happen on the GPU.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.__init__"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">env_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">env_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">env_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_envs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">use_cuda</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">env_registrar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">event_messenger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">process_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &#39;env_obj&#39;: an environment object</span>
+<span class="sd">        &#39;env_name&#39;: an environment name that is registered on the</span>
+<span class="sd">            WarpDrive environment registrar</span>
+<span class="sd">        &#39;env_config&#39;: environment configuration to instantiate</span>
+<span class="sd">            an environment from the registrar</span>
+<span class="sd">        &#39;use_cuda&#39;: if True, step through the environment on the GPU, else on the CPU</span>
+<span class="sd">        &#39;num_envs&#39;: the number of parallel environments to instantiate. Note: this is</span>
+<span class="sd">            only relevant when use_cuda is True</span>
+<span class="sd">        &#39;env_registrar&#39;: EnvironmentRegistrar object</span>
+<span class="sd">            it provides the customized env info (like src path) for the build</span>
+<span class="sd">        &#39;event_messenger&#39;: multiprocessing Event to sync up the build</span>
+<span class="sd">            when using multiple processes</span>
+<span class="sd">        &#39;process_id&#39;: id of the process running WarpDrive</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Need to pass in an environment instance</span>
+        <span class="k">if</span> <span class="n">env_obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">env_obj</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">env_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">env_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">env_registrar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">env_registrar</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_name</span><span class="p">,</span> <span class="n">use_cuda</span><span class="p">)(</span><span class="o">**</span><span class="n">env_config</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">num_agents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">episode_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">episode_length</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="c1"># Add observation space to the env</span>
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Note: when the collated agent &quot;a&quot; is present, add obs keys</span>
+        <span class="c1"># for each individual agent to the env</span>
+        <span class="c1"># and remove the collated agent &quot;a&quot; from the observation</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs_at_reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">recursive_obs_dict_to_spaces_dict</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+
+        <span class="c1"># Add action space to the env</span>
+        <span class="c1"># ---------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">agent_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span><span class="o">.</span><span class="n">multi_action_mode</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="p">[</span><span class="nb">str</span><span class="p">([</span><span class="n">agent_id</span><span class="p">])]</span> <span class="o">=</span> <span class="n">MultiDiscrete</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">))</span><span class="o">.</span><span class="n">action_spaces</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Discrete</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">))</span><span class="o">.</span><span class="n">action_spaces</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">multi_action_mode</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MultiDiscrete</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">action_spaces</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Discrete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">action_spaces</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+
+        <span class="c1"># Ensure the observation and action spaces share the same keys</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="c1"># CUDA-specific initializations</span>
+        <span class="c1"># -----------------------------</span>
+        <span class="c1"># Flag to determine whether to use CUDA or not</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span> <span class="o">=</span> <span class="n">use_cuda</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">GPUtil</span><span class="o">.</span><span class="n">getAvailable</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;The env wrapper needs a GPU to run&quot;</span> <span class="s2">&quot; when use_cuda is True!&quot;</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="s2">&quot;use_cuda&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="s2">&quot;cuda_data_manager&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="s2">&quot;cuda_function_manager&quot;</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="p">,</span> <span class="s2">&quot;use_cuda&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="p">,</span> <span class="s2">&quot;cuda_data_manager&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="p">,</span> <span class="s2">&quot;cuda_function_manager&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">use_cuda</span> <span class="o">=</span> <span class="n">use_cuda</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">use_cuda</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span>
+
+        <span class="c1"># Flag to determine where the reset happens (host or device)</span>
+        <span class="c1"># First reset is always on the host (CPU), and subsequent resets are on</span>
+        <span class="c1"># the device (GPU)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_on_host</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Steps specific to GPU runs</span>
+        <span class="c1"># --------------------------</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;USING CUDA...&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Number of environments to run in parallel</span>
+            <span class="k">assert</span> <span class="n">num_envs</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_envs</span> <span class="o">=</span> <span class="n">num_envs</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initializing the CUDA data manager...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span> <span class="o">=</span> <span class="n">CUDADataManager</span><span class="p">(</span>
+                <span class="n">num_agents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span>
+                <span class="n">episode_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">episode_length</span><span class="p">,</span>
+                <span class="n">num_envs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_envs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initializing the CUDA function manager...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span> <span class="o">=</span> <span class="n">CUDAFunctionManager</span><span class="p">(</span>
+                <span class="n">num_agents</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;n_agents&quot;</span><span class="p">)),</span>
+                <span class="n">num_envs</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">meta_info</span><span class="p">(</span><span class="s2">&quot;n_envs&quot;</span><span class="p">)),</span>
+                <span class="n">process_id</span><span class="o">=</span><span class="n">process_id</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">compile_and_load_cuda</span><span class="p">(</span>
+                <span class="n">env_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">template_header_file</span><span class="o">=</span><span class="s2">&quot;template_env_config.h&quot;</span><span class="p">,</span>
+                <span class="n">template_runner_file</span><span class="o">=</span><span class="s2">&quot;template_env_runner.cu&quot;</span><span class="p">,</span>
+                <span class="n">customized_env_registrar</span><span class="o">=</span><span class="n">env_registrar</span><span class="p">,</span>
+                <span class="n">event_messenger</span><span class="o">=</span><span class="n">event_messenger</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Register the CUDA step() function for the env</span>
+            <span class="c1"># Note: generate_observation() and compute_reward()</span>
+            <span class="c1"># should be part of the step function itself</span>
+            <span class="n">step_function</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Cuda</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">Step&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">initialize_functions</span><span class="p">([</span><span class="n">step_function</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">cuda_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">get_function</span><span class="p">(</span><span class="n">step_function</span><span class="p">)</span>
+
+            <span class="c1"># Register additional cuda functions (other than the scenario step)</span>
+            <span class="c1"># Component step</span>
+            <span class="c1"># Create a cuda_component_step dictionary</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_component_step</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">components</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">initialize_functions</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;Cuda&quot;</span> <span class="o">+</span> <span class="n">component</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;Step&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_component_step</span><span class="p">[</span>
+                    <span class="n">component</span><span class="o">.</span><span class="n">name</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">get_function</span><span class="p">(</span>
+                    <span class="s2">&quot;Cuda&quot;</span> <span class="o">+</span> <span class="n">component</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;Step&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Compute reward</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">initialize_functions</span><span class="p">([</span><span class="s2">&quot;CudaComputeReward&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">cuda_compute_reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span><span class="o">.</span><span class="n">get_function</span><span class="p">(</span>
+                <span class="s2">&quot;CudaComputeReward&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Add wrapper attributes for use within env</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">cuda_data_manager</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">cuda_function_manager</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span>
+
+            <span class="c1"># Register the env resetter</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env_resetter</span> <span class="o">=</span> <span class="n">CUDAEnvironmentReset</span><span class="p">(</span>
+                <span class="n">function_manager</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Add to self.env.world for use in components</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_data_manager</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">cuda_function_manager</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span></div>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.reset_all_envs"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.reset_all_envs">[docs]</a>    <span class="k">def</span> <span class="nf">reset_all_envs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the state of the environment to initialize a new episode.</span>
+<span class="sd">        if self.reset_on_host is True:</span>
+<span class="sd">            calls the CPU env to prepare and return the initial state</span>
+<span class="sd">        if self.use_cuda is True:</span>
+<span class="sd">            if self.reset_on_host is True:</span>
+<span class="sd">                expands initial state to parallel example_envs and push to GPU once</span>
+<span class="sd">                sets self.reset_on_host = False</span>
+<span class="sd">            else:</span>
+<span class="sd">                calls device hard reset managed by the CUDAResetter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_on_host</span><span class="p">:</span>
+            <span class="c1"># Produce observation</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs_at_reset</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>  <span class="c1"># GPU version</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_on_host</span><span class="p">:</span>
+
+                <span class="c1"># Helper function to repeat data across the env dimension</span>
+                <span class="k">def</span> <span class="nf">repeat_across_env_dimension</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">num_envs</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">array</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_envs</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># Copy host data and tensors to device</span>
+                <span class="c1"># Note: this happens only once after the first reset on the host</span>
+
+                <span class="n">scenario_and_components</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">components</span>
+
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">scenario_and_components</span><span class="p">:</span>
+                    <span class="c1"># Add env dimension to data</span>
+                    <span class="c1"># if &quot;save_copy_and_apply_at_reset&quot; is True</span>
+                    <span class="n">data_dictionary</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get_data_dictionary</span><span class="p">()</span>
+                    <span class="n">tensor_dictionary</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get_tensor_dictionary</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data_dictionary</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">data_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;attributes&quot;</span><span class="p">][</span>
+                            <span class="s2">&quot;save_copy_and_apply_at_reset&quot;</span>
+                        <span class="p">]:</span>
+                            <span class="n">data_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">repeat_across_env_dimension</span><span class="p">(</span>
+                                <span class="n">data_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_envs</span>
+                            <span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tensor_dictionary</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">tensor_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;attributes&quot;</span><span class="p">][</span>
+                            <span class="s2">&quot;save_copy_and_apply_at_reset&quot;</span>
+                        <span class="p">]:</span>
+                            <span class="n">tensor_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">][</span>
+                                <span class="s2">&quot;data&quot;</span>
+                            <span class="p">]</span> <span class="o">=</span> <span class="n">repeat_across_env_dimension</span><span class="p">(</span>
+                                <span class="n">tensor_dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;data&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_envs</span>
+                            <span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">push_data_to_device</span><span class="p">(</span><span class="n">data_dictionary</span><span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="o">.</span><span class="n">push_data_to_device</span><span class="p">(</span>
+                        <span class="n">tensor_dictionary</span><span class="p">,</span> <span class="n">torch_accessible</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># All subsequent resets happen on the GPU</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reset_on_host</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="c1"># Return the obs</span>
+                <span class="k">return</span> <span class="n">obs</span>
+            <span class="c1"># Returns an empty dictionary for all subsequent resets on the GPU</span>
+            <span class="c1"># as arrays are modified in place</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env_resetter</span><span class="o">.</span><span class="n">reset_when_done</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;force_reset&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="n">obs</span>  <span class="c1"># CPU version</span></div>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.reset_only_done_envs"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.reset_only_done_envs">[docs]</a>    <span class="k">def</span> <span class="nf">reset_only_done_envs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function only works for GPU example_envs.</span>
+<span class="sd">        It will check all the running example_envs,</span>
+<span class="sd">        and only resets those example_envs that are observing done flag is True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_on_host</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;reset_only_done_envs() only works &quot;</span>
+            <span class="s2">&quot;for self.use_cuda = True and self.reset_on_host = False&quot;</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">env_resetter</span><span class="o">.</span><span class="n">reset_when_done</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;if_done&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.step_all_envs"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.step_all_envs">[docs]</a>    <span class="k">def</span> <span class="nf">step_all_envs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Step through all the environments&#39; components and scenario</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span><span class="p">:</span>
+            <span class="c1"># Step through each component</span>
+            <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">components</span><span class="p">:</span>
+                <span class="n">component</span><span class="o">.</span><span class="n">component_step</span><span class="p">()</span>
+
+            <span class="c1"># Scenario step</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">scenario_step</span><span class="p">()</span>
+
+            <span class="c1"># Compute rewards</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">generate_rewards</span><span class="p">()</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Do not return anything</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">actions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please provide actions to step with.&quot;</span>
+            <span class="n">obs</span><span class="p">,</span> <span class="n">rew</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reformat_obs</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+            <span class="n">rew</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reformat_rew</span><span class="p">(</span><span class="n">rew</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">obs</span><span class="p">,</span> <span class="n">rew</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.obs_at_reset"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.obs_at_reset">[docs]</a>    <span class="k">def</span> <span class="nf">obs_at_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calls the (Python) env to reset and return the initial state</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reformat_obs</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obs</span></div>
+
+    <span class="k">def</span> <span class="nf">_reformat_obs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;a&quot;</span> <span class="ow">in</span> <span class="n">obs</span><span class="p">:</span>
+            <span class="c1"># This means the env uses collated obs.</span>
+            <span class="c1"># Set each individual agent as obs keys for processing with WarpDrive.</span>
+            <span class="k">for</span> <span class="n">agent_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">n_agents</span><span class="p">):</span>
+                <span class="n">obs</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">obs</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">][</span><span class="o">...</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span>  <span class="c1"># remove the key &quot;a&quot;</span>
+        <span class="k">return</span> <span class="n">obs</span>
+
+    <span class="k">def</span> <span class="nf">_reformat_rew</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rew</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;a&quot;</span> <span class="ow">in</span> <span class="n">rew</span><span class="p">:</span>
+            <span class="c1"># This means the env uses collated rew.</span>
+            <span class="c1"># Set each individual agent as rew keys for processing with WarpDrive.</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rew</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">agent_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">n_agents</span><span class="p">):</span>
+                <span class="n">rew</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">rew</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][</span><span class="n">agent_id</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">rew</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span>  <span class="c1"># remove the key &quot;a&quot;</span>
+        <span class="k">return</span> <span class="n">rew</span>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.reset"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias for reset_all_envs() when CPU is used (conforms to gym-style)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_all_envs</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FoundationEnvWrapper.step"><a class="viewcode-back" href="../../foundation.html#foundation.env_wrapper.FoundationEnvWrapper.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias for step_all_envs() when CPU is used (conforms to gym-style)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_all_envs</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

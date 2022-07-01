@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.base.base_env &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.base.base_env</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.base.base_env</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.agents</span> <span class="kn">import</span> <span class="n">agent_registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.registrar</span> <span class="kn">import</span> <span class="n">Registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.world</span> <span class="kn">import</span> <span class="n">World</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.components</span> <span class="kn">import</span> <span class="n">component_registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.entities</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">endogenous_registry</span><span class="p">,</span>
+    <span class="n">landmark_registry</span><span class="p">,</span>
+    <span class="n">resource_registry</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="BaseEnvironment"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment">[docs]</a><span class="k">class</span> <span class="nc">BaseEnvironment</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base Environment class. Should be used as the parent class for Scenario classes.</span>
+<span class="sd">    Instantiates world, agent, and component objects.</span>
+
+<span class="sd">    Provides Gym-style API for resetting and stepping:</span>
+<span class="sd">        obs                  &lt;-- env.reset()</span>
+<span class="sd">        obs, rew, done, info &lt;-- env.step(actions)</span>
+
+<span class="sd">    Also provides Gym-style API for controlling random behavior:</span>
+<span class="sd">        env.seed(seed) # Sets numpy and built-in RNG seeds to seed</span>
+
+<span class="sd">    Reference: OpenAI Gym [https://github.com/openai/gym]</span>
+
+<span class="sd">    Environments in this framework are instances of Scenario classes (which are built</span>
+<span class="sd">    as extensions of BaseEnvironment). A Scenario must implement the following</span>
+<span class="sd">    abstract methods (method docstrings provide detailed explanations):</span>
+<span class="sd">        reset_starting_layout</span>
+<span class="sd">        reset_agent_states</span>
+<span class="sd">        scenario_step</span>
+<span class="sd">        generate_observations</span>
+<span class="sd">        compute_reward</span>
+
+<span class="sd">    Scenario classes define their own passive dynamics--that is, dynamics that do not</span>
+<span class="sd">    depend on agent actions--and supply observations. It is up to the Scenario class</span>
+<span class="sd">    to handle reward.</span>
+
+<span class="sd">    Interactions with the environment are handled through components, which define</span>
+<span class="sd">    actions that agents can perform. Components are defined through distinct</span>
+<span class="sd">    Component classes (which extend BaseComponent [see base_component.py]) and must</span>
+<span class="sd">    be included in the components_registry in order to be used (see below).</span>
+<span class="sd">    Components influence the environment dynamics through effects they have on</span>
+<span class="sd">    agent/world states. They also (optionally) supply observations.</span>
+
+<span class="sd">    The actions available to the agents, observations they receive, the dynamics of</span>
+<span class="sd">    the environment, and the rewards depend of the choice of which Scenario class and</span>
+<span class="sd">    Component class(es) to use.</span>
+
+<span class="sd">    In multi_action_mode, an agent may choose an action for each of the action</span>
+<span class="sd">    subspaces defined by the included Component classes. A Component can define 0, 1,</span>
+<span class="sd">    or several action subspaces for a given agent type. If not using</span>
+<span class="sd">    multi_action_mode, these action subspaces are combined into a single action space</span>
+<span class="sd">    and the agent may select one action within this aggregated space.</span>
+
+<span class="sd">    For additional detail regarding actions and action subspaces, see the</span>
+<span class="sd">    BaseComponent class in base_component.py.</span>
+
+<span class="sd">    There are 2 types of agents: mobile agents and the planner agent. There can be</span>
+<span class="sd">    two or more mobile agents and a single planner agent. Conceptually, mobile agents</span>
+<span class="sd">    represent the individual actors in the economic simulation while the planner</span>
+<span class="sd">    agent represents a social planner that sets macroeconomic policy.</span>
+
+<span class="sd">    This environment framework makes extensive use of Python classes. Scenarios,</span>
+<span class="sd">    Components, Agents, and environment entities such as Resources, Landmarks,</span>
+<span class="sd">    and Endogenous variables are all implemented as classes. These classes are</span>
+<span class="sd">    accessed via registries. See top example.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        from ai_economist import foundation</span>
+<span class="sd">        # foundation.scenarios  &lt;-- Scenario class registry</span>
+<span class="sd">        # foundation.components &lt;-- Component class registry</span>
+<span class="sd">        # foundation.agents     &lt;-- Agent class registry</span>
+<span class="sd">        # foundation.resources  &lt;-- Resource class registry</span>
+<span class="sd">        # foundation.landmarks  &lt;-- Landmark class registry</span>
+<span class="sd">        # foundation.endogenous &lt;-- Endogenous class registry</span>
+
+<span class="sd">        # see ../scenarios/simple_wood_and_stone/dynamic_layout.py</span>
+<span class="sd">        UniScenarioClass = foundation.scenarios.get(&quot;uniform/simple_wood_and_stone&quot;)</span>
+
+<span class="sd">        # see ../components/build.py and ../components/move.py</span>
+<span class="sd">        BuildComponentClass  = foundation.components.get(&quot;Build&quot;)</span>
+<span class="sd">        GatherComponentClass = foundation.components.get(&quot;Gather&quot;)</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        from ai_economist import foundation</span>
+<span class="sd">        from ai_economist.foundation.base.base_env import BaseEnvironment</span>
+
+<span class="sd">        ScenarioClass = foundation.scenarios.get(...)</span>
+<span class="sd">        assert issubclass(ScenarioClass, BaseEnvironment)</span>
+
+<span class="sd">        env = ScenarioClass(</span>
+<span class="sd">            components=[</span>
+<span class="sd">                (&quot;Build&quot;, {&quot;payment&quot;: 20}),</span>
+<span class="sd">                (&quot;Gather&quot;, {&quot;move_labor&quot;: 1.0, &quot;collect_labor&quot;: 2.0}),</span>
+<span class="sd">            ],</span>
+<span class="sd">            n_agents=20,</span>
+<span class="sd">            world_size=[25, 25],</span>
+<span class="sd">        )</span>
+
+<span class="sd">        obs = env.reset()</span>
+
+<span class="sd">        actions = {agent.idx: ... for agent in env.all_agents}</span>
+<span class="sd">        obs, rew, done, info = env.step(actions)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        components (list): A list of tuples (&quot;Component Name&quot;, {Component kwargs}) or</span>
+<span class="sd">            list of dicts {&quot;Component Name&quot;: {Component kwargs}} specifying the</span>
+<span class="sd">            components that the instantiated environment will include.</span>
+<span class="sd">            &quot;Component Name&quot; must be a string matching the name of a registered</span>
+<span class="sd">            Component class.</span>
+<span class="sd">            {Component kwargs} must be a dictionary of kwargs that can be passed as</span>
+<span class="sd">            arguments to the Component class with name &quot;Component Name&quot;.</span>
+<span class="sd">            Resetting, stepping, and observation generation will be carried out in</span>
+<span class="sd">            the order in which components are listed. This should be considered,</span>
+<span class="sd">            as re-ordering the components list may impact the dynamics of the</span>
+<span class="sd">            environment.</span>
+<span class="sd">        n_agents (int): The number of mobile agents (does not include planner).</span>
+<span class="sd">            Number of agents must be &gt; 1.</span>
+<span class="sd">        world_size (list): A length-2 list specifying the dimensions of the 2D world.</span>
+<span class="sd">            Interpreted as [height, width].</span>
+<span class="sd">        episode_length (int): Number of timesteps in a single episode.</span>
+<span class="sd">        multi_action_mode_agents (bool): Whether mobile agents use multi_action_mode.</span>
+<span class="sd">        multi_action_mode_planner (bool): Whether the planner uses multi_action_mode.</span>
+<span class="sd">        flatten_observations (bool): Whether to preprocess observations by</span>
+<span class="sd">            concatenating all scalar/vector observation subfields into a single</span>
+<span class="sd">            &quot;flat&quot; observation field. If not, return observations as minimally</span>
+<span class="sd">            processed dictionaries.</span>
+<span class="sd">        flatten_masks (bool): Whether to flatten action masks into a single array or</span>
+<span class="sd">            to keep as a {&quot;action_subspace_name&quot;: action_subspace_mask} dictionary.</span>
+<span class="sd">            For integration with deep RL, it is helpful to set this to True, for the</span>
+<span class="sd">            purpose of action masking: flattened masks have the same semantics as</span>
+<span class="sd">            policy logits.</span>
+<span class="sd">        allow_observation_scaling (bool): Whether to enable certain observation</span>
+<span class="sd">            fields to be scaled to a range better suited for deep RL.</span>
+<span class="sd">        dense_log_frequency (int): [optional] How often (in completed episodes) to</span>
+<span class="sd">            create a dense log while playing an episode. By default, dense logging is</span>
+<span class="sd">            turned off (dense_log_frequency=None). If dense_log_frequency=20,</span>
+<span class="sd">            a dense log will be created when the total episode count is a multiple of</span>
+<span class="sd">            20.</span>
+<span class="sd">            Dense logs provide a log of agent states, actions, and rewards at each</span>
+<span class="sd">            timestep of an episode. They also log world states at a coarser timescale</span>
+<span class="sd">            (see below). Component classes optionally contribute additional</span>
+<span class="sd">            information to the dense log.</span>
+<span class="sd">            Note: dense logging is time consuming (especially with many agents).</span>
+<span class="sd">        world_dense_log_frequency (int): When dense logging, how often (in timesteps) to</span>
+<span class="sd">            log a snapshot of the world state. If world_dense_log_frequency=50</span>
+<span class="sd">            (the default), the world state will be included in the dense log for</span>
+<span class="sd">            timesteps where t is a multiple of 50.</span>
+<span class="sd">            Note: More frequent world snapshots increase the dense log memory footprint.</span>
+<span class="sd">        seed (int, optional): If provided, sets the numpy and built-in random number</span>
+<span class="sd">            generator seeds to seed. You can control the seed after env construction</span>
+<span class="sd">            using the &#39;seed&#39; method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># The name associated with this Scenario class (must be unique)</span>
+    <span class="c1"># Note: This is what will identify the Scenario class in the scenario registry.</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># The (sub)classes of agents that this scenario applies to</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># The (non-agent) game entities that are expected to be in play</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Replace with list or tuple (can be empty)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">components</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_agents</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">world_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">episode_length</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">multi_action_mode_agents</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">multi_action_mode_planner</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">flatten_observations</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">flatten_masks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">allow_observation_scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dense_log_frequency</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">world_dense_log_frequency</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">collate_agent_step_and_reset_data</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="c1"># Make sure a name was declared by child class</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="c1"># Make sure the agent_subclasses was declared by child class</span>
+        <span class="c1"># and does not create potential conflicts</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="n">a_i</span> <span class="o">=</span> <span class="n">agent_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">a_j</span> <span class="o">=</span> <span class="n">agent_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">a_i</span><span class="p">,</span> <span class="n">a_j</span><span class="p">)</span>
+
+        <span class="c1"># Make sure the required_entities was declared by child class</span>
+        <span class="c1"># (will typecheck later)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_entities</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+
+        <span class="c1"># World size must be a tuple or list of length 2,</span>
+        <span class="c1"># specifying [Height, Width] of the game map</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">world_size</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">world_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="n">world_size</span>
+
+        <span class="c1"># Number of agents must be an integer and there must be at least 2 agents</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_agents</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">n_agents</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="n">n_agents</span>
+
+        <span class="c1"># Foundation assumes there&#39;s only a single planner</span>
+        <span class="n">n_planners</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_agents</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">n_agents</span> <span class="o">+</span> <span class="n">n_planners</span>
+        <span class="p">)</span>  <span class="c1"># used in the warp_drive env wrapper (+ 1 for the planner)</span>
+
+        <span class="c1"># Components must be a tuple/list where each element is either a...</span>
+        <span class="c1">#   tuple: (&#39;Component Name&#39;, {Component kwargs})</span>
+        <span class="c1">#   dict : {&#39;Component Name&#39;: {Component kwargs}}</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">components</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">spec_is_valid</span><span class="p">(</span><span class="n">spec</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Return True if component specification is validly configured.&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="n">key_is_str</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="n">val_is_dict</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">key_is_str</span> <span class="ow">and</span> <span class="n">val_is_dict</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">spec_is_valid</span><span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">episode_length</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="c1"># Can an agent/planner execute multiple actions (1 per action subspace) per</span>
+        <span class="c1"># timestep (=True) or just one action (=False)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_agents</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">multi_action_mode_agents</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_planner</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">multi_action_mode_planner</span><span class="p">)</span>
+
+        <span class="c1"># Whether to allow the world to scale observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_allow_observation_scaling</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">allow_observation_scaling</span><span class="p">)</span>
+
+        <span class="c1"># Whether to flatten the observation dictionaries before returning them</span>
+        <span class="c1"># Note: flattened observations are still returned as dictionaries, but with</span>
+        <span class="c1"># all scalar/vector observation fields concatenated into a single &quot;flat&quot; field.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flatten_observations</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">flatten_observations</span><span class="p">)</span>
+
+        <span class="c1"># Whether to flatten the mask dictionaries before putting them in the obs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flatten_masks</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">flatten_masks</span><span class="p">)</span>
+
+        <span class="c1"># How often (in episode completions) to create a dense log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">dense_log_frequency</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Only create a dense log</span>
+            <span class="c1"># if manually specified during reset</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_dense_log_every</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Create a dense log every dense_log_frequency episodes</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_dense_log_every</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dense_log_frequency</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_dense_log_every</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="c1"># How often (in timesteps) to snapshot the world map when creating the denselog</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_world_dense_log_frequency</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">world_dense_log_frequency</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_dense_log_frequency</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="c1"># Seed control</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="c1"># Initialize the set of entities used in the game that&#39;s being created.</span>
+        <span class="c1"># Coin and Labor are always included.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;resources&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Coin&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;landmarks&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;endogenous&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Labor&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_entities</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_entities</span><span class="p">)</span>
+
+        <span class="c1"># Register all the components to get the entities they rely on.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_components</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_components_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shorthand_lookup</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">component_classes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">component_spec</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component_spec</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="n">component_name</span><span class="p">,</span> <span class="n">component_config</span> <span class="o">=</span> <span class="n">component_spec</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component_spec</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">component_spec</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+                <span class="n">component_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">component_spec</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">component_config</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">component_spec</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span>
+            <span class="n">component_cls</span> <span class="o">=</span> <span class="n">component_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">component_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_register_entities</span><span class="p">(</span><span class="n">component_cls</span><span class="o">.</span><span class="n">required_entities</span><span class="p">)</span>
+            <span class="n">component_classes</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">component_cls</span><span class="p">,</span> <span class="n">component_config</span><span class="p">])</span>
+
+        <span class="c1"># Initialize the world object (contains agents and world map),</span>
+        <span class="c1"># now that we know all the entities we&#39;ll use.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span> <span class="o">=</span> <span class="n">World</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">landmarks</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_agents</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_planner</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize the component objects.</span>
+        <span class="k">for</span> <span class="n">component_cls</span><span class="p">,</span> <span class="n">component_kwargs</span> <span class="ow">in</span> <span class="n">component_classes</span><span class="p">:</span>
+            <span class="n">component_object</span> <span class="o">=</span> <span class="n">component_cls</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span><span class="p">,</span>
+                <span class="n">inventory_scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inv_scale</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">component_kwargs</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component_object</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_components_dict</span><span class="p">[</span><span class="n">component_object</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">component_object</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_shorthand_lookup</span><span class="p">[</span><span class="n">component_object</span><span class="o">.</span><span class="n">shorthand</span><span class="p">]</span> <span class="o">=</span> <span class="n">component_object</span>
+
+        <span class="c1"># Register the components with the agents</span>
+        <span class="c1"># to finish setting up their state/action spaces.</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">register_inventory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">)</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">register_endogenous</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endogenous</span><span class="p">)</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">register_components</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">register_inventory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">register_components</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_agent_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="n">agent</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_completions</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_metrics</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># For dense logging</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;world&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;states&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;actions&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;rewards&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_dense_log</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_log</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># For episode replay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_replay_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;reset&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">seed_state</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_replay_log</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replay_log</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packagers</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># To collate all the agents (&#39;0&#39;, &#39;1&#39;, ...) data during reset and step</span>
+        <span class="c1"># into a single agent with index &#39;a&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span> <span class="o">=</span> <span class="n">collate_agent_step_and_reset_data</span>
+
+    <span class="k">def</span> <span class="nf">_register_entities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">resource_registry</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">entity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;resources&quot;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;resources&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">landmark_registry</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">entity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;landmarks&quot;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;landmarks&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">endogenous_registry</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">entity</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">entity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Unknown entity: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">entity</span><span class="p">))</span>
+
+    <span class="c1"># Properties</span>
+    <span class="c1"># ----------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">episode_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Length of an episode, in timesteps.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inv_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Scale value to be used for inventory scaling. 1 if no scaling enabled.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">0.01</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allow_observation_scaling</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resources</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of resources managed by this environment instance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;resources&quot;</span><span class="p">]))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">landmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of landmarks managed by this environment instance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;landmarks&quot;</span><span class="p">]))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">endogenous</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of endogenous quantities managed by this environment instance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entities</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">]))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">all_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of mobile agents and the planner agent.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">previous_episode_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Metrics from the end of the last completed episode.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_metrics</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The combined metrics yielded by the scenario and the components.&quot;&quot;&quot;</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scenario_metrics</span><span class="p">()</span> <span class="ow">or</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">:</span>
+            <span class="n">m_metrics</span> <span class="o">=</span> <span class="n">component</span><span class="o">.</span><span class="n">get_metrics</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">m_metrics</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">m_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">shorthand</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="k">return</span> <span class="n">metrics</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The list of components associated with this scenario.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dense_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The contents of the current (potentially incomplete) dense log.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">replay_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The contents of the current (potentially incomplete) replay log.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replay_log</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">previous_episode_dense_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dense log from the last completed episode that was being logged.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_dense_log</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">previous_episode_replay_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Replay log from the last completed episode. Serves as a compact encoding of</span>
+<span class="sd">        an episode by allowing the episode to be perfectly reproduced.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            # replay log of the episode to be reproduced</span>
+<span class="sd">            replay_log = env.previous_episode_replay_log</span>
+
+<span class="sd">            # recover episode metrics and dense log via replay</span>
+<span class="sd">            _ = env.reset(force_dense_logging=True, **replay_log[&#39;reset&#39;])</span>
+<span class="sd">            for replay_step in replay_log[&#39;step&#39;]:</span>
+<span class="sd">                _ = env.step(**replay_step)</span>
+<span class="sd">            dense_log = env.previous_episode_dense_log</span>
+<span class="sd">            metrics = env.previous_episode_metrics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_replay_log</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">generate_rewards</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the rewards for each agent.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_rewards</span>
+
+    <span class="c1"># Seed control</span>
+    <span class="c1"># -----------------</span>
+
+<div class="viewcode-block" id="BaseEnvironment.seed"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.seed">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the numpy and built-in random number generator seed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            seed (int, float): Seed value to use. Must be &gt; 0. Converted to int</span>
+<span class="sd">                internally if provided value is a float.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">seed</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span></div>
+
+    <span class="c1"># Getters &amp; Setters</span>
+    <span class="c1"># -----------------</span>
+
+<div class="viewcode-block" id="BaseEnvironment.get_component"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.get_component">[docs]</a>    <span class="k">def</span> <span class="nf">get_component</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the component object instance wrapped in the environment.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            component_name (str): Name or shorthand name of the Component class to get.</span>
+<span class="sd">                Must correspond to a name or shorthand of one of the components that</span>
+<span class="sd">                is included in this environment instance.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            component (BaseComponent object)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">component_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components_dict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">component_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shorthand_lookup</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s2">&quot;No component with name or shorthand name </span><span class="si">{}</span><span class="s2"> found; &quot;</span>
+                    <span class="s2">&quot;registered components are:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">component_name</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_components_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shorthand_lookup</span><span class="p">[</span><span class="n">component_name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components_dict</span><span class="p">[</span><span class="n">component_name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.get_agent"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.get_agent">[docs]</a>    <span class="k">def</span> <span class="nf">get_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the agent object instance with idx agent_idx.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            agent_idx (int or str): Identifier of the agent to return. Must match the</span>
+<span class="sd">                idx property of one of the agent objects in self.all_agents.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            agent (BaseAgent object)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">agent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">agent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No agent with associated index </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">agent</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.set_agent_component_action"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.set_agent_component_action">[docs]</a>    <span class="k">def</span> <span class="nf">set_agent_component_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_idx</span><span class="p">,</span> <span class="n">component_name</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set agent with idx &lt;agent_idx&gt; to take action &lt;action&gt; for the action</span>
+<span class="sd">        subspace with name &lt;component_name&gt;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            agent_idx (int or str): Identifier of the agent taking the action. Must</span>
+<span class="sd">                match the idx property of one of the agent objects in self.all_agents.</span>
+<span class="sd">            component_name (str): Name of the action subspace to set the action value</span>
+<span class="sd">                of.</span>
+<span class="sd">            action (int): Index of the chosen action.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">agent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)</span>
+        <span class="n">agent</span><span class="o">.</span><span class="n">set_component_action</span><span class="p">(</span><span class="n">component_name</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.parse_actions"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.parse_actions">[docs]</a>    <span class="k">def</span> <span class="nf">parse_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action_dictionary</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Put actions into the appropriate agent&#39;s action buffer&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">agent_idx</span><span class="p">,</span> <span class="n">agent_actions</span> <span class="ow">in</span> <span class="n">action_dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">agent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">parse_actions</span><span class="p">(</span><span class="n">agent_actions</span><span class="p">)</span></div>
+
+    <span class="c1"># Core control of environment execution</span>
+    <span class="c1"># -------------------------------------</span>
+
+<div class="viewcode-block" id="BaseEnvironment._build_packager"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment._build_packager">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_build_packager</span><span class="p">(</span><span class="n">sub_obs</span><span class="p">,</span> <span class="n">put_in_both</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decides which keys-vals should be flattened or not.</span>
+<span class="sd">        put_in_both: include in both (e.g., &#39;time&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">put_in_both</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">put_in_both</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">keep_as_is</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">flatten</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">wrap_as_list</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sub_obs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">multi_d_array</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">multi_d_array</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;action_mask&quot;</span> <span class="ow">or</span> <span class="n">multi_d_array</span><span class="p">:</span>
+                <span class="n">keep_as_is</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flatten</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">put_in_both</span><span class="p">:</span>
+                    <span class="n">keep_as_is</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+            <span class="n">wrap_as_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="n">flatten</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">flatten</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">keep_as_is</span><span class="p">,</span> <span class="n">flatten</span><span class="p">,</span> <span class="n">wrap_as_list</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_package</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">,</span> <span class="n">keep_as_is</span><span class="p">,</span> <span class="n">flatten</span><span class="p">,</span> <span class="n">wrap_as_list</span><span class="p">):</span>
+        <span class="n">new_obs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">obs_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keep_as_is</span><span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flatten</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">flatten</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">obs_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">wrap_as_list</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+                <span class="n">o</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="p">]</span>
+            <span class="n">new_obs</span><span class="p">[</span><span class="s2">&quot;flat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">to_flatten</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">[</span><span class="n">obs_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span> <span class="k">if</span> <span class="n">wrap_as_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">else</span> <span class="n">obs_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">flatten</span>
+            <span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">new_obs</span><span class="p">[</span><span class="s2">&quot;flat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">to_flatten</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="n">to_flatten</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">raise</span>
+        <span class="k">return</span> <span class="n">new_obs</span>
+
+    <span class="k">def</span> <span class="nf">_generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flatten_observations</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">flatten_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">recursive_listify</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">recursive_listify</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">)):</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s2">&quot;Not clear how to handle </span><span class="si">{}</span><span class="s2"> with type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">d</span>
+
+        <span class="c1"># Initialize empty observations</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span><span class="p">:</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+        <span class="n">agent_wise_planner_obs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;p&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Get/process observations generated by the scenario</span>
+        <span class="n">world_obs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_observations</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">time_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">episode_length</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allow_observation_scaling</span> <span class="k">else</span> <span class="mf">1.0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">world_obs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">obs</span><span class="p">:</span>
+                <span class="n">obs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;world-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">==</span> <span class="s2">&quot;a&quot;</span><span class="p">:</span>
+                    <span class="n">obs</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">/</span> <span class="n">time_scale</span>
+                            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+                        <span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">obs</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">/</span> <span class="n">time_scale</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">agent_wise_planner_obs</span><span class="p">:</span>
+                <span class="n">agent_wise_planner_obs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="p">{</span><span class="s2">&quot;world-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span>
+
+        <span class="c1"># Get/process observations generated by the components</span>
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">component</span><span class="o">.</span><span class="n">obs</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">obs</span><span class="p">:</span>
+                    <span class="n">obs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">component</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+                <span class="k">elif</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">agent_wise_planner_obs</span><span class="p">:</span>
+                    <span class="n">agent_wise_planner_obs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                        <span class="p">{</span><span class="n">component</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span>
+
+        <span class="c1"># Process the observations</span>
+        <span class="k">if</span> <span class="n">flatten_observations</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">o_dict</span> <span class="ow">in</span> <span class="p">[</span><span class="n">obs</span><span class="p">,</span> <span class="n">agent_wise_planner_obs</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">aidx</span><span class="p">,</span> <span class="n">aobs</span> <span class="ow">in</span> <span class="n">o_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">aobs</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="n">aidx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packagers</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_packagers</span><span class="p">[</span><span class="n">aidx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_packager</span><span class="p">(</span>
+                            <span class="n">aobs</span><span class="p">,</span> <span class="n">put_in_both</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">o_dict</span><span class="p">[</span><span class="n">aidx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package</span><span class="p">(</span><span class="n">aobs</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_packagers</span><span class="p">[</span><span class="n">aidx</span><span class="p">])</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error when packaging obs.&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Agent index: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">Raw obs: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aidx</span><span class="p">,</span> <span class="n">aobs</span><span class="p">))</span>
+                        <span class="k">raise</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">agent_wise_planner_obs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">obs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">idx</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;flat&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">flatten_observations</span> <span class="k">else</span> <span class="n">v</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Get each agent&#39;s action masks and incorporate them into the observations</span>
+        <span class="k">for</span> <span class="n">aidx</span><span class="p">,</span> <span class="n">amask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_masks</span><span class="p">(</span><span class="n">flatten_masks</span><span class="o">=</span><span class="n">flatten_masks</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">obs</span><span class="p">[</span><span class="n">aidx</span><span class="p">][</span><span class="s2">&quot;action_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amask</span>
+
+        <span class="k">return</span> <span class="n">obs</span>
+
+    <span class="k">def</span> <span class="nf">_generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flatten_masks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span><span class="p">:</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="p">{</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">:</span>
+            <span class="c1"># Use the component&#39;s generate_masks method to get action masks</span>
+            <span class="n">component_masks</span> <span class="o">=</span> <span class="n">component</span><span class="o">.</span><span class="n">generate_masks</span><span class="p">(</span><span class="n">completions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_completions</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">component_masks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">sub_action</span><span class="p">,</span> <span class="n">sub_mask</span> <span class="ow">in</span> <span class="n">mask</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">masks</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span>
+                            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub_action</span><span class="p">)</span>
+                        <span class="p">]</span> <span class="o">=</span> <span class="n">sub_mask</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">masks</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="n">component</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">if</span> <span class="n">flatten_masks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span><span class="p">:</span>
+                <span class="n">flattened_masks</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">agent_id</span> <span class="ow">in</span> <span class="n">masks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">agent_id</span> <span class="o">==</span> <span class="s2">&quot;a&quot;</span><span class="p">:</span>
+                        <span class="n">multi_action_mode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_agents</span>
+                        <span class="n">no_op_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="n">agent_id</span> <span class="o">==</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span>
+                        <span class="n">multi_action_mode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_planner</span>
+                        <span class="n">no_op_mask</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">mask_dict</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span>
+                    <span class="n">list_of_masks</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">multi_action_mode</span><span class="p">:</span>
+                        <span class="n">list_of_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">no_op_mask</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">mask_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">multi_action_mode</span><span class="p">:</span>
+                            <span class="n">list_of_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">no_op_mask</span><span class="p">)</span>
+                        <span class="n">list_of_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask_dict</span><span class="p">[</span><span class="n">m</span><span class="p">])</span>
+                    <span class="n">flattened_masks</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                        <span class="n">list_of_masks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">flattened_masks</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="n">agent</span><span class="o">.</span><span class="n">flatten_masks</span><span class="p">(</span><span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span>
+            <span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">):</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">[</span><span class="n">agent_idx</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">agent_idx</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_generate_rewards</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rew</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_reward</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rew</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rew</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="k">def</span> <span class="nf">_finalize_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_replay_log</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replay_log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">def</span> <span class="nf">recursive_cast</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+                <span class="n">new_d</span> <span class="o">=</span> <span class="p">[</span><span class="n">recursive_cast</span><span class="p">(</span><span class="n">v_</span><span class="p">)</span> <span class="k">for</span> <span class="n">v_</span> <span class="ow">in</span> <span class="n">d</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">new_d</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)):</span>
+                        <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">recursive_cast</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                        <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">)):</span>
+                        <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                            <span class="s2">&quot;Not clear how to handle </span><span class="si">{}</span><span class="s2"> with type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                        <span class="p">)</span>
+                <span class="k">return</span> <span class="n">d</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">d</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Not clear how to handle </span><span class="si">{}</span><span class="s2"> with type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="s2">&quot;world&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">state_dict</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="s2">&quot;states&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Back-fill the log with each component&#39;s dense log to complete the aggregate</span>
+        <span class="c1"># dense log</span>
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">:</span>
+            <span class="n">component_log</span> <span class="o">=</span> <span class="n">component</span><span class="o">.</span><span class="n">get_dense_log</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">component_log</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component_log</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">component_log</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="n">component</span><span class="o">.</span><span class="n">shorthand</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component_log</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="n">component</span><span class="o">.</span><span class="n">shorthand</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">component_log</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ep_dense_log</span> <span class="o">=</span> <span class="n">recursive_cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseEnvironment.collate_agent_obs"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.collate_agent_obs">[docs]</a>    <span class="k">def</span> <span class="nf">collate_agent_obs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">):</span>
+        <span class="c1"># Collating observations from all agents</span>
+        <span class="k">if</span> <span class="s2">&quot;a&quot;</span> <span class="ow">in</span> <span class="n">obs</span><span class="p">:</span>  <span class="c1"># already collated!</span>
+            <span class="k">return</span> <span class="n">obs</span>
+        <span class="n">num_agents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">obs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">obs</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">obs</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)][</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">agent_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_agents</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">agent_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_agents</span><span class="p">):</span>
+            <span class="k">del</span> <span class="n">obs</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">obs</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.collate_agent_rew"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.collate_agent_rew">[docs]</a>    <span class="k">def</span> <span class="nf">collate_agent_rew</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rew</span><span class="p">):</span>
+        <span class="c1"># Collating rewards from all agents</span>
+        <span class="k">if</span> <span class="s2">&quot;a&quot;</span> <span class="ow">in</span> <span class="n">rew</span><span class="p">:</span>  <span class="c1"># already collated!</span>
+            <span class="k">return</span> <span class="n">rew</span>
+        <span class="n">num_agents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rew</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">rew</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">agent_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_agents</span><span class="p">):</span>
+            <span class="n">rew</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">rew</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)]]</span>
+            <span class="k">del</span> <span class="n">rew</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">rew</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.collate_agent_info"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.collate_agent_info">[docs]</a>    <span class="k">def</span> <span class="nf">collate_agent_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+        <span class="c1"># Collating infos from all agents</span>
+        <span class="k">if</span> <span class="s2">&quot;a&quot;</span> <span class="ow">in</span> <span class="n">info</span><span class="p">:</span>  <span class="c1"># already collated!</span>
+            <span class="k">return</span> <span class="n">info</span>
+        <span class="n">num_agents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">agent_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_agents</span><span class="p">):</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">][</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)]</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)]</span>
+            <span class="k">del</span> <span class="n">info</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">agent_idx</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">info</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.reset"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_dense_logging</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the state of the environment to initialize a new episode.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            seed_state (tuple or list): Optional state that the numpy RNG should be set</span>
+<span class="sd">                to prior to the reset cycle must be length 5, following the format</span>
+<span class="sd">                expected by np.random.set_state()</span>
+<span class="sd">            force_dense_logging (bool): Optional whether to force dense logging to take</span>
+<span class="sd">                place this episode; default behavior is to do dense logging every</span>
+<span class="sd">                create_dense_log_every episodes</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            obs (dict): A dictionary of {&quot;agent_idx&quot;: agent_obs} with an entry for</span>
+<span class="sd">                each agent receiving observations. The &quot;agent_idx&quot; key identifies the</span>
+<span class="sd">                agent receiving the observations in the associated agent_obs value,</span>
+<span class="sd">                which itself is a dictionary. The &quot;agent_idx&quot; key matches the</span>
+<span class="sd">                agent.idx property for the given agent.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed_state</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seed_state</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span>
+            <span class="n">seed_state</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">seed_state</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">force_dense_logging</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_dense_log_every</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_completions</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_dense_log_every</span>
+            <span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="c1"># For dense logging</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;world&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;states&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;actions&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;rewards&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+
+        <span class="c1"># For episode replay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_replay_log</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;reset&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">seed_state</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">get_state</span><span class="p">()),</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+
+        <span class="c1"># Reset the timestep counter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Perform the scenario reset,</span>
+        <span class="c1"># which includes resetting the world and agent states</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_starting_layout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_agent_states</span><span class="p">()</span>
+
+        <span class="c1"># Perform the component resets for each registered component</span>
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">:</span>
+            <span class="n">component</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="c1"># Take any customized reset actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">additional_reset_steps</span><span class="p">()</span>
+
+        <span class="c1"># By default, agents take the NO-OP action for each action space.</span>
+        <span class="c1"># Reset actions to that default.</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">:</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">reset_actions</span><span class="p">()</span>
+
+        <span class="c1"># Produce observations</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_observations</span><span class="p">(</span>
+            <span class="n">flatten_observations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_flatten_observations</span><span class="p">,</span>
+            <span class="n">flatten_masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_flatten_masks</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span><span class="p">:</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_obs</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">obs</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.step"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute the components, perform the scenario step, collect observations and</span>
+<span class="sd">        return observations, rewards, dones, and infos.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            actions (dict): dictionary of {agent_idx: action} with an entry for each</span>
+<span class="sd">                agent (which may include the planner) that is supplying an action.</span>
+<span class="sd">                The key identifies which agent the action is associated with. It</span>
+<span class="sd">                should match that agent&#39;s agent.idx property.</span>
+<span class="sd">                The value indicates which action the agent will take. The environment</span>
+<span class="sd">                supports two formats for specifying an action, with slightly</span>
+<span class="sd">                different expectations for multi_action_mode.</span>
+<span class="sd">                If agent.multi_action_mode, action must be a list of integers</span>
+<span class="sd">                specifying the chosen action for each action subspace.</span>
+<span class="sd">                Otherwise, action must be a single integer specifying the chosen</span>
+<span class="sd">                action (where the action space is the concatenation of the subspaces).</span>
+<span class="sd">            seed_state (tuple or list): Optional state that the numpy RNG should be set</span>
+<span class="sd">                to prior to the reset cycle must be length 5, following the format</span>
+<span class="sd">                expected by np.random.set_state().</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            obs (dict): A dictionary of {&quot;agent_idx&quot;: agent_obs} with an entry for</span>
+<span class="sd">                each agent receiving observations. The &quot;agent_idx&quot; key identifies the</span>
+<span class="sd">                agent receiving the observations in the associated agent_obs value,</span>
+<span class="sd">                which itself is a dictionary. The &quot;agent_idx&quot; key matches the</span>
+<span class="sd">                agent.idx property for the given agent.</span>
+<span class="sd">            rew (dict): A dictionary of {&quot;agent_idx&quot;: reward} with an entry for each</span>
+<span class="sd">                agent that also receives an observation. Each reward value is a scalar.</span>
+<span class="sd">            done (dict): A dictionary with a single key &quot;__all__&quot;. The associated</span>
+<span class="sd">                value is False when self.world.timestep &lt; self.episode_length and True</span>
+<span class="sd">                otherwise.</span>
+<span class="sd">            info (dict): Placeholder dictionary with structure {&quot;agent_idx&quot;: {}},</span>
+<span class="sd">                with the same keys as obs and rew.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">actions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">actions</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parse_actions</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">seed_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seed_state</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seed_state</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span>
+            <span class="n">seed_state</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">seed_state</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">seed_state</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_replay_log</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span><span class="n">actions</span><span class="o">=</span><span class="n">actions</span><span class="p">,</span> <span class="n">seed_state</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">get_state</span><span class="p">())</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="s2">&quot;world&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">state_dict</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_dense_log_frequency</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="k">else</span> <span class="p">{}</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="s2">&quot;states&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">}</span>
+                    <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">:</span>
+            <span class="n">component</span><span class="o">.</span><span class="n">component_step</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scenario_step</span><span class="p">()</span>
+
+        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_observations</span><span class="p">(</span>
+            <span class="n">flatten_observations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_flatten_observations</span><span class="p">,</span>
+            <span class="n">flatten_masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_flatten_masks</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">rew</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_rewards</span><span class="p">()</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;__all__&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">timestep</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span><span class="p">}</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">obs</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log_this_episode</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dense_log</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rew</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_agents</span><span class="p">:</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">reset_actions</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">done</span><span class="p">[</span>
+            <span class="s2">&quot;__all__&quot;</span>
+        <span class="p">]:</span>  <span class="c1"># Complete the dense log and stash it as well as the metrics</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_logs</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_completions</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_step_and_reset_data</span><span class="p">:</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_obs</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+            <span class="n">rew</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_rew</span><span class="p">(</span><span class="n">rew</span><span class="p">)</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collate_agent_info</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">obs</span><span class="p">,</span> <span class="n">rew</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span></div>
+
+    <span class="c1"># The following methods must be implemented for each scenario</span>
+    <span class="c1"># -----------------------------------------------------------</span>
+
+<div class="viewcode-block" id="BaseEnvironment.reset_starting_layout"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.reset_starting_layout">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">reset_starting_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Part 1/2 of scenario reset. This method handles resetting the state of the</span>
+<span class="sd">        environment managed by the scenario (i.e. resource &amp; landmark layout).</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.reset_agent_states"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.reset_agent_states">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">reset_agent_states</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Part 2/2 of scenario reset. This method handles resetting the state of the</span>
+<span class="sd">        agents themselves (i.e. inventory, locations, etc.).</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.scenario_step"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.scenario_step">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">scenario_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the state of the world according to whatever rules this scenario</span>
+<span class="sd">        implements.</span>
+
+<span class="sd">        This gets called in the &#39;step&#39; method (of base_env) after going through each</span>
+<span class="sd">        component step and before generating observations, rewards, etc.</span>
+
+<span class="sd">        This is where things like resource regeneration, income redistribution, etc.,</span>
+<span class="sd">        can be implemented.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.generate_observations"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.generate_observations">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate observations associated with this scenario.</span>
+
+<span class="sd">        A scenario does not need to produce observations and can provide observations</span>
+<span class="sd">        for only some agent types; however, for a given agent type, it should either</span>
+<span class="sd">        always or never yield an observation. If it does yield an observation,</span>
+<span class="sd">        that observation should always have the same structure/sizes!</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            obs (dict): A dictionary of {agent.idx: agent_obs_dict}. In words,</span>
+<span class="sd">                return a dictionary with an entry for each agent (which can including</span>
+<span class="sd">                the planner) for which this scenario provides an observation. For each</span>
+<span class="sd">                entry, the key specifies the index of the agent and the value contains</span>
+<span class="sd">                its associated observation dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.compute_reward"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.compute_reward">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">compute_reward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the reward function(s) associated with this scenario to get the rewards</span>
+<span class="sd">        from this step.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            rew (dict): A dictionary of {agent.idx: agent_obs_dict}. In words,</span>
+<span class="sd">                return a  dictionary with an entry for each agent in the environment</span>
+<span class="sd">                (including the planner). For each entry, the key specifies the index of</span>
+<span class="sd">                the agent and the value contains the scalar reward earned this timestep.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+    <span class="c1"># Optional methods for customization</span>
+    <span class="c1"># ----------------------------------</span>
+
+<div class="viewcode-block" id="BaseEnvironment.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extra scenario-specific steps that should be performed at the end of the reset</span>
+<span class="sd">        cycle.</span>
+
+<span class="sd">        For each reset cycle...</span>
+<span class="sd">            First, reset_starting_layout() and reset_agent_states() will be called.</span>
+
+<span class="sd">            Second, &lt;component&gt;.reset() will be called for each registered component.</span>
+
+<span class="sd">            Lastly, this method will be called to allow for any final customization of</span>
+<span class="sd">            the reset cycle.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseEnvironment.scenario_metrics"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_env.BaseEnvironment.scenario_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">scenario_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Allows the scenario to generate metrics (collected along with component metrics</span>
+<span class="sd">        in the &#39;metrics&#39; property).</span>
+
+<span class="sd">        To have the scenario add metrics, this function needs to return a dictionary of</span>
+<span class="sd">        {metric_key: value} where &#39;value&#39; is a scalar (no nesting or lists!)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span></div></div>
+
+
+<span class="n">scenario_registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">BaseEnvironment</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;The registry for Scenario classes.</span>
+
+<span class="sd">This creates a registry object for Scenario classes. This registry requires that all</span>
+<span class="sd">added classes are subclasses of BaseEnvironment. To make a Scenario class available</span>
+<span class="sd">through the registry, decorate the class definition with @scenario_registry.add.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    from ai_economist.foundation.base.base_env</span>
+<span class="sd">    import BaseEnvironment, scenario_registry</span>
+
+<span class="sd">    @scenario_registry.add</span>
+<span class="sd">    class ExampleScenario(BaseEnvironment):</span>
+<span class="sd">        name = &quot;Example&quot;</span>
+<span class="sd">        pass</span>
+
+<span class="sd">    assert scenario_registry.has(&quot;Example&quot;)</span>
+
+<span class="sd">    ScenarioClass = scenario_registry.get(&quot;Example&quot;)</span>
+<span class="sd">    scenario = ScenarioClass(...)</span>
+<span class="sd">    assert isinstance(scenario, ExampleScenario)</span>
+
+<span class="sd">Notes:</span>
+<span class="sd">    The foundation package exposes the scenario registry as: foundation.scenarios</span>
+
+<span class="sd">    A Scenario class that is defined and registered following the above example will</span>
+<span class="sd">    only be visible in foundation.scenarios if defined/registered in a file that is</span>
+<span class="sd">    imported in ../scenarios/__init__.py.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

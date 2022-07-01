@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.entities.resources &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.entities.resources</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.entities.resources</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.registrar</span> <span class="kn">import</span> <span class="n">Registry</span>
+
+
+<div class="viewcode-block" id="Resource"><a class="viewcode-back" href="../../../foundation.entities.html#foundation.entities.resources.Resource">[docs]</a><span class="k">class</span> <span class="nc">Resource</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Base class for Resource entity classes.</span>
+
+<span class="sd">    Resource classes describe entities that can be a part of an agent&#39;s inventory.</span>
+
+<span class="sd">    Resources can also be a part of the world as collectible entities: for each</span>
+<span class="sd">    Resource class with Resource.collectible=True, a complementary</span>
+<span class="sd">    ResourceSourceBlock Landmark class will be created in landmarks.py. For each</span>
+<span class="sd">    collectible resource in the environment, the world map will include a resource</span>
+<span class="sd">    source block channel (representing landmarks where collectible resources are</span>
+<span class="sd">    generated) and a resource channel (representing locations where collectible</span>
+<span class="sd">    resources have generated).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># array of RGB values [0 - 1]</span>
+    <span class="n">collectible</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Is this something that exists in the world?</span>
+    <span class="c1"># (versus something that can only be owned)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">collectible</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+
+<span class="n">resource_registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">Resource</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Wood"><a class="viewcode-back" href="../../../foundation.entities.html#foundation.entities.resources.Wood">[docs]</a><span class="nd">@resource_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">Wood</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wood resource. collectible.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Wood&quot;</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">107</span><span class="p">,</span> <span class="mi">143</span><span class="p">,</span> <span class="mi">113</span><span class="p">])</span> <span class="o">/</span> <span class="mf">255.0</span>
+    <span class="n">collectible</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="Stone"><a class="viewcode-back" href="../../../foundation.entities.html#foundation.entities.resources.Stone">[docs]</a><span class="nd">@resource_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">Stone</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stone resource. collectible.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Stone&quot;</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">241</span><span class="p">,</span> <span class="mi">233</span><span class="p">,</span> <span class="mi">219</span><span class="p">])</span> <span class="o">/</span> <span class="mf">255.0</span>
+    <span class="n">collectible</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="Coin"><a class="viewcode-back" href="../../../foundation.entities.html#foundation.entities.resources.Coin">[docs]</a><span class="nd">@resource_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">Coin</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Coin resource. Included in all environments by default. Not collectible.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Coin&quot;</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">229</span><span class="p">,</span> <span class="mi">211</span><span class="p">,</span> <span class="mi">82</span><span class="p">])</span> <span class="o">/</span> <span class="mf">255.0</span>
+    <span class="n">collectible</span> <span class="o">=</span> <span class="kc">False</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

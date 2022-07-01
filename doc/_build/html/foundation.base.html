@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.base package &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="foundation.components package" href="foundation.components.html" />
+    <link rel="prev" title="foundation.agents package" href="foundation.agents.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">foundation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="foundation.html">foundation package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="foundation.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="foundation.agents.html">foundation.agents package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">foundation.base package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="foundation.components.html">foundation.components package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="foundation.entities.html">foundation.entities package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="foundation.scenarios.html">foundation.scenarios package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#module-foundation.env_wrapper">foundation.env_wrapper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#module-foundation.utils">foundation.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="foundation.html#module-foundation">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">foundation</a> &raquo;</li>
+          <li><a href="foundation.html">foundation package</a> &raquo;</li>
+      <li>foundation.base package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/foundation.base.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="foundation-base-package">
+<h1>foundation.base package<a class="headerlink" href="#foundation-base-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-foundation.base.base_agent">
+<span id="foundation-base-base-agent-module"></span><h2>foundation.base.base_agent module<a class="headerlink" href="#module-foundation.base.base_agent" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.base.base_agent.</span></span><span class="sig-name descname"><span class="pre">BaseAgent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_action_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for Agent classes.</p>
+<p>Instances of Agent classes are created for each agent in the environment. Agent
+instances are stateful, capturing location, inventory, endogenous variables,
+and any additional state fields created by environment components during
+construction (see BaseComponent.get_additional_state_fields in base_component.py).</p>
+<p>They also provide a simple API for getting/setting actions for each of their
+registered action subspaces (which depend on the components used to build
+the environment).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idx</strong> (<em>int</em><em> or </em><em>str</em>) – Index that uniquely identifies the agent object amongst the
+other agent objects registered in its environment.</p></li>
+<li><p><strong>multi_action_mode</strong> (<em>bool</em>) – Whether to allow the agent to take one action for
+each of its registered action subspaces each timestep (if True),
+or to limit the agent to take only one action each timestep (if False).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.action_spaces">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">action_spaces</span></span><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.action_spaces" title="Permalink to this definition"></a></dt>
+<dd><dl>
+<dt>if self.multi_action_mode == True:</dt><dd><p>Returns an integer array with length equal to the number of action
+subspaces that the agent registered. The i’th element of the array
+indicates the number of actions associated with the i’th action subspace.
+In multi_action_mode, each subspace includes a NO-OP.
+Note: self._action_names describes which action subspace each element of
+the array refers to.</p>
+<dl class="simple">
+<dt>Example:</dt><dd><p>&gt;&gt; self.multi_action_mode
+True
+&gt;&gt; self.action_spaces
+[2, 5]
+&gt;&gt; self._action_names
+[“Build”, “Gather”]
+# [1 Build action + Build NO-OP, 4 Gather actions + Gather NO-OP]</p>
+</dd>
+</dl>
+</dd>
+<dt>if self.multi_action_mode == False:</dt><dd><p>Returns a single integer equal to the total number of actions that the
+agent can take.</p>
+<dl class="simple">
+<dt>Example:</dt><dd><p>&gt;&gt; self.multi_action_mode
+False
+&gt;&gt; self.action_spaces
+6
+&gt;&gt; self._action_names
+[“Build”, “Gather”]
+# 1 NO-OP + 1 Build action + 4 Gather actions.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.endogenous">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">endogenous</span></span><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.endogenous" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary representing endogenous quantities (i.e. “Labor”).</p>
+<p class="rubric">Example</p>
+<p>&gt;&gt; self.endogenous
+{“Labor”: 30.25}</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.escrow">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">escrow</span></span><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.escrow" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary representing quantities of resources in agent’s escrow.</p>
+<p><a class="reference external" href="https://en.wikipedia.org/wiki/Escrow">https://en.wikipedia.org/wiki/Escrow</a>
+Escrow is used to manage any portion of the agent’s inventory that is
+reserved for a particular purpose. Typically, something enters escrow as part
+of a contractual arrangement to disburse that something when another
+condition is met. An example is found in the ContinuousDoubleAuction
+Component class (see ../components/continuous_double_auction.py). When an
+agent creates an order to sell a unit of Wood, for example, the component
+moves one unit of Wood from the agent’s inventory to its escrow. If another
+agent buys the Wood, it is moved from escrow to the other agent’s inventory. By
+placing the Wood in escrow, it prevents the first agent from using it for
+something else (i.e. building a house).</p>
+<p class="rubric">Notes</p>
+<p>The inventory and escrow share the same keys. An agent’s endowment refers
+to the total quantity it has in its inventory and escrow.</p>
+<p>Escrow is provided to simplify inventory management but its intended
+semantics are not enforced directly. It is up to Component classes to
+enforce these semantics.</p>
+<p class="rubric">Example</p>
+<p>&gt;&gt; self.inventory
+{“Wood”: 0, “Stone”: 1, “Coin”: 3}</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.escrow_to_inventory">
+<span class="sig-name descname"><span class="pre">escrow_to_inventory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amount</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.escrow_to_inventory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.escrow_to_inventory" title="Permalink to this definition"></a></dt>
+<dd><p>Move some amount of a resource from agent escrow to agent inventory.</p>
+<p>Amount transferred is capped to the amount of resource in agent escrow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resource</strong> (<em>str</em>) – The name of the resource to move (i.e. “Wood”, “Coin”).</p></li>
+<li><p><strong>amount</strong> (<em>float</em>) – The amount to be moved from escrow to inventory. Must be
+positive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl>
+<dt>Amount of resource actually transferred. Will be less than amount argument</dt><dd><p>if amount argument exceeded the amount of resource in escrow.
+Calculated as:</p>
+<blockquote>
+<div><p>transferred = np.minimum(self.state[“escrow”][resource], amount)</p>
+</div></blockquote>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.flatten_masks">
+<span class="sig-name descname"><span class="pre">flatten_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.flatten_masks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.flatten_masks" title="Permalink to this definition"></a></dt>
+<dd><p>Convert a dictionary of component action masks into a single mask vector.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.get_component_action">
+<span class="sig-name descname"><span class="pre">get_component_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_action_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.get_component_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.get_component_action" title="Permalink to this definition"></a></dt>
+<dd><p>Return the action(s) taken for component_name component, or None if the
+agent does not use that component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.get_random_action">
+<span class="sig-name descname"><span class="pre">get_random_action</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.get_random_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.get_random_action" title="Permalink to this definition"></a></dt>
+<dd><p>Select a component at random and randomly choose one of its actions (other
+than NO-OP).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.has_component">
+<span class="sig-name descname"><span class="pre">has_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.has_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.has_component" title="Permalink to this definition"></a></dt>
+<dd><p>Returns True if the agent has component_name as a registered subaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.idx">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">idx</span></span><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.idx" title="Permalink to this definition"></a></dt>
+<dd><p>Index used to identify this agent. Must be unique within the environment.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.inventory">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">inventory</span></span><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.inventory" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary representing quantities of resources in agent’s inventory.</p>
+<p class="rubric">Example</p>
+<p>&gt;&gt; self.inventory
+{“Wood”: 3, “Stone”: 20, “Coin”: 1002.83}</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.inventory_to_escrow">
+<span class="sig-name descname"><span class="pre">inventory_to_escrow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amount</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.inventory_to_escrow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.inventory_to_escrow" title="Permalink to this definition"></a></dt>
+<dd><p>Move some amount of a resource from agent inventory to agent escrow.</p>
+<p>Amount transferred is capped to the amount of resource in agent inventory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resource</strong> (<em>str</em>) – The name of the resource to move (i.e. “Wood”, “Coin”).</p></li>
+<li><p><strong>amount</strong> (<em>float</em>) – The amount to be moved from inventory to escrow. Must be
+positive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl>
+<dt>Amount of resource actually transferred. Will be less than amount argument</dt><dd><p>if amount argument exceeded the amount of resource in the inventory.
+Calculated as:</p>
+<blockquote>
+<div><p>transferred = np.minimum(self.state[“inventory”][resource], amount)</p>
+</div></blockquote>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.loc">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loc</span></span><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.loc" title="Permalink to this definition"></a></dt>
+<dd><p>2D list of [row, col] representing agent’s location in the environment.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.parse_actions">
+<span class="sig-name descname"><span class="pre">parse_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.parse_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.parse_actions" title="Permalink to this definition"></a></dt>
+<dd><p>Parse the actions array to fill each component’s action buffers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.populate_random_actions">
+<span class="sig-name descname"><span class="pre">populate_random_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.populate_random_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.populate_random_actions" title="Permalink to this definition"></a></dt>
+<dd><p>Fill the action buffer with random actions. This is for testing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.register_components">
+<span class="sig-name descname"><span class="pre">register_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">components</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.register_components"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.register_components" title="Permalink to this definition"></a></dt>
+<dd><p>Used during environment construction to set up state/action spaces.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.register_endogenous">
+<span class="sig-name descname"><span class="pre">register_endogenous</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endogenous</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.register_endogenous"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.register_endogenous" title="Permalink to this definition"></a></dt>
+<dd><p>Used during environment construction to populate endogenous state fields.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.register_inventory">
+<span class="sig-name descname"><span class="pre">register_inventory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resources</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.register_inventory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.register_inventory" title="Permalink to this definition"></a></dt>
+<dd><p>Used during environment construction to populate inventory/escrow fields.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.reset_actions">
+<span class="sig-name descname"><span class="pre">reset_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.reset_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.reset_actions" title="Permalink to this definition"></a></dt>
+<dd><p>Reset all actions to the NO-OP action (the 0’th action index).</p>
+<p>If component is specified, only reset action(s) for that component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.set_component_action">
+<span class="sig-name descname"><span class="pre">set_component_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.set_component_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.set_component_action" title="Permalink to this definition"></a></dt>
+<dd><p>Set the action(s) taken for component_name component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_agent.BaseAgent.total_endowment">
+<span class="sig-name descname"><span class="pre">total_endowment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_agent.html#BaseAgent.total_endowment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_agent.BaseAgent.total_endowment" title="Permalink to this definition"></a></dt>
+<dd><p>Get the combined inventory+escrow endowment of resource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>resource</strong> (<em>str</em>) – Name of the resource</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The amount of resource in the agents inventory and escrow.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="foundation.base.base_agent.agent_registry">
+<span class="sig-prename descclassname"><span class="pre">foundation.base.base_agent.</span></span><span class="sig-name descname"><span class="pre">agent_registry</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ai_economist.foundation.base.registrar.Registry</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#foundation.base.base_agent.agent_registry" title="Permalink to this definition"></a></dt>
+<dd><p>The registry for Agent classes.</p>
+<p>This creates a registry object for Agent classes. This registry requires that all
+added classes are subclasses of BaseAgent. To make an Agent class available through
+the registry, decorate the class definition with &#64;agent_registry.add.</p>
+<p class="rubric">Example</p>
+<p>from ai_economist.foundation.base.base_agent import BaseAgent, agent_registry</p>
+<p>&#64;agent_registry.add
+class ExampleAgent(BaseAgent):</p>
+<blockquote>
+<div><p>name = “Example”
+pass</p>
+</div></blockquote>
+<p>assert agent_registry.has(“Example”)</p>
+<p>AgentClass = agent_registry.get(“Example”)
+agent = AgentClass(…)
+assert isinstance(agent, ExampleAgent)</p>
+<p class="rubric">Notes</p>
+<p>The foundation package exposes the agent registry as: foundation.agents</p>
+<p>An Agent class that is defined and registered following the above example will
+only be visible in foundation.agents if defined/registered in a file that is
+imported in ../agents/__init__.py.</p>
+</dd></dl>
+
+</section>
+<section id="module-foundation.base.base_component">
+<span id="foundation-base-base-component-module"></span><h2>foundation.base.base_component module<a class="headerlink" href="#module-foundation.base.base_component" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.base.base_component.</span></span><span class="sig-name descname"><span class="pre">BaseComponent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">world</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inventory_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base Component class. Should be used as the parent class for Component classes.
+Component instances are used to add some particular dynamics to an environment.
+They also add action spaces through which agents can interact with the
+environment via the component instance.</p>
+<dl class="simple">
+<dt>Environments expand the agents’ state/action spaces by querying:</dt><dd><p>get_n_actions
+get_additional_state_fields</p>
+</dd>
+<dt>Environments expand their dynamics by querying:</dt><dd><p>component_step
+generate_observations
+generate_masks</p>
+</dd>
+<dt>Environments expand logging behavior by querying:</dt><dd><p>get_metrics
+get_dense_log</p>
+</dd>
+</dl>
+<p>Because they are built as Python objects, component instances can also be
+stateful. Stateful attributes are reset via calls to:</p>
+<blockquote>
+<div><p>additional_reset_steps</p>
+</div></blockquote>
+<p>The semantics of each method, and how they can be used to construct an instance
+of the Component class, are detailed below.</p>
+<p>Refer to ../components/move.py for an example of a Component class that enables
+mobile agents to move and collect resources in the environment world.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.additional_reset_steps">
+<span class="sig-name descname"><span class="pre">additional_reset_steps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.additional_reset_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.additional_reset_steps" title="Permalink to this definition"></a></dt>
+<dd><p>Use this method to implement additional steps that the component should
+perform at reset. Useful for resetting internal trackers.</p>
+<p>This method should not return anything.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.agent_subclasses">
+<span class="sig-name descname"><span class="pre">agent_subclasses</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#foundation.base.base_component.BaseComponent.agent_subclasses" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.check_world">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_world</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">world</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.check_world"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.check_world" title="Permalink to this definition"></a></dt>
+<dd><p>Validate the world object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.component_step">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">component_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.component_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.component_step" title="Permalink to this definition"></a></dt>
+<dd><p>For all relevant agents, execute the actions specific to this Component class.
+This is essentially where the component logic is implemented and what allows
+components to create environment dynamics.</p>
+<p>If the component expects certain resources/landmarks/entities to be in play,
+it must declare them in ‘required_entities’ so that they can be registered as
+part of the world and, where appropriate, part of the agent inventory.</p>
+<p>If the component expects non-standard fields to exist in agent.state for one
+or more agent types, that must be reflected in get_additional_state_fields().</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.component_type">
+<span class="sig-name descname"><span class="pre">component_type</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#foundation.base.base_component.BaseComponent.component_type" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.episode_length">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">episode_length</span></span><a class="headerlink" href="#foundation.base.base_component.BaseComponent.episode_length" title="Permalink to this definition"></a></dt>
+<dd><p>Episode length of the environment this component instance is a part of.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.generate_masks">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">completions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.generate_masks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.generate_masks" title="Permalink to this definition"></a></dt>
+<dd><p>Create action masks to indicate which actions are and are not valid. Actions
+that are valid should be given a value of 1 and 0 otherwise. Do not generate
+a mask for the NO-OP action, which is always available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>completions</strong> (<em>int</em>) – The number of completed episodes. This is intended to
+be used in the case that actions may be masked or unmasked as part of a
+learning curriculum.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: mask} with an entry for each</dt><dd><p>agent that can interact with this component. See below.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masks (dict)</p>
+</dd>
+</dl>
+<p>The expected output parallels the action subspaces defined by get_n_actions():
+The output should be a dictionary of {agent.idx: mask} keyed for all agents
+that take actions via this component.</p>
+<p>For example, say the component defines a set of 4 actions for agents of type
+“BasicMobileAgent” (self.get_n_actions(“BasicMobileAgent) –&gt; 4). Because all
+action spaces include a NO-OP action, there are 5 available actions,
+interpreted in this example as: NO-OP (index=0), moving up (index=1),
+down (index=2), left (index=3), or right (index=4). Say also that agent-0 (the
+agent with agent.idx=0) is prevented from moving left but can otherwise move.
+In this case, generate_masks(world)[‘0’] should point to a length-4 binary
+array, specifically [1, 1, 0, 1]. Note that the mask is length 4 while
+technically 5 actions are available. This is because NO-OP should be ignored
+when constructing masks.</p>
+<p>In the more complex case where the component defines several action sets for
+an agent, say the planner agent (the agent with agent.idx=’p’), then
+generate_masks(world)[‘p’] should point to a dictionary of
+{“action_set_name_m”: mask_m} for each of the M action sets associated with
+agent p’s type. Each such value, mask_m, should be a binary array whose
+length matches the number of actions in “action_set_name_m”.</p>
+<p>The default behavior (below) keeps all actions available. The code gives an
+example of expected formatting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.generate_observations">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.generate_observations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.generate_observations" title="Permalink to this definition"></a></dt>
+<dd><p>Generate observations associated with this Component class.</p>
+<p>A component does not need to produce observations and can provide observations
+for only some agent types; however, for a given environment, the structure of
+the observations returned by this component should be identical between
+subsequent calls to generate_observations. That is, the agents that receive
+observations should remain consistent as should the structure of their
+individual observations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a dictionary with an entry for each agent (which can include
+the planner) for which this component provides an observation. For each
+entry, the key specifies the index of the agent and the value contains
+its associated observation dictionary.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>obs (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.get_additional_state_fields">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_additional_state_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_cls_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.get_additional_state_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.get_additional_state_fields" title="Permalink to this definition"></a></dt>
+<dd><p>Return a dictionary of {state_field: reset_val} managed by this Component
+class for agents of type agent_cls_name. This also partially controls reset
+behavior.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>agent_cls_name</strong> (<em>str</em>) – name of the Agent class for which additional states
+are being queried. For example, “BasicMobileAgent”.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary of {“state_field”: reset_val} for</dt><dd><p>each extra state field that this component adds/manages to agents of
+type agent_cls_name. This extra_state_dict is incorporated into
+agent.state for each agent of this type. Note that the keyed fields
+will be reset to reset_val when the environment is reset.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>extra_state_dict (dict)</p>
+</dd>
+</dl>
+<p>If the component has its own internal state, the protocol for resetting that
+should be written into the custom method ‘additional_reset_steps()’ [see below].</p>
+<p>States that are meant to be internal to the component do not need to be
+registered as agent state fields. Rather, adding to the agent state fields is
+most useful when two or more components refer to or affect the same state. In
+general, however, if the component expects a particular state field to exist,
+it should use return that field (and its reset value) here.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.get_dense_log">
+<span class="sig-name descname"><span class="pre">get_dense_log</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.get_dense_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.get_dense_log" title="Permalink to this definition"></a></dt>
+<dd><p>Return the dense log, either a tuple, list, or dict, of the episode through the
+lens of this component.</p>
+<p>If this component does not yield a dense log, return None (default behavior).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.get_metrics">
+<span class="sig-name descname"><span class="pre">get_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.get_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.get_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a dictionary of custom metrics describing the episode through the
+lens of the component.</p>
+<p>For example, if Build is a subclass of BaseComponent that implements building,
+Build.get_metrics() might return a dictionary with terms relating to the
+number of things each agent built.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {“metric_key”: metric_value}</dt><dd><p>entries describing the metrics that this component calculates. The
+environment combines scenario metrics with each of the metric
+dictionaries produced by its component instances. metric_value is
+expected to be a scalar.
+By returning None instead of a dictionary, the component is ignored
+by the environment when constructing the full metric report.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>metrics (dict or None)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.get_n_actions">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_n_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_cls_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.get_n_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.get_n_actions" title="Permalink to this definition"></a></dt>
+<dd><p>Return the number of actions (not including NO-OPs) for agents of type
+agent_cls_name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>agent_cls_name</strong> (<em>str</em>) – name of the Agent class for which number of actions
+is being queried. For example, “BasicMobileAgent”.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>If the component does not add any</dt><dd><p>actions for agents of type agent_cls_name, return None. If it adds a
+single action space, return an integer specifying the number of
+actions in the action space. If it adds multiple action spaces,
+return a list of tuples (“action_set_name”, num_actions_in_set).
+See below for further detail.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>action_space (None, int, or list)</p>
+</dd>
+</dl>
+<p>If agent_class_name type agents do not participate in the component, simply
+return None</p>
+<p>In the next simplest case, the component adds one set of n different actions
+for agents of type agent_cls_name. In this case, return n (as an int). For
+example, if Component implements moving up, down, left, or right for
+“BasicMobileAgent” agents, then Component.get_n_actions(‘Mobile’) should
+return 4.</p>
+<p>If the component adds multiple sets of actions for a given agent type, this
+method should return a list of tuples:</p>
+<blockquote>
+<div><p>[(“action_set_name_1”, n_1), …, (“action_set_name_M”, n_M)],
+where M is the number of different sets of actions, and n_k is the number of
+actions in action set k.</p>
+</div></blockquote>
+<p>For example, if Component allows agent ‘Planner’ to set some tax for each of
+individual Mobile agents, and there are 3 such agents, then:</p>
+<blockquote>
+<div><p>Component.get_n_actions(‘Planner’) should return, i.e.,
+[(‘Tax_0’, 10), (‘Tax_1’, 10), (‘Tax_2’, 10)],
+where, in this example, the Planner agent can choose 10 different tax
+levels for each Mobile agent.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.inv_scale">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">inv_scale</span></span><a class="headerlink" href="#foundation.base.base_component.BaseComponent.inv_scale" title="Permalink to this definition"></a></dt>
+<dd><p>Value by which to scale quantities when generating observations.</p>
+<p>Note: This property is set by the environment during construction and
+allows each component instance within the environment to refer to the same
+scaling value. How the value is actually used depends on the implementation
+of get_observations().</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#foundation.base.base_component.BaseComponent.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.obs">
+<span class="sig-name descname"><span class="pre">obs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.obs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.obs" title="Permalink to this definition"></a></dt>
+<dd><p>Observation produced by this component, given current world/agents/component
+state.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.required_entities">
+<span class="sig-name descname"><span class="pre">required_entities</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#foundation.base.base_component.BaseComponent.required_entities" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_component.html#BaseComponent.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_component.BaseComponent.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset any portion of the state managed by this component.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.shorthand">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shorthand</span></span><a class="headerlink" href="#foundation.base.base_component.BaseComponent.shorthand" title="Permalink to this definition"></a></dt>
+<dd><p>The shorthand name, or name if no component_type is defined.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_component.BaseComponent.world">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">world</span></span><a class="headerlink" href="#foundation.base.base_component.BaseComponent.world" title="Permalink to this definition"></a></dt>
+<dd><p>The world object of the environment this component instance is part of.</p>
+<dl class="simple">
+<dt>The world object exposes the spatial/agent states through:</dt><dd><p>world.maps     # Reference to maps object representing spatial state
+world.agents   # List of self.n_agents mobile agent objects
+world.planner  # Reference to planner agent object</p>
+</dd>
+</dl>
+<p>See world.py and base_agent.py for additional API details.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="foundation.base.base_component.component_registry">
+<span class="sig-prename descclassname"><span class="pre">foundation.base.base_component.</span></span><span class="sig-name descname"><span class="pre">component_registry</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ai_economist.foundation.base.registrar.Registry</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#foundation.base.base_component.component_registry" title="Permalink to this definition"></a></dt>
+<dd><p>The registry for Component classes.</p>
+<p>This creates a registry object for Component classes. This registry requires that all
+added classes are subclasses of BaseComponent. To make a Component class available
+through the registry, decorate the class definition with &#64;component_registry.add.</p>
+<p class="rubric">Example</p>
+<p>from ai_economist.foundation.base.base_component
+import BaseComponent, component_registry</p>
+<p>&#64;component_registry.add
+class ExampleComponent(BaseComponent):</p>
+<blockquote>
+<div><p>name = “Example”
+pass</p>
+</div></blockquote>
+<p>assert component_registry.has(“Example”)</p>
+<p>ComponentClass = component_registry.get(“Example”)
+component = ComponentClass(…)
+assert isinstance(component, ExampleComponent)</p>
+<p class="rubric">Notes</p>
+<p>The foundation package exposes the component registry as: foundation.components</p>
+<p>A Component class that is defined and registered following the above example will
+only be visible in foundation.components if defined/registered in a file that is
+imported in ../components/__init__.py.</p>
+</dd></dl>
+
+</section>
+<section id="module-foundation.base.base_env">
+<span id="foundation-base-base-env-module"></span><h2>foundation.base.base_env module<a class="headerlink" href="#module-foundation.base.base_env" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.base.base_env.</span></span><span class="sig-name descname"><span class="pre">BaseEnvironment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_action_mode_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_action_mode_planner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flatten_observations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flatten_masks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_observation_scaling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dense_log_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_dense_log_frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collate_agent_step_and_reset_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base Environment class. Should be used as the parent class for Scenario classes.
+Instantiates world, agent, and component objects.</p>
+<dl class="simple">
+<dt>Provides Gym-style API for resetting and stepping:</dt><dd><p>obs                  &lt;– env.reset()
+obs, rew, done, info &lt;– env.step(actions)</p>
+</dd>
+<dt>Also provides Gym-style API for controlling random behavior:</dt><dd><p>env.seed(seed) # Sets numpy and built-in RNG seeds to seed</p>
+</dd>
+</dl>
+<p>Reference: OpenAI Gym [<a class="reference external" href="https://github.com/openai/gym">https://github.com/openai/gym</a>]</p>
+<p>Environments in this framework are instances of Scenario classes (which are built
+as extensions of BaseEnvironment). A Scenario must implement the following
+abstract methods (method docstrings provide detailed explanations):</p>
+<blockquote>
+<div><p>reset_starting_layout
+reset_agent_states
+scenario_step
+generate_observations
+compute_reward</p>
+</div></blockquote>
+<p>Scenario classes define their own passive dynamics–that is, dynamics that do not
+depend on agent actions–and supply observations. It is up to the Scenario class
+to handle reward.</p>
+<p>Interactions with the environment are handled through components, which define
+actions that agents can perform. Components are defined through distinct
+Component classes (which extend BaseComponent [see base_component.py]) and must
+be included in the components_registry in order to be used (see below).
+Components influence the environment dynamics through effects they have on
+agent/world states. They also (optionally) supply observations.</p>
+<p>The actions available to the agents, observations they receive, the dynamics of
+the environment, and the rewards depend of the choice of which Scenario class and
+Component class(es) to use.</p>
+<p>In multi_action_mode, an agent may choose an action for each of the action
+subspaces defined by the included Component classes. A Component can define 0, 1,
+or several action subspaces for a given agent type. If not using
+multi_action_mode, these action subspaces are combined into a single action space
+and the agent may select one action within this aggregated space.</p>
+<p>For additional detail regarding actions and action subspaces, see the
+BaseComponent class in base_component.py.</p>
+<p>There are 2 types of agents: mobile agents and the planner agent. There can be
+two or more mobile agents and a single planner agent. Conceptually, mobile agents
+represent the individual actors in the economic simulation while the planner
+agent represents a social planner that sets macroeconomic policy.</p>
+<p>This environment framework makes extensive use of Python classes. Scenarios,
+Components, Agents, and environment entities such as Resources, Landmarks,
+and Endogenous variables are all implemented as classes. These classes are
+accessed via registries. See top example.</p>
+<p class="rubric">Example</p>
+<p>from ai_economist import foundation
+# foundation.scenarios  &lt;– Scenario class registry
+# foundation.components &lt;– Component class registry
+# foundation.agents     &lt;– Agent class registry
+# foundation.resources  &lt;– Resource class registry
+# foundation.landmarks  &lt;– Landmark class registry
+# foundation.endogenous &lt;– Endogenous class registry</p>
+<p># see ../scenarios/simple_wood_and_stone/dynamic_layout.py
+UniScenarioClass = foundation.scenarios.get(“uniform/simple_wood_and_stone”)</p>
+<p># see ../components/build.py and ../components/move.py
+BuildComponentClass  = foundation.components.get(“Build”)
+GatherComponentClass = foundation.components.get(“Gather”)</p>
+<p class="rubric">Example</p>
+<p>from ai_economist import foundation
+from ai_economist.foundation.base.base_env import BaseEnvironment</p>
+<p>ScenarioClass = foundation.scenarios.get(…)
+assert issubclass(ScenarioClass, BaseEnvironment)</p>
+<dl>
+<dt>env = ScenarioClass(</dt><dd><dl class="simple">
+<dt>components=[</dt><dd><p>(“Build”, {“payment”: 20}),
+(“Gather”, {“move_labor”: 1.0, “collect_labor”: 2.0}),</p>
+</dd>
+</dl>
+<p>],
+n_agents=20,
+world_size=[25, 25],</p>
+</dd>
+</dl>
+<p>)</p>
+<p>obs = env.reset()</p>
+<p>actions = {agent.idx: … for agent in env.all_agents}
+obs, rew, done, info = env.step(actions)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>components</strong> (<em>list</em>) – A list of tuples (“Component Name”, {Component kwargs}) or
+list of dicts {“Component Name”: {Component kwargs}} specifying the
+components that the instantiated environment will include.
+“Component Name” must be a string matching the name of a registered
+Component class.
+{Component kwargs} must be a dictionary of kwargs that can be passed as
+arguments to the Component class with name “Component Name”.
+Resetting, stepping, and observation generation will be carried out in
+the order in which components are listed. This should be considered,
+as re-ordering the components list may impact the dynamics of the
+environment.</p></li>
+<li><p><strong>n_agents</strong> (<em>int</em>) – The number of mobile agents (does not include planner).
+Number of agents must be &gt; 1.</p></li>
+<li><p><strong>world_size</strong> (<em>list</em>) – A length-2 list specifying the dimensions of the 2D world.
+Interpreted as [height, width].</p></li>
+<li><p><strong>episode_length</strong> (<em>int</em>) – Number of timesteps in a single episode.</p></li>
+<li><p><strong>multi_action_mode_agents</strong> (<em>bool</em>) – Whether mobile agents use multi_action_mode.</p></li>
+<li><p><strong>multi_action_mode_planner</strong> (<em>bool</em>) – Whether the planner uses multi_action_mode.</p></li>
+<li><p><strong>flatten_observations</strong> (<em>bool</em>) – Whether to preprocess observations by
+concatenating all scalar/vector observation subfields into a single
+“flat” observation field. If not, return observations as minimally
+processed dictionaries.</p></li>
+<li><p><strong>flatten_masks</strong> (<em>bool</em>) – Whether to flatten action masks into a single array or
+to keep as a {“action_subspace_name”: action_subspace_mask} dictionary.
+For integration with deep RL, it is helpful to set this to True, for the
+purpose of action masking: flattened masks have the same semantics as
+policy logits.</p></li>
+<li><p><strong>allow_observation_scaling</strong> (<em>bool</em>) – Whether to enable certain observation
+fields to be scaled to a range better suited for deep RL.</p></li>
+<li><p><strong>dense_log_frequency</strong> (<em>int</em>) – [optional] How often (in completed episodes) to
+create a dense log while playing an episode. By default, dense logging is
+turned off (dense_log_frequency=None). If dense_log_frequency=20,
+a dense log will be created when the total episode count is a multiple of
+20.
+Dense logs provide a log of agent states, actions, and rewards at each
+timestep of an episode. They also log world states at a coarser timescale
+(see below). Component classes optionally contribute additional
+information to the dense log.
+Note: dense logging is time consuming (especially with many agents).</p></li>
+<li><p><strong>world_dense_log_frequency</strong> (<em>int</em>) – When dense logging, how often (in timesteps) to
+log a snapshot of the world state. If world_dense_log_frequency=50
+(the default), the world state will be included in the dense log for
+timesteps where t is a multiple of 50.
+Note: More frequent world snapshots increase the dense log memory footprint.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – If provided, sets the numpy and built-in random number
+generator seeds to seed. You can control the seed after env construction
+using the ‘seed’ method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment._build_packager">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_build_packager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">put_in_both</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment._build_packager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment._build_packager" title="Permalink to this definition"></a></dt>
+<dd><p>Decides which keys-vals should be flattened or not.
+put_in_both: include in both (e.g., ‘time’)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.additional_reset_steps">
+<span class="sig-name descname"><span class="pre">additional_reset_steps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.additional_reset_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.additional_reset_steps" title="Permalink to this definition"></a></dt>
+<dd><p>Extra scenario-specific steps that should be performed at the end of the reset
+cycle.</p>
+<dl>
+<dt>For each reset cycle…</dt><dd><p>First, reset_starting_layout() and reset_agent_states() will be called.</p>
+<p>Second, &lt;component&gt;.reset() will be called for each registered component.</p>
+<p>Lastly, this method will be called to allow for any final customization of
+the reset cycle.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.agent_subclasses">
+<span class="sig-name descname"><span class="pre">agent_subclasses</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.agent_subclasses" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.all_agents">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_agents</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.all_agents" title="Permalink to this definition"></a></dt>
+<dd><p>List of mobile agents and the planner agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.collate_agent_info">
+<span class="sig-name descname"><span class="pre">collate_agent_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">info</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.collate_agent_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.collate_agent_info" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.collate_agent_obs">
+<span class="sig-name descname"><span class="pre">collate_agent_obs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.collate_agent_obs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.collate_agent_obs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.collate_agent_rew">
+<span class="sig-name descname"><span class="pre">collate_agent_rew</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rew</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.collate_agent_rew"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.collate_agent_rew" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.components">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">components</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.components" title="Permalink to this definition"></a></dt>
+<dd><p>The list of components associated with this scenario.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.compute_reward">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compute_reward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.compute_reward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.compute_reward" title="Permalink to this definition"></a></dt>
+<dd><p>Apply the reward function(s) associated with this scenario to get the rewards
+from this step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a  dictionary with an entry for each agent in the environment
+(including the planner). For each entry, the key specifies the index of
+the agent and the value contains the scalar reward earned this timestep.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>rew (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.dense_log">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dense_log</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.dense_log" title="Permalink to this definition"></a></dt>
+<dd><p>The contents of the current (potentially incomplete) dense log.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.endogenous">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">endogenous</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.endogenous" title="Permalink to this definition"></a></dt>
+<dd><p>List of endogenous quantities managed by this environment instance.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.episode_length">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">episode_length</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.episode_length" title="Permalink to this definition"></a></dt>
+<dd><p>Length of an episode, in timesteps.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.generate_observations">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.generate_observations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.generate_observations" title="Permalink to this definition"></a></dt>
+<dd><p>Generate observations associated with this scenario.</p>
+<p>A scenario does not need to produce observations and can provide observations
+for only some agent types; however, for a given agent type, it should either
+always or never yield an observation. If it does yield an observation,
+that observation should always have the same structure/sizes!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A dictionary of {agent.idx: agent_obs_dict}. In words,</dt><dd><p>return a dictionary with an entry for each agent (which can including
+the planner) for which this scenario provides an observation. For each
+entry, the key specifies the index of the agent and the value contains
+its associated observation dictionary.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>obs (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.generate_rewards">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_rewards</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.generate_rewards" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the rewards for each agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.get_agent">
+<span class="sig-name descname"><span class="pre">get_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.get_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.get_agent" title="Permalink to this definition"></a></dt>
+<dd><p>Get the agent object instance with idx agent_idx.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>agent_idx</strong> (<em>int</em><em> or </em><em>str</em>) – Identifier of the agent to return. Must match the
+idx property of one of the agent objects in self.all_agents.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>agent (BaseAgent object)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.get_component">
+<span class="sig-name descname"><span class="pre">get_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.get_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.get_component" title="Permalink to this definition"></a></dt>
+<dd><p>Get the component object instance wrapped in the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>component_name</strong> (<em>str</em>) – Name or shorthand name of the Component class to get.
+Must correspond to a name or shorthand of one of the components that
+is included in this environment instance.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>component (BaseComponent object)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.inv_scale">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">inv_scale</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.inv_scale" title="Permalink to this definition"></a></dt>
+<dd><p>Scale value to be used for inventory scaling. 1 if no scaling enabled.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.landmarks">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">landmarks</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.landmarks" title="Permalink to this definition"></a></dt>
+<dd><p>List of landmarks managed by this environment instance.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.metrics">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">metrics</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.metrics" title="Permalink to this definition"></a></dt>
+<dd><p>The combined metrics yielded by the scenario and the components.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.parse_actions">
+<span class="sig-name descname"><span class="pre">parse_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.parse_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.parse_actions" title="Permalink to this definition"></a></dt>
+<dd><p>Put actions into the appropriate agent’s action buffer</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.previous_episode_dense_log">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">previous_episode_dense_log</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.previous_episode_dense_log" title="Permalink to this definition"></a></dt>
+<dd><p>Dense log from the last completed episode that was being logged.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.previous_episode_metrics">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">previous_episode_metrics</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.previous_episode_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Metrics from the end of the last completed episode.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.previous_episode_replay_log">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">previous_episode_replay_log</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.previous_episode_replay_log" title="Permalink to this definition"></a></dt>
+<dd><p>Replay log from the last completed episode. Serves as a compact encoding of
+an episode by allowing the episode to be perfectly reproduced.</p>
+<p class="rubric">Examples</p>
+<p># replay log of the episode to be reproduced
+replay_log = env.previous_episode_replay_log</p>
+<p># recover episode metrics and dense log via replay
+_ = env.reset(force_dense_logging=True, <a href="#id1"><span class="problematic" id="id2">**</span></a>replay_log[‘reset’])
+for replay_step in replay_log[‘step’]:</p>
+<blockquote>
+<div><p>_ = env.step(<a href="#id3"><span class="problematic" id="id4">**</span></a>replay_step)</p>
+</div></blockquote>
+<p>dense_log = env.previous_episode_dense_log
+metrics = env.previous_episode_metrics</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.replay_log">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">replay_log</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.replay_log" title="Permalink to this definition"></a></dt>
+<dd><p>The contents of the current (potentially incomplete) replay log.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.required_entities">
+<span class="sig-name descname"><span class="pre">required_entities</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.required_entities" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_dense_logging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the state of the environment to initialize a new episode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seed_state</strong> (<em>tuple</em><em> or </em><em>list</em>) – Optional state that the numpy RNG should be set
+to prior to the reset cycle must be length 5, following the format
+expected by np.random.set_state()</p></li>
+<li><p><strong>force_dense_logging</strong> (<em>bool</em>) – Optional whether to force dense logging to take
+place this episode; default behavior is to do dense logging every
+create_dense_log_every episodes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary of {“agent_idx”: agent_obs} with an entry for</dt><dd><p>each agent receiving observations. The “agent_idx” key identifies the
+agent receiving the observations in the associated agent_obs value,
+which itself is a dictionary. The “agent_idx” key matches the
+agent.idx property for the given agent.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>obs (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.reset_agent_states">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset_agent_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.reset_agent_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.reset_agent_states" title="Permalink to this definition"></a></dt>
+<dd><p>Part 2/2 of scenario reset. This method handles resetting the state of the
+agents themselves (i.e. inventory, locations, etc.).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.reset_starting_layout">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset_starting_layout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.reset_starting_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.reset_starting_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Part 1/2 of scenario reset. This method handles resetting the state of the
+environment managed by the scenario (i.e. resource &amp; landmark layout).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.resources">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resources</span></span><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.resources" title="Permalink to this definition"></a></dt>
+<dd><p>List of resources managed by this environment instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.scenario_metrics">
+<span class="sig-name descname"><span class="pre">scenario_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.scenario_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.scenario_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Allows the scenario to generate metrics (collected along with component metrics
+in the ‘metrics’ property).</p>
+<p>To have the scenario add metrics, this function needs to return a dictionary of
+{metric_key: value} where ‘value’ is a scalar (no nesting or lists!)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.scenario_step">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scenario_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.scenario_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.scenario_step" title="Permalink to this definition"></a></dt>
+<dd><p>Update the state of the world according to whatever rules this scenario
+implements.</p>
+<p>This gets called in the ‘step’ method (of base_env) after going through each
+component step and before generating observations, rewards, etc.</p>
+<p>This is where things like resource regeneration, income redistribution, etc.,
+can be implemented.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.seed">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.seed" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the numpy and built-in random number generator seed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>seed</strong> (<em>int</em><em>, </em><em>float</em>) – Seed value to use. Must be &gt; 0. Converted to int
+internally if provided value is a float.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.set_agent_component_action">
+<span class="sig-name descname"><span class="pre">set_agent_component_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.set_agent_component_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.set_agent_component_action" title="Permalink to this definition"></a></dt>
+<dd><p>Set agent with idx &lt;agent_idx&gt; to take action &lt;action&gt; for the action
+subspace with name &lt;component_name&gt;</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_idx</strong> (<em>int</em><em> or </em><em>str</em>) – Identifier of the agent taking the action. Must
+match the idx property of one of the agent objects in self.all_agents.</p></li>
+<li><p><strong>component_name</strong> (<em>str</em>) – Name of the action subspace to set the action value
+of.</p></li>
+<li><p><strong>action</strong> (<em>int</em>) – Index of the chosen action.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.base_env.BaseEnvironment.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/base_env.html#BaseEnvironment.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.base_env.BaseEnvironment.step" title="Permalink to this definition"></a></dt>
+<dd><p>Execute the components, perform the scenario step, collect observations and
+return observations, rewards, dones, and infos.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actions</strong> (<em>dict</em>) – dictionary of {agent_idx: action} with an entry for each
+agent (which may include the planner) that is supplying an action.
+The key identifies which agent the action is associated with. It
+should match that agent’s agent.idx property.
+The value indicates which action the agent will take. The environment
+supports two formats for specifying an action, with slightly
+different expectations for multi_action_mode.
+If agent.multi_action_mode, action must be a list of integers
+specifying the chosen action for each action subspace.
+Otherwise, action must be a single integer specifying the chosen
+action (where the action space is the concatenation of the subspaces).</p></li>
+<li><p><strong>seed_state</strong> (<em>tuple</em><em> or </em><em>list</em>) – Optional state that the numpy RNG should be set
+to prior to the reset cycle must be length 5, following the format
+expected by np.random.set_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary of {“agent_idx”: agent_obs} with an entry for</dt><dd><p>each agent receiving observations. The “agent_idx” key identifies the
+agent receiving the observations in the associated agent_obs value,
+which itself is a dictionary. The “agent_idx” key matches the
+agent.idx property for the given agent.</p>
+</dd>
+<dt>rew (dict): A dictionary of {“agent_idx”: reward} with an entry for each</dt><dd><p>agent that also receives an observation. Each reward value is a scalar.</p>
+</dd>
+<dt>done (dict): A dictionary with a single key “__all__”. The associated</dt><dd><p>value is False when self.world.timestep &lt; self.episode_length and True
+otherwise.</p>
+</dd>
+<dt>info (dict): Placeholder dictionary with structure {“agent_idx”: {}},</dt><dd><p>with the same keys as obs and rew.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>obs (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="foundation.base.base_env.scenario_registry">
+<span class="sig-prename descclassname"><span class="pre">foundation.base.base_env.</span></span><span class="sig-name descname"><span class="pre">scenario_registry</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ai_economist.foundation.base.registrar.Registry</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#foundation.base.base_env.scenario_registry" title="Permalink to this definition"></a></dt>
+<dd><p>The registry for Scenario classes.</p>
+<p>This creates a registry object for Scenario classes. This registry requires that all
+added classes are subclasses of BaseEnvironment. To make a Scenario class available
+through the registry, decorate the class definition with &#64;scenario_registry.add.</p>
+<p class="rubric">Example</p>
+<p>from ai_economist.foundation.base.base_env
+import BaseEnvironment, scenario_registry</p>
+<p>&#64;scenario_registry.add
+class ExampleScenario(BaseEnvironment):</p>
+<blockquote>
+<div><p>name = “Example”
+pass</p>
+</div></blockquote>
+<p>assert scenario_registry.has(“Example”)</p>
+<p>ScenarioClass = scenario_registry.get(“Example”)
+scenario = ScenarioClass(…)
+assert isinstance(scenario, ExampleScenario)</p>
+<p class="rubric">Notes</p>
+<p>The foundation package exposes the scenario registry as: foundation.scenarios</p>
+<p>A Scenario class that is defined and registered following the above example will
+only be visible in foundation.scenarios if defined/registered in a file that is
+imported in ../scenarios/__init__.py.</p>
+</dd></dl>
+
+</section>
+<section id="module-foundation.base.registrar">
+<span id="foundation-base-registrar-module"></span><h2>foundation.base.registrar module<a class="headerlink" href="#module-foundation.base.registrar" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.base.registrar.Registry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.base.registrar.</span></span><span class="sig-name descname"><span class="pre">Registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/registrar.html#Registry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.registrar.Registry" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Utility for registering sets of similar classes and looking them up by name.</p>
+<p>Registries provide a simple API for getting classes used to build environment
+instances. Their main purpose is to organize such “building block” classes (i.e.
+Components, Scenarios, Agents) for easy reference as well as to ensure that all
+classes within a particular registry inherit from the same Base Class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>base_class</strong> (<em>class</em>) – The class that all entries in the registry must be a
+subclass of.</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>class BaseClass:</dt><dd><p>pass</p>
+</dd>
+</dl>
+<p>registry = Registry(BaseClass)</p>
+<p>&#64;registry.add
+class ExampleSubclassA(BaseClass):</p>
+<blockquote>
+<div><p>name = “ExampleA”
+pass</p>
+</div></blockquote>
+<p>&#64;registry.add
+class ExampleSubclassB(BaseClass):</p>
+<blockquote>
+<div><p>name = “ExampleB”
+pass</p>
+</div></blockquote>
+<p>print(registry.entries)
+# [“ExampleA”, “ExampleB”]</p>
+<p>assert registry.has(“ExampleA”)
+assert registry.get(“ExampleB”) is ExampleSubclassB</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.registrar.Registry.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/registrar.html#Registry.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.registrar.Registry.add" title="Permalink to this definition"></a></dt>
+<dd><p>Add cls to this registry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cls</strong> – The class to add to this registry. Must be a subclass of
+self.base_class.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>cls (to allow decoration with &#64;registry.add)</p>
+</dd>
+</dl>
+<p>See Registry class docstring for example.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.registrar.Registry.entries">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">entries</span></span><a class="headerlink" href="#foundation.base.registrar.Registry.entries" title="Permalink to this definition"></a></dt>
+<dd><p>Names of classes in this registry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A list of strings corresponding to the names of classes registered in</dt><dd><p>this registry object.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<p>See Registry class docstring for example.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.registrar.Registry.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/registrar.html#Registry.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.registrar.Registry.get" title="Permalink to this definition"></a></dt>
+<dd><p>Return registered class with name cls_name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cls_name</strong> (<em>str</em>) – Name of the registered class to get.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Registered class cls, where cls.name matches cls_name (ignoring casing).</p>
+</dd>
+</dl>
+<p>See Registry class docstring for example.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.registrar.Registry.has">
+<span class="sig-name descname"><span class="pre">has</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/registrar.html#Registry.has"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.registrar.Registry.has" title="Permalink to this definition"></a></dt>
+<dd><p>Return True if a class with name cls_name is registered.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cls_name</strong> (<em>str</em>) – Name of class to check.</p>
+</dd>
+</dl>
+<p>See Registry class docstring for example.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-foundation.base.world">
+<span id="foundation-base-world-module"></span><h2>foundation.base.world module<a class="headerlink" href="#module-foundation.base.world" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.base.world.Maps">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.base.world.</span></span><span class="sig-name descname"><span class="pre">Maps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_agents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_resources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_landmarks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Manages the spatial configuration of the world as a set of entity maps.</p>
+<p>A maps object is built during world construction, which is a part of environment
+construction. The maps object is accessible through the world object. The maps
+object maintains a map state for each of the spatial entities that are involved
+in the constructed environment (which are determined by the “required_entities”
+attributes of the Scenario and Component classes used to build the environment).</p>
+<p>The Maps class also implements some of the basic spatial logic of the game,
+such as which locations agents can occupy based on other agent locations and
+locations of various landmarks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>list</em>) – A length-2 list specifying the dimensions of the 2D world.
+Interpreted as [height, width].</p></li>
+<li><p><strong>n_agents</strong> (<em>int</em>) – The number of mobile agents (does not include planner).</p></li>
+<li><p><strong>world_resources</strong> (<em>list</em>) – The resources registered during environment
+construction.</p></li>
+<li><p><strong>world_landmarks</strong> (<em>list</em>) – The landmarks registered during environment
+construction.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.accessibility">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">accessibility</span></span><a class="headerlink" href="#foundation.base.world.Maps.accessibility" title="Permalink to this definition"></a></dt>
+<dd><p>Return a boolean map indicating which locations are accessible.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.clear" title="Permalink to this definition"></a></dt>
+<dd><p>Clear resource and landmark maps.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.clear_agent_loc">
+<span class="sig-name descname"><span class="pre">clear_agent_loc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.clear_agent_loc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.clear_agent_loc" title="Permalink to this definition"></a></dt>
+<dd><p>Remove agents or agent from the world map.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.empty">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">empty</span></span><a class="headerlink" href="#foundation.base.world.Maps.empty" title="Permalink to this definition"></a></dt>
+<dd><p>Return a boolean map indicating which locations are empty.</p>
+<p>Empty locations have no landmarks or resources.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">owner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.get" title="Permalink to this definition"></a></dt>
+<dd><p>Return the map or ownership for entity_name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.get_point">
+<span class="sig-name descname"><span class="pre">get_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.get_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.get_point" title="Permalink to this definition"></a></dt>
+<dd><p>Return the entity state at the specified coordinates.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.is_accessible">
+<span class="sig-name descname"><span class="pre">is_accessible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.is_accessible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.is_accessible" title="Permalink to this definition"></a></dt>
+<dd><p>Return True if agent with id agent_id can occupy the location [r, c].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.items">
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.items"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.items" title="Permalink to this definition"></a></dt>
+<dd><p>Return an iterable over map (key, value) pairs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.keys">
+<span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.keys" title="Permalink to this definition"></a></dt>
+<dd><p>Return an iterable over map keys.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.location_landmarks">
+<span class="sig-name descname"><span class="pre">location_landmarks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.location_landmarks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.location_landmarks" title="Permalink to this definition"></a></dt>
+<dd><p>Return {landmark: health} dictionary for any landmarks at location [r, c].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.location_resources">
+<span class="sig-name descname"><span class="pre">location_resources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.location_resources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.location_resources" title="Permalink to this definition"></a></dt>
+<dd><p>Return {resource: health} dictionary for any resources at location [r, c].</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.owner_state">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">owner_state</span></span><a class="headerlink" href="#foundation.base.world.Maps.owner_state" title="Permalink to this definition"></a></dt>
+<dd><p>Return the concatenated ownership maps of private landmarks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.set" title="Permalink to this definition"></a></dt>
+<dd><p>Set the map for entity_name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.set_add">
+<span class="sig-name descname"><span class="pre">set_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.set_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.set_add" title="Permalink to this definition"></a></dt>
+<dd><p>Add map_state to the existing map for entity_name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.set_agent_loc">
+<span class="sig-name descname"><span class="pre">set_agent_loc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.set_agent_loc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.set_agent_loc" title="Permalink to this definition"></a></dt>
+<dd><p>Set the location of agent to [r, c].</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Things might break if you set the agent’s location to somewhere it
+cannot access. Don’t do that.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.set_point">
+<span class="sig-name descname"><span class="pre">set_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">owner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.set_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.set_point" title="Permalink to this definition"></a></dt>
+<dd><p>Set the entity state at the specified coordinates.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.set_point_add">
+<span class="sig-name descname"><span class="pre">set_point_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entity_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.set_point_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.set_point_add" title="Permalink to this definition"></a></dt>
+<dd><p>Add value to the existing entity state at the specified coordinates.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.state">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><a class="headerlink" href="#foundation.base.world.Maps.state" title="Permalink to this definition"></a></dt>
+<dd><p>Return the concatenated maps of landmark and resources.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.state_dict">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state_dict</span></span><a class="headerlink" href="#foundation.base.world.Maps.state_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Return a dictionary of the map states.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.unoccupied">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unoccupied</span></span><a class="headerlink" href="#foundation.base.world.Maps.unoccupied" title="Permalink to this definition"></a></dt>
+<dd><p>Return a boolean map indicating which locations are unoccupied.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.Maps.values">
+<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#Maps.values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.Maps.values" title="Permalink to this definition"></a></dt>
+<dd><p>Return an iterable over map values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="foundation.base.world.World">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">foundation.base.world.</span></span><span class="sig-name descname"><span class="pre">World</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">world_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_agents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_resources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_landmarks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_action_mode_agents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_action_mode_planner</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Manages the environment’s spatial- and agent-states.</p>
+<p>The world object represents the state of the environment, minus whatever state
+information is implicitly maintained by separate components. The world object
+maintains the spatial state through an instance of the Maps class. Agent states
+are maintained through instances of Agent classes (subclasses of BaseAgent),
+with one such instance for each of the agents in the environment.</p>
+<p>The world object is built during the environment construction, after the
+required entities have been registered. As part of the world object construction,
+it instantiates a map object and the agent objects.</p>
+<p>The World class adds some functionality for interfacing with the spatial state
+(the maps object) and setting/resetting agent locations. But its function is
+mostly to wrap the stateful, non-component environment objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>world_size</strong> (<em>list</em>) – A length-2 list specifying the dimensions of the 2D world.
+Interpreted as [height, width].</p></li>
+<li><p><strong>n_agents</strong> (<em>int</em>) – The number of mobile agents (does not include planner).</p></li>
+<li><p><strong>world_resources</strong> (<em>list</em>) – The resources registered during environment
+construction.</p></li>
+<li><p><strong>world_landmarks</strong> (<em>list</em>) – The landmarks registered during environment
+construction.</p></li>
+<li><p><strong>multi_action_mode_agents</strong> (<em>bool</em>) – Whether “mobile” agents use multi action mode
+(see BaseEnvironment in base_env.py).</p></li>
+<li><p><strong>multi_action_mode_planner</strong> (<em>bool</em>) – Whether the planner agent uses multi action
+mode (see BaseEnvironment in base_env.py).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.agent_locs_are_valid">
+<span class="sig-name descname"><span class="pre">agent_locs_are_valid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.agent_locs_are_valid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.agent_locs_are_valid" title="Permalink to this definition"></a></dt>
+<dd><p>Returns True if all agent locations comply with world semantics.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.World.agents">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">agents</span></span><a class="headerlink" href="#foundation.base.world.World.agents" title="Permalink to this definition"></a></dt>
+<dd><p>Return a list of the agent objects in the world (sorted by index).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.can_agent_occupy">
+<span class="sig-name descname"><span class="pre">can_agent_occupy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.can_agent_occupy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.can_agent_occupy" title="Permalink to this definition"></a></dt>
+<dd><p>Return True if location [r, c] is accessible to agent and unoccupied.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.clear_agent_locs">
+<span class="sig-name descname"><span class="pre">clear_agent_locs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.clear_agent_locs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.clear_agent_locs" title="Permalink to this definition"></a></dt>
+<dd><p>Take all agents off the board. Useful for resetting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.consume_resource">
+<span class="sig-name descname"><span class="pre">consume_resource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.consume_resource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.consume_resource" title="Permalink to this definition"></a></dt>
+<dd><p>Consume a unit of resource_name from location [r, c].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.create_landmark">
+<span class="sig-name descname"><span class="pre">create_landmark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">landmark_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.create_landmark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.create_landmark" title="Permalink to this definition"></a></dt>
+<dd><p>Place a landmark on the world map.</p>
+<p>Place landmark of type landmark_name at the given coordinates, indicating
+agent ownership if applicable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.get_random_order_agents">
+<span class="sig-name descname"><span class="pre">get_random_order_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.get_random_order_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.get_random_order_agents" title="Permalink to this definition"></a></dt>
+<dd><p>The agent list in a randomized order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.is_location_accessible">
+<span class="sig-name descname"><span class="pre">is_location_accessible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.is_location_accessible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.is_location_accessible" title="Permalink to this definition"></a></dt>
+<dd><p>Return True if location [r, c] is accessible to agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.is_valid">
+<span class="sig-name descname"><span class="pre">is_valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.is_valid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.is_valid" title="Permalink to this definition"></a></dt>
+<dd><p>Return True if the coordinates [r, c] are within the game boundaries.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.World.loc_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loc_map</span></span><a class="headerlink" href="#foundation.base.world.World.loc_map" title="Permalink to this definition"></a></dt>
+<dd><p>Return a map indicating the agent index occupying each location.</p>
+<p>Locations with a value of -1 are not occupied by an agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.location_landmarks">
+<span class="sig-name descname"><span class="pre">location_landmarks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.location_landmarks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.location_landmarks" title="Permalink to this definition"></a></dt>
+<dd><p>Return {landmark: health} dictionary for any landmarks at location [r, c].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.location_resources">
+<span class="sig-name descname"><span class="pre">location_resources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.location_resources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.location_resources" title="Permalink to this definition"></a></dt>
+<dd><p>Return {resource: health} dictionary for any resources at location [r, c].</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="foundation.base.world.World.planner">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">planner</span></span><a class="headerlink" href="#foundation.base.world.World.planner" title="Permalink to this definition"></a></dt>
+<dd><p>Return the planner agent object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="foundation.base.world.World.set_agent_loc">
+<span class="sig-name descname"><span class="pre">set_agent_loc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/foundation/base/world.html#World.set_agent_loc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#foundation.base.world.World.set_agent_loc" title="Permalink to this definition"></a></dt>
+<dd><p>Set the agent’s location to coordinates [r, c] if possible.</p>
+<p>If agent cannot occupy [r, c], do nothing.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-foundation.base">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-foundation.base" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="foundation.agents.html" class="btn btn-neutral float-left" title="foundation.agents package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="foundation.components.html" class="btn btn-neutral float-right" title="foundation.components package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

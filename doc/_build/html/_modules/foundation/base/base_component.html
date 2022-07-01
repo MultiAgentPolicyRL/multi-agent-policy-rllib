@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.base.base_component &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.base.base_component</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.base.base_component</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.agents</span> <span class="kn">import</span> <span class="n">agent_registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.registrar</span> <span class="kn">import</span> <span class="n">Registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.world</span> <span class="kn">import</span> <span class="n">World</span>
+
+
+<div class="viewcode-block" id="BaseComponent"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent">[docs]</a><span class="k">class</span> <span class="nc">BaseComponent</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base Component class. Should be used as the parent class for Component classes.</span>
+<span class="sd">    Component instances are used to add some particular dynamics to an environment.</span>
+<span class="sd">    They also add action spaces through which agents can interact with the</span>
+<span class="sd">    environment via the component instance.</span>
+
+<span class="sd">    Environments expand the agents&#39; state/action spaces by querying:</span>
+<span class="sd">        get_n_actions</span>
+<span class="sd">        get_additional_state_fields</span>
+
+<span class="sd">    Environments expand their dynamics by querying:</span>
+<span class="sd">        component_step</span>
+<span class="sd">        generate_observations</span>
+<span class="sd">        generate_masks</span>
+
+<span class="sd">    Environments expand logging behavior by querying:</span>
+<span class="sd">        get_metrics</span>
+<span class="sd">        get_dense_log</span>
+
+<span class="sd">    Because they are built as Python objects, component instances can also be</span>
+<span class="sd">    stateful. Stateful attributes are reset via calls to:</span>
+<span class="sd">        additional_reset_steps</span>
+
+<span class="sd">    The semantics of each method, and how they can be used to construct an instance</span>
+<span class="sd">    of the Component class, are detailed below.</span>
+
+<span class="sd">    Refer to ../components/move.py for an example of a Component class that enables</span>
+<span class="sd">    mobile agents to move and collect resources in the environment world.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># The name associated with this Component class (must be unique).</span>
+    <span class="c1"># Note: This is what will identify the Component class in the component registry.</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># An optional shorthand description of the what the component implements (i.e.</span>
+    <span class="c1"># &quot;Trading&quot;, &quot;Building&quot;, etc.). See BaseEnvironment.get_component and</span>
+    <span class="c1"># BaseEnvironment._finalize_logs to see where this may add convenience.</span>
+    <span class="c1"># Does not need to be unique.</span>
+    <span class="n">component_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># The (sub)classes of agents that this component applies to</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Replace with list or tuple (can be empty)</span>
+
+    <span class="c1"># The (non-agent) game entities that are expected to be in play</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Replace with list or tuple (can be empty)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world</span><span class="p">,</span> <span class="n">episode_length</span><span class="p">,</span> <span class="n">inventory_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="n">a_i</span> <span class="o">=</span> <span class="n">agent_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">a_j</span> <span class="o">=</span> <span class="n">agent_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">a_i</span><span class="p">,</span> <span class="n">a_j</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_entities</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_world</span><span class="p">(</span><span class="n">world</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_world</span> <span class="o">=</span> <span class="n">world</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">episode_length</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">episode_length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span> <span class="o">=</span> <span class="n">episode_length</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">n_agents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">resources</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">landmarks</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">landmarks</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">timescale</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">timescale</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inventory_scale</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">inventory_scale</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The world object of the environment this component instance is part of.</span>
+
+<span class="sd">        The world object exposes the spatial/agent states through:</span>
+<span class="sd">            world.maps     # Reference to maps object representing spatial state</span>
+<span class="sd">            world.agents   # List of self.n_agents mobile agent objects</span>
+<span class="sd">            world.planner  # Reference to planner agent object</span>
+
+<span class="sd">        See world.py and base_agent.py for additional API details.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">episode_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Episode length of the environment this component instance is a part of.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_episode_length</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inv_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Value by which to scale quantities when generating observations.</span>
+
+<span class="sd">        Note: This property is set by the environment during construction and</span>
+<span class="sd">        allows each component instance within the environment to refer to the same</span>
+<span class="sd">        scaling value. How the value is actually used depends on the implementation</span>
+<span class="sd">        of get_observations().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inventory_scale</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shorthand</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The shorthand name, or name if no component_type is defined.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">component_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">component_type</span>
+
+<div class="viewcode-block" id="BaseComponent.check_world"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.check_world">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_world</span><span class="p">(</span><span class="n">world</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate the world object.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">world</span><span class="p">,</span> <span class="n">World</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseComponent.reset"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset any portion of the state managed by this component.&quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+        <span class="n">all_agents</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span> <span class="o">+</span> <span class="p">[</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">all_agents</span><span class="p">:</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_additional_state_fields</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="c1"># This method allows components to define additional reset steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">additional_reset_steps</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseComponent.obs"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.obs">[docs]</a>    <span class="k">def</span> <span class="nf">obs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Observation produced by this component, given current world/agents/component</span>
+<span class="sd">        state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This is mostly just to ensure formatting.</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_observations</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">obs</span></div>
+
+    <span class="c1"># Required methods for implementing components</span>
+    <span class="c1"># --------------------------------------------</span>
+
+<div class="viewcode-block" id="BaseComponent.get_n_actions"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.get_n_actions">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_n_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the number of actions (not including NO-OPs) for agents of type</span>
+<span class="sd">        agent_cls_name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            agent_cls_name (str): name of the Agent class for which number of actions</span>
+<span class="sd">                is being queried. For example, &quot;BasicMobileAgent&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            action_space (None, int, or list): If the component does not add any</span>
+<span class="sd">                actions for agents of type agent_cls_name, return None. If it adds a</span>
+<span class="sd">                single action space, return an integer specifying the number of</span>
+<span class="sd">                actions in the action space. If it adds multiple action spaces,</span>
+<span class="sd">                return a list of tuples (&quot;action_set_name&quot;, num_actions_in_set).</span>
+<span class="sd">                See below for further detail.</span>
+
+<span class="sd">        If agent_class_name type agents do not participate in the component, simply</span>
+<span class="sd">        return None</span>
+
+<span class="sd">        In the next simplest case, the component adds one set of n different actions</span>
+<span class="sd">        for agents of type agent_cls_name. In this case, return n (as an int). For</span>
+<span class="sd">        example, if Component implements moving up, down, left, or right for</span>
+<span class="sd">        &quot;BasicMobileAgent&quot; agents, then Component.get_n_actions(&#39;Mobile&#39;) should</span>
+<span class="sd">        return 4.</span>
+
+<span class="sd">        If the component adds multiple sets of actions for a given agent type, this</span>
+<span class="sd">        method should return a list of tuples:</span>
+<span class="sd">            [(&quot;action_set_name_1&quot;, n_1), ..., (&quot;action_set_name_M&quot;, n_M)],</span>
+<span class="sd">            where M is the number of different sets of actions, and n_k is the number of</span>
+<span class="sd">            actions in action set k.</span>
+<span class="sd">        For example, if Component allows agent &#39;Planner&#39; to set some tax for each of</span>
+<span class="sd">        individual Mobile agents, and there are 3 such agents, then:</span>
+<span class="sd">            Component.get_n_actions(&#39;Planner&#39;) should return, i.e.,</span>
+<span class="sd">            [(&#39;Tax_0&#39;, 10), (&#39;Tax_1&#39;, 10), (&#39;Tax_2&#39;, 10)],</span>
+<span class="sd">            where, in this example, the Planner agent can choose 10 different tax</span>
+<span class="sd">            levels for each Mobile agent.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseComponent.get_additional_state_fields"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.get_additional_state_fields">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_additional_state_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a dictionary of {state_field: reset_val} managed by this Component</span>
+<span class="sd">        class for agents of type agent_cls_name. This also partially controls reset</span>
+<span class="sd">        behavior.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            agent_cls_name (str): name of the Agent class for which additional states</span>
+<span class="sd">                are being queried. For example, &quot;BasicMobileAgent&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            extra_state_dict (dict): A dictionary of {&quot;state_field&quot;: reset_val} for</span>
+<span class="sd">                each extra state field that this component adds/manages to agents of</span>
+<span class="sd">                type agent_cls_name. This extra_state_dict is incorporated into</span>
+<span class="sd">                agent.state for each agent of this type. Note that the keyed fields</span>
+<span class="sd">                will be reset to reset_val when the environment is reset.</span>
+
+<span class="sd">        If the component has its own internal state, the protocol for resetting that</span>
+<span class="sd">        should be written into the custom method &#39;additional_reset_steps()&#39; [see below].</span>
+
+<span class="sd">        States that are meant to be internal to the component do not need to be</span>
+<span class="sd">        registered as agent state fields. Rather, adding to the agent state fields is</span>
+<span class="sd">        most useful when two or more components refer to or affect the same state. In</span>
+<span class="sd">        general, however, if the component expects a particular state field to exist,</span>
+<span class="sd">        it should use return that field (and its reset value) here.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseComponent.component_step"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.component_step">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">component_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For all relevant agents, execute the actions specific to this Component class.</span>
+<span class="sd">        This is essentially where the component logic is implemented and what allows</span>
+<span class="sd">        components to create environment dynamics.</span>
+
+<span class="sd">        If the component expects certain resources/landmarks/entities to be in play,</span>
+<span class="sd">        it must declare them in &#39;required_entities&#39; so that they can be registered as</span>
+<span class="sd">        part of the world and, where appropriate, part of the agent inventory.</span>
+
+<span class="sd">        If the component expects non-standard fields to exist in agent.state for one</span>
+<span class="sd">        or more agent types, that must be reflected in get_additional_state_fields().</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseComponent.generate_observations"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.generate_observations">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate observations associated with this Component class.</span>
+
+<span class="sd">        A component does not need to produce observations and can provide observations</span>
+<span class="sd">        for only some agent types; however, for a given environment, the structure of</span>
+<span class="sd">        the observations returned by this component should be identical between</span>
+<span class="sd">        subsequent calls to generate_observations. That is, the agents that receive</span>
+<span class="sd">        observations should remain consistent as should the structure of their</span>
+<span class="sd">        individual observations.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            obs (dict): A dictionary of {agent.idx: agent_obs_dict}. In words,</span>
+<span class="sd">                return a dictionary with an entry for each agent (which can include</span>
+<span class="sd">                the planner) for which this component provides an observation. For each</span>
+<span class="sd">                entry, the key specifies the index of the agent and the value contains</span>
+<span class="sd">                its associated observation dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseComponent.generate_masks"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.generate_masks">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create action masks to indicate which actions are and are not valid. Actions</span>
+<span class="sd">        that are valid should be given a value of 1 and 0 otherwise. Do not generate</span>
+<span class="sd">        a mask for the NO-OP action, which is always available.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            completions (int): The number of completed episodes. This is intended to</span>
+<span class="sd">                be used in the case that actions may be masked or unmasked as part of a</span>
+<span class="sd">                learning curriculum.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            masks (dict): A dictionary of {agent.idx: mask} with an entry for each</span>
+<span class="sd">                agent that can interact with this component. See below.</span>
+
+
+<span class="sd">        The expected output parallels the action subspaces defined by get_n_actions():</span>
+<span class="sd">        The output should be a dictionary of {agent.idx: mask} keyed for all agents</span>
+<span class="sd">        that take actions via this component.</span>
+
+<span class="sd">        For example, say the component defines a set of 4 actions for agents of type</span>
+<span class="sd">        &quot;BasicMobileAgent&quot; (self.get_n_actions(&quot;BasicMobileAgent) --&gt; 4). Because all</span>
+<span class="sd">        action spaces include a NO-OP action, there are 5 available actions,</span>
+<span class="sd">        interpreted in this example as: NO-OP (index=0), moving up (index=1),</span>
+<span class="sd">        down (index=2), left (index=3), or right (index=4). Say also that agent-0 (the</span>
+<span class="sd">        agent with agent.idx=0) is prevented from moving left but can otherwise move.</span>
+<span class="sd">        In this case, generate_masks(world)[&#39;0&#39;] should point to a length-4 binary</span>
+<span class="sd">        array, specifically [1, 1, 0, 1]. Note that the mask is length 4 while</span>
+<span class="sd">        technically 5 actions are available. This is because NO-OP should be ignored</span>
+<span class="sd">        when constructing masks.</span>
+
+<span class="sd">        In the more complex case where the component defines several action sets for</span>
+<span class="sd">        an agent, say the planner agent (the agent with agent.idx=&#39;p&#39;), then</span>
+<span class="sd">        generate_masks(world)[&#39;p&#39;] should point to a dictionary of</span>
+<span class="sd">        {&quot;action_set_name_m&quot;: mask_m} for each of the M action sets associated with</span>
+<span class="sd">        agent p&#39;s type. Each such value, mask_m, should be a binary array whose</span>
+<span class="sd">        length matches the number of actions in &quot;action_set_name_m&quot;.</span>
+
+<span class="sd">        The default behavior (below) keeps all actions available. The code gives an</span>
+<span class="sd">        example of expected formatting.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># For all the agents in the environment</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span> <span class="o">+</span> <span class="p">[</span><span class="n">world</span><span class="o">.</span><span class="n">planner</span><span class="p">]:</span>
+            <span class="c1"># Get any action space(s) defined by this component for this agent</span>
+            <span class="n">n_actions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_n_actions</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="c1"># If no action spaces are defined, just move on.</span>
+            <span class="k">if</span> <span class="n">n_actions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># If a single action space is defined, n_actions corresponds to the</span>
+            <span class="c1"># number of (non NO-OP) actions. Return an array of ones of that length,</span>
+            <span class="c1"># enabling all actions.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_actions</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n_actions</span><span class="p">))</span>
+
+            <span class="c1"># If multiple action spaces are defined, n_actions corresponds to the</span>
+            <span class="c1"># tuple or list giving (&quot;name&quot;, N) for each action space, where &quot;name&quot;</span>
+            <span class="c1"># is the unique name and N is the number of (non NO-OP) actions</span>
+            <span class="c1"># associated with that action space.</span>
+            <span class="c1"># Return a dictionary of {&quot;name&quot;: length-N ones array}, enabling all</span>
+            <span class="c1"># actions in all the action spaces.</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_actions</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="n">masks</span><span class="p">[</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">sub_name</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sub_n</span><span class="p">))</span> <span class="k">for</span> <span class="n">sub_name</span><span class="p">,</span> <span class="n">sub_n</span> <span class="ow">in</span> <span class="n">n_actions</span>
+                <span class="p">}</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span>
+
+        <span class="k">return</span> <span class="n">masks</span></div>
+
+    <span class="c1"># For non-required customization</span>
+    <span class="c1"># ------------------------------</span>
+
+<div class="viewcode-block" id="BaseComponent.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use this method to implement additional steps that the component should</span>
+<span class="sd">        perform at reset. Useful for resetting internal trackers.</span>
+
+<span class="sd">        This method should not return anything.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="BaseComponent.get_metrics"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.get_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">get_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary of custom metrics describing the episode through the</span>
+<span class="sd">        lens of the component.</span>
+
+<span class="sd">        For example, if Build is a subclass of BaseComponent that implements building,</span>
+<span class="sd">        Build.get_metrics() might return a dictionary with terms relating to the</span>
+<span class="sd">        number of things each agent built.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            metrics (dict or None): A dictionary of {&quot;metric_key&quot;: metric_value}</span>
+<span class="sd">                entries describing the metrics that this component calculates. The</span>
+<span class="sd">                environment combines scenario metrics with each of the metric</span>
+<span class="sd">                dictionaries produced by its component instances. metric_value is</span>
+<span class="sd">                expected to be a scalar.</span>
+<span class="sd">                By returning None instead of a dictionary, the component is ignored</span>
+<span class="sd">                by the environment when constructing the full metric report.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="BaseComponent.get_dense_log"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.base_component.BaseComponent.get_dense_log">[docs]</a>    <span class="k">def</span> <span class="nf">get_dense_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the dense log, either a tuple, list, or dict, of the episode through the</span>
+<span class="sd">        lens of this component.</span>
+
+<span class="sd">        If this component does not yield a dense log, return None (default behavior).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<span class="n">component_registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;The registry for Component classes.</span>
+
+<span class="sd">This creates a registry object for Component classes. This registry requires that all</span>
+<span class="sd">added classes are subclasses of BaseComponent. To make a Component class available</span>
+<span class="sd">through the registry, decorate the class definition with @component_registry.add.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    from ai_economist.foundation.base.base_component</span>
+<span class="sd">    import BaseComponent, component_registry</span>
+
+<span class="sd">    @component_registry.add</span>
+<span class="sd">    class ExampleComponent(BaseComponent):</span>
+<span class="sd">        name = &quot;Example&quot;</span>
+<span class="sd">        pass</span>
+
+<span class="sd">    assert component_registry.has(&quot;Example&quot;)</span>
+
+<span class="sd">    ComponentClass = component_registry.get(&quot;Example&quot;)</span>
+<span class="sd">    component = ComponentClass(...)</span>
+<span class="sd">    assert isinstance(component, ExampleComponent)</span>
+
+<span class="sd">Notes:</span>
+<span class="sd">    The foundation package exposes the component registry as: foundation.components</span>
+
+<span class="sd">    A Component class that is defined and registered following the above example will</span>
+<span class="sd">    only be visible in foundation.components if defined/registered in a file that is</span>
+<span class="sd">    imported in ../components/__init__.py.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

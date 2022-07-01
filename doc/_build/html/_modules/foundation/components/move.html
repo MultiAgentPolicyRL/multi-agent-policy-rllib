@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.components.move &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.components.move</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.components.move</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">rand</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.base.base_component</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseComponent</span><span class="p">,</span>
+    <span class="n">component_registry</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="Gather"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather">[docs]</a><span class="nd">@component_registry</span><span class="o">.</span><span class="n">add</span>
+<span class="k">class</span> <span class="nc">Gather</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows mobile agents to move around the world and collect resources and prevents</span>
+<span class="sd">    agents from moving to invalid locations.</span>
+
+<span class="sd">    Can be configured to include collection skill, where agents have heterogeneous</span>
+<span class="sd">    probabilities of collecting bonus resources without additional labor cost.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        move_labor (float): Labor cost associated with movement. Must be &gt;= 0.</span>
+<span class="sd">            Default is 1.0.</span>
+<span class="sd">        collect_labor (float): Labor cost associated with collecting resources. This</span>
+<span class="sd">            cost is added (in addition to any movement cost) when the agent lands on</span>
+<span class="sd">            a tile that is populated with resources (triggering collection).</span>
+<span class="sd">            Must be &gt;= 0. Default is 1.0.</span>
+<span class="sd">        skill_dist (str): Distribution type for sampling skills. Default (&quot;none&quot;)</span>
+<span class="sd">            gives all agents identical skill equal to a bonus prob of 0. &quot;pareto&quot; and</span>
+<span class="sd">            &quot;lognormal&quot; sample skills from the associated distributions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Gather&quot;</span>
+    <span class="n">required_entities</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Coin&quot;</span><span class="p">,</span> <span class="s2">&quot;House&quot;</span><span class="p">,</span> <span class="s2">&quot;Labor&quot;</span><span class="p">]</span>
+    <span class="n">agent_subclasses</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span>
+        <span class="n">move_labor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">collect_labor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">skill_dist</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">base_component_kwargs</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">base_component_args</span><span class="p">,</span> <span class="o">**</span><span class="n">base_component_kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">move_labor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">move_labor</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_labor</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">collect_labor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">collect_labor</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_labor</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">skill_dist</span> <span class="o">=</span> <span class="n">skill_dist</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">skill_dist</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;pareto&quot;</span><span class="p">,</span> <span class="s2">&quot;lognormal&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gathers</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aidx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_roff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+
+    <span class="c1"># Required methods for implementing components</span>
+    <span class="c1"># --------------------------------------------</span>
+
+<div class="viewcode-block" id="Gather.get_n_actions"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.get_n_actions">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Adds 4 actions (move up, down, left, or right) for mobile agents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This component adds 4 action that agents can take:</span>
+        <span class="c1"># move up, down, left, or right</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">4</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Gather.get_additional_state_fields"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.get_additional_state_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_additional_state_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_cls_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        For mobile agents, add state field for collection skill.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_subclasses</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">agent_cls_name</span> <span class="o">==</span> <span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;bonus_gather_prob&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="Gather.component_step"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.component_step">[docs]</a>    <span class="k">def</span> <span class="nf">component_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Move to adjacent, unoccupied locations. Collect resources when moving to</span>
+<span class="sd">        populated resource tiles, adding the resource to the agent&#39;s inventory and</span>
+<span class="sd">        de-populating it from the tile.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="n">gathers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">get_random_order_agents</span><span class="p">():</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">action</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="n">action</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_component_action</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">loc</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># NO-OP!</span>
+                <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span>
+
+            <span class="k">elif</span> <span class="n">action</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># Left</span>
+                    <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># Right</span>
+                    <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># Up</span>
+                    <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span> <span class="o">=</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># action == 4, # Down</span>
+                    <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span>
+
+                <span class="c1"># Attempt to move the agent (if the new coordinates aren&#39;t accessible,</span>
+                <span class="c1"># nothing will happen)</span>
+                <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">set_agent_loc</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
+
+                <span class="c1"># If the agent did move, incur the labor cost of moving</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">new_r</span> <span class="o">!=</span> <span class="n">r</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">new_c</span> <span class="o">!=</span> <span class="n">c</span><span class="p">):</span>
+                    <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">][</span><span class="s2">&quot;Labor&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">move_labor</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
+
+            <span class="k">for</span> <span class="n">resource</span><span class="p">,</span> <span class="n">health</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">location_resources</span><span class="p">(</span><span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">health</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">n_gathered</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;bonus_gather_prob&quot;</span><span class="p">])</span>
+                    <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;inventory&quot;</span><span class="p">][</span><span class="n">resource</span><span class="p">]</span> <span class="o">+=</span> <span class="n">n_gathered</span>
+                    <span class="n">world</span><span class="o">.</span><span class="n">consume_resource</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
+                    <span class="c1"># Incur the labor cost of collecting a resource</span>
+                    <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;endogenous&quot;</span><span class="p">][</span><span class="s2">&quot;Labor&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_labor</span>
+                    <span class="c1"># Log the gather</span>
+                    <span class="n">gathers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="nb">dict</span><span class="p">(</span>
+                            <span class="n">agent</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">,</span>
+                            <span class="n">resource</span><span class="o">=</span><span class="n">resource</span><span class="p">,</span>
+                            <span class="n">n</span><span class="o">=</span><span class="n">n_gathered</span><span class="p">,</span>
+                            <span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="n">new_r</span><span class="p">,</span> <span class="n">new_c</span><span class="p">],</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gathers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gathers</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Gather.generate_observations"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.generate_observations">[docs]</a>    <span class="k">def</span> <span class="nf">generate_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Here, agents observe their collection skill. The planner does not observe</span>
+<span class="sd">        anything from this component.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">):</span> <span class="p">{</span><span class="s2">&quot;bonus_gather_prob&quot;</span><span class="p">:</span> <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;bonus_gather_prob&quot;</span><span class="p">]}</span>
+            <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="Gather.generate_masks"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.generate_masks">[docs]</a>    <span class="k">def</span> <span class="nf">generate_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Prevent moving to adjacent tiles that are already occupied (or outside the</span>
+<span class="sd">        boundaries of the world)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">agent</span><span class="o">.</span><span class="n">loc</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">])[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">ris</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roff</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">cis</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coff</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">occ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">unoccupied</span><span class="p">,</span> <span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="n">acc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">world</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">accessibility</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="n">mask_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">occ</span><span class="p">[</span><span class="n">ris</span><span class="p">,</span> <span class="n">cis</span><span class="p">],</span> <span class="n">acc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_aidx</span><span class="p">,</span> <span class="n">ris</span><span class="p">,</span> <span class="n">cis</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+
+        <span class="n">masks</span> <span class="o">=</span> <span class="p">{</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span> <span class="n">mask_array</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">agent</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">)}</span>
+
+        <span class="k">return</span> <span class="n">masks</span></div>
+
+    <span class="c1"># For non-required customization</span>
+    <span class="c1"># ------------------------------</span>
+
+<div class="viewcode-block" id="Gather.additional_reset_steps"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.additional_reset_steps">[docs]</a>    <span class="k">def</span> <span class="nf">additional_reset_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See base_component.py for detailed description.</span>
+
+<span class="sd">        Re-sample agents&#39; collection skills.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skill_dist</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                <span class="n">bonus_rate</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">skill_dist</span> <span class="o">==</span> <span class="s2">&quot;pareto&quot;</span><span class="p">:</span>
+                <span class="n">bonus_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">pareto</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">skill_dist</span> <span class="o">==</span> <span class="s2">&quot;lognormal&quot;</span><span class="p">:</span>
+                <span class="n">bonus_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="o">-</span><span class="mf">2.022</span><span class="p">,</span> <span class="mf">0.938</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;bonus_gather_prob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">bonus_rate</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gathers</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="Gather.get_dense_log"><a class="viewcode-back" href="../../../foundation.components.html#foundation.components.move.Gather.get_dense_log">[docs]</a>    <span class="k">def</span> <span class="nf">get_dense_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Log resource collections.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            gathers (list): A list of gather events. Each entry corresponds to a single</span>
+<span class="sd">                timestep and contains a description of any resource gathers that</span>
+<span class="sd">                occurred on that timestep.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gathers</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

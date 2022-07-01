@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>foundation.base.world &mdash; ai-economist foundation  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ai-economist foundation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">foundation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ai-economist foundation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../foundation.html">foundation</a> &raquo;</li>
+      <li>foundation.base.world</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for foundation.base.world</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2020, salesforce.com, inc.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1"># SPDX-License-Identifier: BSD-3-Clause</span>
+<span class="c1"># For full license text, see the LICENSE file in the repo root</span>
+<span class="c1"># or https://opensource.org/licenses/BSD-3-Clause</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.agents</span> <span class="kn">import</span> <span class="n">agent_registry</span>
+<span class="kn">from</span> <span class="nn">ai_economist.foundation.entities</span> <span class="kn">import</span> <span class="n">landmark_registry</span><span class="p">,</span> <span class="n">resource_registry</span>
+
+
+<div class="viewcode-block" id="Maps"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps">[docs]</a><span class="k">class</span> <span class="nc">Maps</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Manages the spatial configuration of the world as a set of entity maps.</span>
+
+<span class="sd">    A maps object is built during world construction, which is a part of environment</span>
+<span class="sd">    construction. The maps object is accessible through the world object. The maps</span>
+<span class="sd">    object maintains a map state for each of the spatial entities that are involved</span>
+<span class="sd">    in the constructed environment (which are determined by the &quot;required_entities&quot;</span>
+<span class="sd">    attributes of the Scenario and Component classes used to build the environment).</span>
+
+<span class="sd">    The Maps class also implements some of the basic spatial logic of the game,</span>
+<span class="sd">    such as which locations agents can occupy based on other agent locations and</span>
+<span class="sd">    locations of various landmarks.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        size (list): A length-2 list specifying the dimensions of the 2D world.</span>
+<span class="sd">            Interpreted as [height, width].</span>
+<span class="sd">        n_agents (int): The number of mobile agents (does not include planner).</span>
+<span class="sd">        world_resources (list): The resources registered during environment</span>
+<span class="sd">            construction.</span>
+<span class="sd">        world_landmarks (list): The landmarks registered during environment</span>
+<span class="sd">            construction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">n_agents</span><span class="p">,</span> <span class="n">world_resources</span><span class="p">,</span> <span class="n">world_landmarks</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sz_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sz_w</span> <span class="o">=</span> <span class="n">size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="n">n_agents</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span> <span class="o">=</span> <span class="n">world_resources</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">landmarks</span> <span class="o">=</span> <span class="n">world_landmarks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entities</span> <span class="o">=</span> <span class="n">world_resources</span> <span class="o">+</span> <span class="n">world_landmarks</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># All maps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blocked</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Solid objects that no agent can move through</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_private</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Solid objects that only permit movement for parent agents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_public</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Non-solid objects that agents can move on top of</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resources</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Non-solid objects that can be collected</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resource_source_blocks</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_map_keys</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">:</span>
+            <span class="n">resource_cls</span> <span class="o">=</span> <span class="n">resource_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">resource_cls</span><span class="o">.</span><span class="n">collectible</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">resource</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_map_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">landmarks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">SourceBlock&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resource</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">landmark</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">landmarks</span><span class="p">:</span>
+            <span class="n">dummy_landmark</span> <span class="o">=</span> <span class="n">landmark_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">landmark</span><span class="p">)()</span>
+
+            <span class="k">if</span> <span class="n">dummy_landmark</span><span class="o">.</span><span class="n">public</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">landmark</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_public</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_map_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">dummy_landmark</span><span class="o">.</span><span class="n">blocking</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">landmark</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_blocked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_map_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">[</span><span class="n">landmark</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">dummy_landmark</span><span class="o">.</span><span class="n">private</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">landmark</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">owner</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">),</span>
+                    <span class="n">health</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_private</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_map_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">landmark</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">[</span><span class="n">landmark</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idx_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idx_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unoccupied</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Maps.clear"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clear resource and landmark maps.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span>
+            <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">owner</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">),</span>
+                    <span class="n">health</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span> <span class="o">*=</span> <span class="mi">0</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="n">entity_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Maps.clear_agent_loc"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.clear_agent_loc">[docs]</a>    <span class="k">def</span> <span class="nf">clear_agent_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove agents or agent from the world map.&quot;&quot;&quot;</span>
+        <span class="c1"># Clear all agent locations</span>
+        <span class="k">if</span> <span class="n">agent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unoccupied</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># Clear the location of the provided agent</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unoccupied</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Maps.set_agent_loc"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.set_agent_loc">[docs]</a>    <span class="k">def</span> <span class="nf">set_agent_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the location of agent to [r, c].</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Things might break if you set the agent&#39;s location to somewhere it</span>
+<span class="sd">            cannot access. Don&#39;t do that.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span>
+        <span class="c1"># If the agent is currently on the board...</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">curr_r</span><span class="p">,</span> <span class="n">curr_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="c1"># If the agent isn&#39;t actually moving, just return</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">curr_r</span><span class="p">,</span> <span class="n">curr_c</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="k">return</span>
+            <span class="c1"># Make the location the agent is currently at as unoccupied</span>
+            <span class="c1"># (since the agent is going to move)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_unoccupied</span><span class="p">[</span><span class="n">curr_r</span><span class="p">,</span> <span class="n">curr_c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># Set the agent location to the specified coordinates</span>
+        <span class="c1"># and update the occupation map</span>
+        <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;loc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_agent_locs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unoccupied</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="Maps.keys"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterable over map keys.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Maps.values"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterable over map values.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Maps.items"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.items">[docs]</a>    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterable over map (key, value) pairs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Maps.get"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the map or ownership for entity_name.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span>
+        <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span><span class="p">:</span>
+            <span class="n">sub_key</span> <span class="o">=</span> <span class="s2">&quot;owner&quot;</span> <span class="k">if</span> <span class="n">owner</span> <span class="k">else</span> <span class="s2">&quot;health&quot;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">][</span><span class="n">sub_key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Maps.set"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.set">[docs]</a>    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="p">,</span> <span class="n">map_state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the map for entity_name.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="s2">&quot;owner&quot;</span> <span class="ow">in</span> <span class="n">map_state</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_name</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">map_state</span><span class="p">[</span><span class="s2">&quot;owner&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">assert</span> <span class="s2">&quot;health&quot;</span> <span class="ow">in</span> <span class="n">map_state</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_name</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">map_state</span><span class="p">[</span><span class="s2">&quot;health&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+
+            <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">map_state</span><span class="p">[</span><span class="s2">&quot;health&quot;</span><span class="p">])</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">map_state</span><span class="p">[</span><span class="s2">&quot;owner&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+
+            <span class="n">o</span><span class="p">[</span><span class="n">h</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">o</span><span class="p">[</span><span class="n">h</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">owner</span><span class="o">=</span><span class="n">o</span><span class="p">,</span> <span class="n">health</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
+
+            <span class="n">owned_by_agent</span> <span class="o">=</span> <span class="n">o</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idx_map</span>
+            <span class="n">owned_by_none</span> <span class="o">=</span> <span class="n">o</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">owned_by_agent</span><span class="p">,</span> <span class="n">owned_by_none</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_name</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">map_state</span><span class="o">.</span><span class="n">shape</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">map_state</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blocked</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">map_state</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Maps.set_add"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.set_add">[docs]</a>    <span class="k">def</span> <span class="nf">set_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="p">,</span> <span class="n">map_state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add map_state to the existing map for entity_name.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">entity_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">entity_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_name</span><span class="p">)</span> <span class="o">+</span> <span class="n">map_state</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Maps.get_point"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.get_point">[docs]</a>    <span class="k">def</span> <span class="nf">get_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the entity state at the specified coordinates.&quot;&quot;&quot;</span>
+        <span class="n">point_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">point_map</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Maps.set_point"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.set_point">[docs]</a>    <span class="k">def</span> <span class="nf">set_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the entity state at the specified coordinates.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">owner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">][</span><span class="s2">&quot;health&quot;</span><span class="p">]</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">][</span><span class="s2">&quot;owner&quot;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">o</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">o</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">owner</span><span class="p">)</span>
+            <span class="n">h</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">o</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">o</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">owner</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">][</span><span class="s2">&quot;owner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">][</span><span class="s2">&quot;health&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">[</span><span class="n">entity_name</span><span class="p">],</span> <span class="p">:,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">o</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idx_array</span><span class="p">,</span> <span class="n">o</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">entity_name</span><span class="p">][</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blocked</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility_lookup</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">val</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Maps.set_point_add"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.set_point_add">[docs]</a>    <span class="k">def</span> <span class="nf">set_point_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add value to the existing entity state at the specified coordinates.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_point</span><span class="p">(</span>
+            <span class="n">entity_name</span><span class="p">,</span>
+            <span class="n">r</span><span class="p">,</span>
+            <span class="n">c</span><span class="p">,</span>
+            <span class="n">value</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_point</span><span class="p">(</span><span class="n">entity_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Maps.is_accessible"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.is_accessible">[docs]</a>    <span class="k">def</span> <span class="nf">is_accessible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if agent with id agent_id can occupy the location [r, c].&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accessibility</span><span class="p">[</span><span class="n">agent_id</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Maps.location_resources"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.location_resources">[docs]</a>    <span class="k">def</span> <span class="nf">location_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return {resource: health} dictionary for any resources at location [r, c].&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resources</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="Maps.location_landmarks"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.Maps.location_landmarks">[docs]</a>    <span class="k">def</span> <span class="nf">location_landmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return {landmark: health} dictionary for any landmarks at location [r, c].&quot;&quot;&quot;</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_point</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tmp</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resources</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">}</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">unoccupied</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean map indicating which locations are unoccupied.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unoccupied</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">accessibility</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean map indicating which locations are accessible.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accessibility</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net_accessibility</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean map indicating which locations are empty.</span>
+
+<span class="sd">        Empty locations have no landmarks or resources.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the concatenated maps of landmark and resources.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">owner_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the concatenated ownership maps of private landmarks.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_landmark_types</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a dictionary of the map states.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maps</span></div>
+
+
+<div class="viewcode-block" id="World"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World">[docs]</a><span class="k">class</span> <span class="nc">World</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Manages the environment&#39;s spatial- and agent-states.</span>
+
+<span class="sd">    The world object represents the state of the environment, minus whatever state</span>
+<span class="sd">    information is implicitly maintained by separate components. The world object</span>
+<span class="sd">    maintains the spatial state through an instance of the Maps class. Agent states</span>
+<span class="sd">    are maintained through instances of Agent classes (subclasses of BaseAgent),</span>
+<span class="sd">    with one such instance for each of the agents in the environment.</span>
+
+<span class="sd">    The world object is built during the environment construction, after the</span>
+<span class="sd">    required entities have been registered. As part of the world object construction,</span>
+<span class="sd">    it instantiates a map object and the agent objects.</span>
+
+<span class="sd">    The World class adds some functionality for interfacing with the spatial state</span>
+<span class="sd">    (the maps object) and setting/resetting agent locations. But its function is</span>
+<span class="sd">    mostly to wrap the stateful, non-component environment objects.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        world_size (list): A length-2 list specifying the dimensions of the 2D world.</span>
+<span class="sd">            Interpreted as [height, width].</span>
+<span class="sd">        n_agents (int): The number of mobile agents (does not include planner).</span>
+<span class="sd">        world_resources (list): The resources registered during environment</span>
+<span class="sd">            construction.</span>
+<span class="sd">        world_landmarks (list): The landmarks registered during environment</span>
+<span class="sd">            construction.</span>
+<span class="sd">        multi_action_mode_agents (bool): Whether &quot;mobile&quot; agents use multi action mode</span>
+<span class="sd">            (see BaseEnvironment in base_env.py).</span>
+<span class="sd">        multi_action_mode_planner (bool): Whether the planner agent uses multi action</span>
+<span class="sd">            mode (see BaseEnvironment in base_env.py).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">world_size</span><span class="p">,</span>
+        <span class="n">n_agents</span><span class="p">,</span>
+        <span class="n">world_resources</span><span class="p">,</span>
+        <span class="n">world_landmarks</span><span class="p">,</span>
+        <span class="n">multi_action_mode_agents</span><span class="p">,</span>
+        <span class="n">multi_action_mode_planner</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="n">world_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="n">n_agents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span> <span class="o">=</span> <span class="n">world_resources</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">landmarks</span> <span class="o">=</span> <span class="n">world_landmarks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_agents</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">multi_action_mode_agents</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_planner</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">multi_action_mode_planner</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maps</span> <span class="o">=</span> <span class="n">Maps</span><span class="p">(</span><span class="n">world_size</span><span class="p">,</span> <span class="n">n_agents</span><span class="p">,</span> <span class="n">world_resources</span><span class="p">,</span> <span class="n">world_landmarks</span><span class="p">)</span>
+
+        <span class="n">mobile_class</span> <span class="o">=</span> <span class="n">agent_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BasicMobileAgent&quot;</span><span class="p">)</span>
+        <span class="n">planner_class</span> <span class="o">=</span> <span class="n">agent_registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BasicPlanner&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_agents</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">mobile_class</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">multi_action_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_agents</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_planner</span> <span class="o">=</span> <span class="n">planner_class</span><span class="p">(</span><span class="n">multi_action_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_action_mode_planner</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestep</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># CUDA-related attributes (for GPU simulations).</span>
+        <span class="c1"># These will be set via the env_wrapper, if required.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cuda_function_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cuda_data_manager</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">agents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of the agent objects in the world (sorted by index).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agents</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">planner</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the planner agent object.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_planner</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">loc_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a map indicating the agent index occupying each location.</span>
+
+<span class="sd">        Locations with a value of -1 are not occupied by an agent.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx_map</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">loc</span>
+            <span class="n">idx_map</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">idx_map</span>
+
+<div class="viewcode-block" id="World.get_random_order_agents"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.get_random_order_agents">[docs]</a>    <span class="k">def</span> <span class="nf">get_random_order_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The agent list in a randomized order.&quot;&quot;&quot;</span>
+        <span class="n">agent_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+        <span class="n">agents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agents</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">agents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">agent_order</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="World.is_valid"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.is_valid">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if the coordinates [r, c] are within the game boundaries.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="World.is_location_accessible"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.is_location_accessible">[docs]</a>    <span class="k">def</span> <span class="nf">is_location_accessible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if location [r, c] is accessible to agent.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">is_accessible</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="World.can_agent_occupy"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.can_agent_occupy">[docs]</a>    <span class="k">def</span> <span class="nf">can_agent_occupy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if location [r, c] is accessible to agent and unoccupied.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_location_accessible</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">unoccupied</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="World.clear_agent_locs"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.clear_agent_locs">[docs]</a>    <span class="k">def</span> <span class="nf">clear_agent_locs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Take all agents off the board. Useful for resetting.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agents</span><span class="p">:</span>
+            <span class="n">agent</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;loc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">clear_agent_loc</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="World.agent_locs_are_valid"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.agent_locs_are_valid">[docs]</a>    <span class="k">def</span> <span class="nf">agent_locs_are_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns True if all agent locations comply with world semantics.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_location_accessible</span><span class="p">(</span><span class="o">*</span><span class="n">agent</span><span class="o">.</span><span class="n">loc</span><span class="p">,</span> <span class="n">agent</span><span class="p">)</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agents</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="World.set_agent_loc"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.set_agent_loc">[docs]</a>    <span class="k">def</span> <span class="nf">set_agent_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the agent&#39;s location to coordinates [r, c] if possible.</span>
+
+<span class="sd">        If agent cannot occupy [r, c], do nothing.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_agent_occupy</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">set_agent_loc</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span> <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">loc</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="World.location_resources"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.location_resources">[docs]</a>    <span class="k">def</span> <span class="nf">location_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return {resource: health} dictionary for any resources at location [r, c].&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">location_resources</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="World.location_landmarks"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.location_landmarks">[docs]</a>    <span class="k">def</span> <span class="nf">location_landmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return {landmark: health} dictionary for any landmarks at location [r, c].&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">location_landmarks</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="World.create_landmark"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.create_landmark">[docs]</a>    <span class="k">def</span> <span class="nf">create_landmark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">landmark_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">agent_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Place a landmark on the world map.</span>
+
+<span class="sd">        Place landmark of type landmark_name at the given coordinates, indicating</span>
+<span class="sd">        agent ownership if applicable.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">set_point</span><span class="p">(</span><span class="n">landmark_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">agent_idx</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="World.consume_resource"><a class="viewcode-back" href="../../../foundation.base.html#foundation.base.world.World.consume_resource">[docs]</a>    <span class="k">def</span> <span class="nf">consume_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Consume a unit of resource_name from location [r, c].&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="o">.</span><span class="n">set_point_add</span><span class="p">(</span><span class="n">resource_name</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, a.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
