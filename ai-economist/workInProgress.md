@@ -1,0 +1,3 @@
+- train function with PPO + IDT (last one on/off bc is planner's training)
+- save/load model + checksum of model + config to check any modifications after pause.
+- config parser that reads config.toml / yaml -> gets data and validates it
