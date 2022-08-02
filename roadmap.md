@@ -24,3 +24,5 @@ execution-plans: easily express the execution of an RL algorithm as a sequence o
 https://docs.ray.io/en/releases-1.4.1/rllib-concepts.html#example-multi-agent
 
 TODO: leggere algoritmo del prof.
+
+**2 ago 22**: 
