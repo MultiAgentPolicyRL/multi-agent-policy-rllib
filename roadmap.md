@@ -25,4 +25,9 @@ https://docs.ray.io/en/releases-1.4.1/rllib-concepts.html#example-multi-agent
 
 TODO: leggere algoritmo del prof.
 
-**2 ago 22**: 
+**19 ago 22**: Abbandonata l'idea di usare RLLib, riduciamo la complessita' del progetto, susu.
+Ho creato `understanding AI-Economist` e `env_wrapper_tmp` (senza RLLib), ora so che i dati passati per il wrapper sono tutti come dict di `numpy`. 
+Ora devo studiare bene come funziona la PPO, ho capito l'idea generale, ma devo capire come funziona `GAE (generalized advantage estimation)` (https://arxiv.org/pdf/1506.02438.pdf).  
+Utile da studiare e' anche `Distributed PPO(DPPO)`  (https://arxiv.org/pdf/1707.02286.pdf) (https://i.stack.imgur.com/AYjQN.png) (https://github.com/TianhongDai/distributed-ppo)
+
+questo video c'e' il tipo che spiega cosa c'e' scritto nel paper, nice https://www.youtube.com/watch?v=HR8kQMTO8bk
