@@ -108,12 +108,6 @@ class EnvWrapper:
             pretty_print(self.observation_space_pl)
             print("[EnvWrapper] Action (a)", self.action_space)
             print("[EnvWrapper] Action (p)", self.action_space_pl)
-        
-        # aggiunti per PROVA TODO
-        self._metatada = None
-        self._action_space = None
-        self._observation_space = None
-        self._reward_range = None
 
     def _dict_to_spaces_dict(self, obs):
         dict_of_spaces = {}
