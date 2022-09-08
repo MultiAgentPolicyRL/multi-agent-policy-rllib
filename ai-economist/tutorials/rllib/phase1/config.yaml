@@ -50,9 +50,9 @@ env:
   - 25
 general:
   ckpt_frequency_steps: 750000
-  cpus: 15
-  episodes: 25000
-  gpus: 0
+  cpus: 4 # edited from 14
+  episodes: 8 # edited from 25000
+  gpus: 1 # edited from 0
   restore_tf_weights_agents: ''
   restore_tf_weights_planner: ''
   train_planner: false
@@ -110,10 +110,10 @@ trainer:
   multiagent: null
   no_done_at_end: false
   num_envs_per_worker: 2
-  num_gpus: 0
-  num_gpus_per_worker: 0
+  num_gpus: 1 # from 0
+  num_gpus_per_worker: 1 # from 0
   num_sgd_iter: 1
-  num_workers: 15
+  num_workers: 11 # from 15
   observation_filter: NoFilter
   rollout_fragment_length: 200
   seed: null
@@ -122,8 +122,8 @@ trainer:
   tf_session_args:
     allow_soft_placement: true
     device_count:
-      CPU: 15
-      GPU: 0
+      CPU: 11 # from 15
+      GPU: 1  # from 0
     gpu_options:
       allow_growth: true
     inter_op_parallelism_threads: 2

@@ -28,7 +28,7 @@ from random import seed
 import warnings
 warnings.filterwarnings("ignore")
 
-
+# 🚸 nvm: use PPOTraining instead.
 # 🔴 BIG ISSUE: rllib[0.8.2] doesn't have this library
 # 🔴 BIG ISSUE: rllib[2.0.0] doesn't have TFModelV2 (used in Keras model)
 # from ray.rllib.algorithms.ppo import (
@@ -128,12 +128,6 @@ def build_trainer(run_configuration):
     final_seed = int(start_seed % (2 ** 16)) * 1000
     logger.info("seed (final): %s", final_seed)
 
-    # 🚸 check if it's usefull, from multi_agent_two_trainers
-    #
-    # register_env(
-    #     "ai-economist-rllib", lambda _: RLlibEnvWrapper(env_config)
-    # )
-
     # === Multiagent Policies ===
     dummy_env = RLlibEnvWrapper(env_config)
 
@@ -155,22 +149,6 @@ def build_trainer(run_configuration):
         )
     }
 
-    # ORIGINAL CODE - commented
-    # agent_policy_tuple = (
-    #     None,
-    #     dummy_env.observation_space,
-    #     dummy_env.action_space,
-    #     run_configuration.get("agent_policy"),
-    # )
-    # planner_policy_tuple = (
-    #     None,
-    #     dummy_env.observation_space_pl,
-    #     dummy_env.action_space_pl,
-    #     run_configuration.get("planner_policy"),
-    # )
-
-    # policies = {"a": agent_policy_tuple, "p": planner_policy_tuple}
-
     # 🟢 - modified original code a little bit
     # 99-105 multi_agent_two_trainers
     # Level 2
@@ -178,30 +156,6 @@ def build_trainer(run_configuration):
         if str(i).isdigit() or i == "a":
             return "agent_policy"
         return "planner_policy"
-
-    # 🚸 TODO: find another way to get which policies to train (we can deactivate
-    # the second trainer -> think about it)
-
-    # Which policies to train
-    # if run_configuration["general"]["train_planner"]:
-    #     policies_to_train = ["a", "p"]
-    # else:
-    #     policies_to_train = ["a"]
-
-    # === Finalize and create ===
-    # trainer_config.update(
-    #     {
-    #         "env_config": env_config,
-    #         "seed": final_seed,
-    #         "multiagent": {
-    #             "policies": policies,
-    #             "policies_to_train": policies_to_train,
-    #             "policy_mapping_fn": policy_mapping_fun,
-    #         },
-    #         "metrics_smoothing_episodes": trainer_config.get("num_workers")
-    #         * trainer_config.get("num_envs_per_worker"),
-    #     }
-    # )
 
     # 🟢 lines 105-125
     ppoAgent = PPOTrainer(
@@ -249,10 +203,10 @@ def build_trainer(run_configuration):
     # 🟢
     return ppoAgent, ppoPlanner
 
-# 🚫 Untouched
+# 🟢
 
 
-def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj):
+def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainerAgent, trainerPlanner):
     # === Set up Logging & Saving, or Restore ===
     # All model parameters are always specified in the settings YAML.
     # We do NOT overwrite / reload settings from the previous checkpoint dir.
@@ -274,12 +228,16 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
             ckpt_directory,
         )
 
-        at_loads_a_ok = saving.load_snapshot(
-            trainer_obj, run_directory, load_latest=True
+        at_loads_agents_ok = saving.load_snapshot(
+            trainerAgent, run_directory, load_latest=True, suffix="agent"
+        )
+
+        at_loads_planner_ok = saving.load_snapshot(
+            trainerPlanner, run_directory, load_latest=True, suffix="planner"
         )
 
         # at this point, we need at least one good ckpt restored
-        if not at_loads_a_ok:
+        if not at_loads_agents_ok and not at_loads_planner_ok:
             logger.fatal(
                 "restore_from_crashed_run -> restore_run_dir %s, but no good ckpts "
                 "found/loaded!",
@@ -288,37 +246,42 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
             sys.exit()
 
         # === Trainer-specific counters ===
+        # it's the same for Agents and PPO
         training_step_last_ckpt = (
-            int(trainer_obj._timesteps_total) if trainer_obj._timesteps_total else 0
+            int(trainerAgent._timesteps_total) if trainerAgent._timesteps_total else 0
         )
         epis_last_ckpt = (
-            int(trainer_obj._episodes_total) if trainer_obj._episodes_total else 0
+            int(trainerAgent._episodes_total) if trainerAgent._episodes_total else 0
         )
 
     else:
+
         logger.info("Not restoring trainer...")
         # === Trainer-specific counters ===
         training_step_last_ckpt = 0
         epis_last_ckpt = 0
 
-        # For new runs, load only tf checkpoint weights
+        # == For new runs, load only tf checkpoint weights ==
+
+        # Agents
         starting_weights_path_agents = run_configuration["general"].get(
             "restore_tf_weights_agents", ""
         )
         if starting_weights_path_agents:
             logger.info("Restoring agents TF weights...")
             saving.load_tf_model_weights(
-                trainer_obj, starting_weights_path_agents)
+                trainerAgent, starting_weights_path_agents)
         else:
             logger.info("Starting with fresh agent TF weights.")
 
+        # Planner
         starting_weights_path_planner = run_configuration["general"].get(
             "restore_tf_weights_planner", ""
         )
         if starting_weights_path_planner:
             logger.info("Restoring planner TF weights...")
             saving.load_tf_model_weights(
-                trainer_obj, starting_weights_path_planner)
+                trainerPlanner, starting_weights_path_planner)
         else:
             logger.info("Starting with fresh planner TF weights.")
 
@@ -330,34 +293,11 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
         epis_last_ckpt,
     )
 
-# 🚫 Untouched
-
-
-def maybe_sync_saez_buffer(trainer_obj, result_dict, run_configuration):
-    if result_dict["episodes_this_iter"] == 0:
-        return
-
-    # This logic just detects if we're using the Saez formula
-    sync_saez = False
-    for component in run_configuration["env"]["components"]:
-        assert isinstance(component, dict)
-        c_name = list(component.keys())[0]
-        c_kwargs = list(component.values())[0]
-        if c_name in ["PeriodicBracketTax"]:
-            tax_model = c_kwargs.get("tax_model", "")
-            if tax_model == "saez":
-                sync_saez = True
-                break
-
-    # Do the actual syncing
-    if sync_saez:
-        remote.accumulate_and_broadcast_saez_buffers(trainer_obj)
-
-# 🚫 Untouched
+# 🟢 changed agent_trainer, added planner_trainer and ifPlanner
 
 
 def maybe_store_dense_log(
-    trainer_obj, result_dict, dense_log_freq, dense_log_directory
+    agent_trainer, planner_trainer, result_dict, dense_log_freq, dense_log_directory, ifPlanner
 ):
     if result_dict["episodes_this_iter"] > 0 and dense_log_freq > 0:
         episodes_per_replica = (
@@ -370,13 +310,17 @@ def maybe_store_dense_log(
             )
             if not os.path.isdir(log_dir):
                 os.makedirs(log_dir)
-            saving.write_dense_logs(trainer_obj, log_dir)
+
+            saving.write_dense_logs(agent_trainer, log_dir, "agent")
+
+            if ifPlanner:
+                saving.write_dense_logs(planner_trainer, log_dir, "planner")
+
             logger.info(">> Wrote dense logs to: %s", log_dir)
 
-# 🚫 Untouched
 
-
-def maybe_save(trainer_obj, result_dict, ckpt_freq, ckpt_directory, trainer_step_last_ckpt):
+# 🟢 changed agent_trainer, added planner_trainer and ifPlanner
+def maybe_save(agent_trainer, planner_trainer, result_dict, ckpt_freq, ckpt_directory, trainer_step_last_ckpt, ifPlanner):
     global_step = result_dict["timesteps_total"]
 
     # Check if saving this iteration
@@ -386,13 +330,18 @@ def maybe_save(trainer_obj, result_dict, ckpt_freq, ckpt_directory, trainer_step
 
         if ckpt_freq > 0:
             if global_step - trainer_step_last_ckpt >= ckpt_freq:
-                saving.save_snapshot(trainer_obj, ckpt_directory, suffix="")
+                saving.save_snapshot(
+                    agent_trainer, ckpt_directory, suffix="agent")
                 saving.save_tf_model_weights(
-                    trainer_obj, ckpt_directory, global_step, suffix="agent"
+                    agent_trainer, ckpt_directory, global_step, suffix="agent"
                 )
-                saving.save_tf_model_weights(
-                    trainer_obj, ckpt_directory, global_step, suffix="planner"
-                )
+
+                if ifPlanner:
+                    saving.save_snapshot(
+                        planner_trainer, ckpt_directory, suffix="planner")
+                    saving.save_tf_model_weights(
+                        planner_trainer, ckpt_directory, global_step, suffix="planner"
+                    )
 
                 trainer_step_last_ckpt = int(global_step)
 
@@ -413,90 +362,126 @@ if __name__ == "__main__":
     # Create a trainer object
     trainerAgents, trainerPlanner = build_trainer(run_config)
 
-    # 🔴 - simple training without any saving/checkpoint/tooling
-    for i in range(run_config["general"]["episodes"]):
-        print(f"== Iteration {i} ==")
+    (
+        # 🔴 - simple training without any saving/checkpoint/tooling
+        # the only weight we care to save during Phase1 is Agent's bc it will
+        # be loaded during Phase2 (as paper, to do not discourage exploration.)
+        # 🚫 don't touch - backup
+        # for i in range(run_config["general"]["episodes"]):
+        #     print(f"== Iteration {i} ==")
+
+        #     # Improve trainerAgents policy's
+        #     print("-- PPO Agents --")
+        #     result_ppo_agents = trainerAgents.train()
+        #     # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
+        #     print(pretty_print(result_ppo_agents))
+
+        #     if run_config["general"]["train_planner"]:
+        #         # Improve trainerPlanner policy's
+        #         print("-- PPO Planner --")
+        #         result_ppo_planner = trainerPlanner.train()
+        #         # print(f"{result_ppo_planner['episode_reward_max']}, {result_ppo_planner['episode_reward_min']}, {result_ppo_planner['episode_reward_mean']}, {result_ppo_planner['episode_len_mean']}, {result_ppo_planner['episodes_this_iter']}")
+        #         print(pretty_print(result_ppo_planner))
+
+        #         # Swap weights to synchronize
+        #         trainerAgents.set_weights(
+        #             trainerPlanner.get_weights(["planner_policy"]))
+        #         trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+    )
+    # Set up directories for logging and saving. Restore if this has already been
+    # done (indicating that we're restarting a crashed run). Or, if appropriate,
+    # load in starting model weights for the agent and/or planner.
+    # 🟠 - fix trainer
+    (
+        dense_log_dir,
+        ckpt_dir,
+        restore_from_crashed_run,
+        step_last_ckpt,
+        num_parallel_episodes_done,
+    ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainerAgents, trainerPlanner)
+
+    # # ======================
+    # # === Start training ===
+    # # ======================
+
+    dense_log_frequency = run_config["env"].get("dense_log_frequency", 0)
+    ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
+    global_step = int(step_last_ckpt)
+    ifPlanner = run_config["general"]["train_planner"]
+
+    print("Training")
+    while num_parallel_episodes_done < run_config["general"]["episodes"]:
+
+        # Train Planner?
+
+        # === Training ===
 
         # Improve trainerAgents policy's
         print("-- PPO Agents --")
         result_ppo_agents = trainerAgents.train()
         # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
-        print(pretty_print(result_ppo_agents))
+        # print(pretty_print(result_ppo_agents))
 
-        # Improve trainerPlanner policy's
-        print("-- PPO Planner --")
-        result_ppo_planner = trainerPlanner.train()
-        # print(f"{result_ppo_planner['episode_reward_max']}, {result_ppo_planner['episode_reward_min']}, {result_ppo_planner['episode_reward_mean']}, {result_ppo_planner['episode_len_mean']}, {result_ppo_planner['episodes_this_iter']}")
-        print(pretty_print(result_ppo_planner))
+        # train Agents and Planner
+        if ifPlanner:
+            # Improve trainerPlanner policy's
+            print("-- PPO Planner --")
+            result_ppo_planner = trainerPlanner.train()
+            # print(f"{result_ppo_planner['episode_reward_max']}, {result_ppo_planner['episode_reward_min']}, {result_ppo_planner['episode_reward_mean']}, {result_ppo_planner['episode_len_mean']}, {result_ppo_planner['episodes_this_iter']}")
+            # print(pretty_print(result_ppo_planner))
 
-        # Swap weights to synchronize
-        trainerAgents.set_weights(
-            trainerPlanner.get_weights(["planner_policy"]))
-        trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+            # Swap weights to synchronize
+            trainerAgents.set_weights(
+                trainerPlanner.get_weights(["planner_policy"]))
+            trainerPlanner.set_weights(
+                trainerAgents.get_weights(["agent_policy"]))
 
+        # === Counters++ ===
+        # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
+        num_parallel_episodes_done = result_ppo_agents["episodes_total"]
+        global_step = result_ppo_agents["timesteps_total"]
+        curr_iter = result_ppo_agents["training_iteration"]
 
-    # # 🟪 - Original Code, untouched yet
-    # # TODO: 🟡
-    # # Set up directories for logging and saving. Restore if this has already been
-    # # done (indicating that we're restarting a crashed run). Or, if appropriate,
-    # # load in starting model weights for the agent and/or planner.
-    # (
-    #     dense_log_dir,
-    #     ckpt_dir,
-    #     restore_from_crashed_run,
-    #     step_last_ckpt,
-    #     num_parallel_episodes_done,
-    # ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainer)
+        # === Logging ===
+        # 🟠 add planner infos (Idk if timesteps_this_iter is in the Decision Tree algo)
+        logger.info(
+            "Iter %d: steps this-iter %d total %d -> %d/%d episodes done",
+            curr_iter,
+            result_ppo_agents["timesteps_this_iter"],
+            global_step,
+            num_parallel_episodes_done,
+            run_config["general"]["episodes"],
+        )
 
-    # # ======================
-    # # === Start training ===
-    # # ======================
-    # dense_log_frequency = run_config["env"].get("dense_log_frequency", 0)
-    # ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
-    # global_step = int(step_last_ckpt)
+        if curr_iter == 1 or result_ppo_agents["episodes_this_iter"] > 0:
+            logger.info(pretty_print(result_ppo_agents))
 
-    # # TODO: 🟡
-    # while num_parallel_episodes_done < run_config["general"]["episodes"]:
+            if ifPlanner:
+                logger.info(pretty_print(result_ppo_planner))
 
-    #     # Training
-    #     result = trainer.train()
+        # === Saez logic ===
+        # saez label is not in config.yaml, nor for phase1, nor phase2. So it's not needed.
 
-    #     # === Counters++ ===
-    #     num_parallel_episodes_done = result["episodes_total"]
-    #     global_step = result["timesteps_total"]
-    #     curr_iter = result["training_iteration"]
+        # === Dense logging ===
+        maybe_store_dense_log(trainerAgents, trainerPlanner, result_ppo_agents,
+                              dense_log_frequency, dense_log_dir, ifPlanner)
 
-    #     logger.info(
-    #         "Iter %d: steps this-iter %d total %d -> %d/%d episodes done",
-    #         curr_iter,
-    #         result["timesteps_this_iter"],
-    #         global_step,
-    #         num_parallel_episodes_done,
-    #         run_config["general"]["episodes"],
-    #     )
+        # === Saving ===
+        # Saving MUST be done after weights sync!
+        step_last_ckpt = maybe_save(
+            trainerAgents, trainerPlanner, result_ppo_agents, ckpt_frequency, ckpt_dir, step_last_ckpt, ifPlanner
+        )
 
-    #     if curr_iter == 1 or result["episodes_this_iter"] > 0:
-    #         logger.info(pretty_print(result))
+    # === Finish up ===
+    logger.info("Completing! Saving final snapshot...\n\n")
 
-    #     # === Saez logic ===
-    #     maybe_sync_saez_buffer(trainer, result, run_config)
+    saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
+    saving.save_tf_model_weights(
+        trainerAgents, ckpt_dir, global_step, suffix="agent")
 
-    #     # === Dense logging ===
-    #     maybe_store_dense_log(
-    #         trainer, result, dense_log_frequency, dense_log_dir)
+    saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
+    saving.save_tf_model_weights(
+        trainerPlanner, ckpt_dir, global_step, suffix="planner")
 
-    #     # === Saving ===
-    #     step_last_ckpt = maybe_save(
-    #         trainer, result, ckpt_frequency, ckpt_dir, step_last_ckpt
-    #     )
-
-    # # Finish up
-    # logger.info("Completing! Saving final snapshot...\n\n")
-    # saving.save_snapshot(trainer, ckpt_dir)
-    # saving.save_tf_model_weights(
-    #     trainer, ckpt_dir, global_step, suffix="agent")
-    # saving.save_tf_model_weights(
-    #     trainer, ckpt_dir, global_step, suffix="planner")
-    # logger.info("Final snapshot saved! All done.")
-
-    # ray.shutdown()  # shutdown Ray after use
+    logger.info("Final snapshot saved! All done.")
+    ray.shutdown()  # shutdown Ray after use
