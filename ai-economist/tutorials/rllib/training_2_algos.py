@@ -13,6 +13,7 @@
 from ray.tune.registry import register_env
 from ray.tune.logger import NoopLogger, pretty_print
 from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.agents.a3c import A3CTrainer
 from env_wrapper import RLlibEnvWrapper
 import yaml
 from tf_models import KerasConvLSTM  # used by config.yaml
@@ -220,6 +221,8 @@ def build_trainer(run_configuration):
     )
 
     # 🟡 lines 127-144 - PPO Planner isn't the final scope
+    # editing config.yaml and setting for other algos it's possible to use
+    # all `ray.rllib.agents` trainers.
     ppoPlanner = PPOTrainer(
         env=RLlibEnvWrapper,
         config={
@@ -417,12 +420,14 @@ if __name__ == "__main__":
         # Improve trainerAgents policy's
         print("-- PPO Agents --")
         result_ppo_agents = trainerAgents.train()
-        print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
+        # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
+        print(pretty_print(result_ppo_agents))
 
         # Improve trainerPlanner policy's
         print("-- PPO Planner --")
         result_ppo_planner = trainerPlanner.train()
-        print(f"{result_ppo_planner['episode_reward_max']}, {result_ppo_planner['episode_reward_min']}, {result_ppo_planner['episode_reward_mean']}, {result_ppo_planner['episode_len_mean']}, {result_ppo_planner['episodes_this_iter']}")
+        # print(f"{result_ppo_planner['episode_reward_max']}, {result_ppo_planner['episode_reward_min']}, {result_ppo_planner['episode_reward_mean']}, {result_ppo_planner['episode_len_mean']}, {result_ppo_planner['episodes_this_iter']}")
+        print(pretty_print(result_ppo_planner))
 
         # Swap weights to synchronize
         trainerAgents.set_weights(
