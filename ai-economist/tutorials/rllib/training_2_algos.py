@@ -478,10 +478,11 @@ if __name__ == "__main__":
     saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
     saving.save_tf_model_weights(
         trainerAgents, ckpt_dir, global_step, suffix="agent")
-
-    saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
-    saving.save_tf_model_weights(
-        trainerPlanner, ckpt_dir, global_step, suffix="planner")
+    
+    if ifPlanner:
+        saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
+        saving.save_tf_model_weights(
+            trainerPlanner, ckpt_dir, global_step, suffix="planner")
 
     logger.info("Final snapshot saved! All done.")
     ray.shutdown()  # shutdown Ray after use
