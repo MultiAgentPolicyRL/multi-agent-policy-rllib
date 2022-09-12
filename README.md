@@ -16,7 +16,7 @@ Train AI-Economist agents with PPO (as in the paper) and the social planner with
 `git clone https://github.com/sa1g/ai-economist-ppo-decision-tree`  
 2. Create a new conda environment and activate it  
 `conda create --name ai-economist python=3.7 --yes`  
-`conda actiavte ai-economist`  
+`conda activate ai-economist`  
 3. Install dependencies  
 `pip install -r requirementsUpdated.txt`  
 4. The 3 Levels custom training is located at  
