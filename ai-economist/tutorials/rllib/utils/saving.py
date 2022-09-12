@@ -106,13 +106,13 @@ def write_dense_logs(trainer, log_directory, suffix=""):
 
 def save_tf_model_weights(trainer, ckpt_dir, global_step, suffix=""):
     if suffix == "agent":
-        w = trainer.get_weights(["a"])
-        pol = trainer.get_policy("a")
-        model_w_array = pol._sess.run(pol.model.variables())
+        w = trainer.get_weights(["agent"])
+        pol = trainer.get_policy("agent")
+        # model_w_array = pol._sess.run(pol.model.variables())
     elif suffix == "planner":
-        w = trainer.get_weights(["p"])
-        pol = trainer.get_policy("p")
-        model_w_array = pol._sess.run(pol.model.variables())
+        w = trainer.get_weights(["planner"])
+        pol = trainer.get_policy("planner")
+        # model_w_array = pol._sess.run(pol.model.variables())
     else:
         raise NotImplementedError
 
@@ -122,12 +122,13 @@ def save_tf_model_weights(trainer, ckpt_dir, global_step, suffix=""):
     with open(fn, "wb") as f:
         pickle.dump(w, f)
 
-    fn = os.path.join(
-        ckpt_dir,
-        "{}.policy-model-weight-array.global-step-{}".format(suffix, global_step),
-    )
-    with open(fn, "wb") as f:
-        pickle.dump(model_w_array, f)
+    # Looks like it's not used
+    # fn = os.path.join(
+    #     ckpt_dir,
+    #     "{}.policy-model-weight-array.global-step-{}".format(suffix, global_step),
+    # )
+    # with open(fn, "wb") as f:
+    #     pickle.dump(model_w_array, f)
 
     logger.info("Saved TF weights @ %s", fn)
 
