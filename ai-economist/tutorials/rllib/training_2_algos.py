@@ -13,7 +13,6 @@
 from ray.tune.registry import register_env
 from ray.tune.logger import NoopLogger, pretty_print
 from ray.rllib.agents.ppo import PPOTrainer
-from ray.rllib.agents.a3c import A3CTrainer
 from env_wrapper import RLlibEnvWrapper
 import yaml
 from tf_models import KerasConvLSTM  # used by config.yaml
@@ -311,7 +310,7 @@ def maybe_store_dense_log(
             if not os.path.isdir(log_dir):
                 os.makedirs(log_dir)
 
-            saving.write_dense_logs(agent_trainer, log_dir, "agent")
+            saving.write_dense_logs(agent_trainer, log_dir)
 
             if ifPlanner:
                 saving.write_dense_logs(planner_trainer, log_dir, "planner")
@@ -415,7 +414,9 @@ if __name__ == "__main__":
         # Train Planner?
 
         # === Training ===
-
+        """
+        Should we use tune.run for training or rllib training?
+        """
         # Improve trainerAgents policy's
         print("-- PPO Agents --")
         result_ppo_agents = trainerAgents.train()

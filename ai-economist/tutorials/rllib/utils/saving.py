@@ -96,7 +96,7 @@ def write_dense_logs(trainer, log_directory, suffix=""):
             my_path = os.path.join(
                 log_directory,
                 "env{:03d}{}.lz4".format(
-                    env_wrapper.env_id, "." + suffix if suffix != "" else ""
+                    env_wrapper.env_id, "_" + suffix if suffix != "" else ""
                 ),
             )
             foundation.utils.save_episode_log(env_wrapper.env, my_path)
@@ -115,7 +115,7 @@ def save_tf_model_weights(trainer, ckpt_dir, global_step, suffix=""):
         # model_w_array = pol._sess.run(pol.model.variables())
     else:
         raise NotImplementedError
-
+    
     fn = os.path.join(
         ckpt_dir, "{}.tf.weights.global-step-{}".format(suffix, global_step)
     )
