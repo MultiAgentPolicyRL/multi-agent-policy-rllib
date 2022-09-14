@@ -69,7 +69,7 @@ agent_policy:
   lr_schedule: null
   model:
     custom_model: keras_conv_lstm
-    custom_options:
+    custom_model_config:
       fc_dim: 128
       idx_emb_dim: 4
       input_emb_vocab: 100
@@ -106,7 +106,7 @@ trainer:
   local_tf_session_args:
     inter_op_parallelism_threads: 2 # from 2
     intra_op_parallelism_threads: 4 # from 24
-  metrics_smoothing_episodes: null
+  metrics_num_episodes_for_smoothing: null
   multiagent: null
   no_done_at_end: false
   num_envs_per_worker: 1 # from 2

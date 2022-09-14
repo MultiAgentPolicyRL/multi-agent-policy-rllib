@@ -10,6 +10,10 @@
 # https://bair.berkeley.edu/blog/2018/12/12/rllib/
 # Edited by Ettore Saggiorato - GitHub@Sa1g
 
+from ray.rllib.algorithms.ppo import (
+    PPO as PPOTrainer,
+)
+from pkg_resources import get_distribution
 from ray.tune.registry import register_env
 from ray.tune.logger import NoopLogger, pretty_print
 from env_wrapper import RLlibEnvWrapper
@@ -29,11 +33,6 @@ warnings.filterwarnings("ignore")
 
 
 # Settings for multiple RLLIB versions
-from pkg_resources import get_distribution
-
-# For ray[rllib]==0.8.3
-from ray.rllib.agents.ppo import PPOTrainer
-
 
 
 # 🚸 nvm: use PPOTraining instead.
@@ -284,7 +283,8 @@ def set_up_dirs_and_maybe_restore(
         )
         if starting_weights_path_agents:
             logger.info("Restoring agents TF weights...")
-            saving.load_tf_model_weights(trainerAgent, starting_weights_path_agents)
+            saving.load_tf_model_weights(
+                trainerAgent, starting_weights_path_agents)
         else:
             logger.info("Starting with fresh agent TF weights.")
 
@@ -294,7 +294,8 @@ def set_up_dirs_and_maybe_restore(
         )
         if starting_weights_path_planner:
             logger.info("Restoring planner TF weights...")
-            saving.load_tf_model_weights(trainerPlanner, starting_weights_path_planner)
+            saving.load_tf_model_weights(
+                trainerPlanner, starting_weights_path_planner)
         else:
             logger.info("Starting with fresh planner TF weights.")
 
@@ -357,7 +358,8 @@ def maybe_save(
 
         if ckpt_freq > 0:
             if global_step - trainer_step_last_ckpt >= ckpt_freq:
-                saving.save_snapshot(agent_trainer, ckpt_directory, suffix="agent")
+                saving.save_snapshot(
+                    agent_trainer, ckpt_directory, suffix="agent")
                 saving.save_tf_model_weights(
                     agent_trainer, ckpt_directory, global_step, suffix="agent"
                 )
@@ -459,8 +461,10 @@ if __name__ == "__main__":
             # print(pretty_print(result_ppo_planner))
 
             # Swap weights to synchronize
-            trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
-            trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+            trainerAgents.set_weights(
+                trainerPlanner.get_weights(["planner_policy"]))
+            trainerPlanner.set_weights(
+                trainerAgents.get_weights(["agent_policy"]))
 
         # === Counters++ ===
         # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
@@ -514,7 +518,8 @@ if __name__ == "__main__":
     logger.info("Completing! Saving final snapshot...\n\n")
 
     saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
-    saving.save_tf_model_weights(trainerAgents, ckpt_dir, global_step, suffix="agent")
+    saving.save_tf_model_weights(
+        trainerAgents, ckpt_dir, global_step, suffix="agent")
 
     if ifPlanner:
         saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")

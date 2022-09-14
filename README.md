@@ -11,7 +11,8 @@ Train AI-Economist agents with PPO (as in the paper) and the social planner with
 [Evolutionary learning of interpretable decision trees](https://arxiv.org/abs/2012.07723)
 
 ## 3 Levels Reinforcement Learning
-[Scaling Multi-Agent Reinforcement Learning](https://bair.berkeley.edu/blog/2018/12/12/rllib/)
+[Scaling Multi-Agent Reinforcement Learning](https://bair.berkeley.edu/blog/2018/12/12/rllib/)  
+[Ray multi agents two trainers](https://github.com/ray-project/ray/blob/master/rllib/examples/multi_agent_two_trainers.py)
 
 ## Installation instructions
 *Installing from Source*   
@@ -28,7 +29,12 @@ Train AI-Economist agents with PPO (as in the paper) and the social planner with
 ## Notes:
 - Project is not ready yet for any type of deployment
 - Python's `requirements` is not correct/full, it needs to be fixed
-  - use `ray[rllib]==0.8.2` otherwise `tutorials/rllib/tf_models.py` will give an error with `RecurrentTFModelV2`
+  `pip install ai-economist>=1.5  
+  pip install gym  
+  pip install tensorflow  
+  pip install "ray[rllib]==0.8.5"`   
+  
+  otherwise `tutorials/rllib/tf_models.py` will give an error with `RecurrentTFModelV2`
   - Probably many actual reqs are avoidable
 
 ## Dev TODO:

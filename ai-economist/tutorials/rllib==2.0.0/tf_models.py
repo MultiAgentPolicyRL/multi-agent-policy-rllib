@@ -13,19 +13,19 @@ from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.utils import try_import_tf
 from tensorflow import keras
 
-from pkg_resources import get_distribution
-# For ray[rllib]==0.8.3
-from ray.rllib.models.tf.recurrent_tf_modelv2 import (
-    RecurrentTFModelV2 as RecurrentNetwork,
+
+from ray.rllib.models.tf.recurrent_net import (
+    RecurrentNetwork,
     add_time_dimension,
 )
 
-if get_distribution('ray[rllib]').version != '0.8.5':
-    sys.exit(f"FATAL - ray[rllib]=={get_distribution('ray[rllib]').version} not supprted \nEXITING")
 
 # Disable TF INFO, WARNING, and ERROR messages
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-tf = try_import_tf()
+tfTuple = try_import_tf()
+tf = tfTuple[1]
+# print(type(tf))
+# print(f"TENSORFLOW::: {tf[1]}")
 
 _WORLD_MAP_NAME = "world-map"
 _WORLD_IDX_MAP_NAME = "world-idx_map"
@@ -76,13 +76,14 @@ class KerasConvLSTM(RecurrentNetwork):
     def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         super().__init__(obs_space, action_space, num_outputs, model_config, name)
 
-        input_emb_vocab = self.model_config["custom_options"]["input_emb_vocab"]
-        emb_dim = self.model_config["custom_options"]["idx_emb_dim"]
-        num_conv = self.model_config["custom_options"]["num_conv"]
-        num_fc = self.model_config["custom_options"]["num_fc"]
-        fc_dim = self.model_config["custom_options"]["fc_dim"]
-        cell_size = self.model_config["custom_options"]["lstm_cell_size"]
-        generic_name = self.model_config["custom_options"].get("generic_name", None)
+        input_emb_vocab = self.model_config["custom_model_config"]["input_emb_vocab"]
+        emb_dim = self.model_config["custom_model_config"]["idx_emb_dim"]
+        num_conv = self.model_config["custom_model_config"]["num_conv"]
+        num_fc = self.model_config["custom_model_config"]["num_fc"]
+        fc_dim = self.model_config["custom_model_config"]["fc_dim"]
+        cell_size = self.model_config["custom_model_config"]["lstm_cell_size"]
+        generic_name = self.model_config["custom_model_config"].get(
+            "generic_name", None)
 
         self.cell_size = cell_size
 
@@ -205,7 +206,8 @@ class KerasConvLSTM(RecurrentNetwork):
                     [conv_input_map, conv_idx_embedding]
                 )
 
-                conv_model = tf.keras.models.Sequential(name="conv_model" + tag)
+                conv_model = tf.keras.models.Sequential(
+                    name="conv_model" + tag)
                 assert conv_shape
                 conv_model.add(
                     tf.keras.layers.Conv2D(
@@ -231,7 +233,8 @@ class KerasConvLSTM(RecurrentNetwork):
 
                 conv_model.add(tf.keras.layers.Flatten())
 
-                conv_td = tf.keras.layers.TimeDistributed(conv_model)(conv_input)
+                conv_td = tf.keras.layers.TimeDistributed(
+                    conv_model)(conv_input)
 
                 # Combine the conv output with the non-conv inputs
                 dense = tf.keras.layers.concatenate([conv_td, non_conv_inputs])
@@ -243,11 +246,13 @@ class KerasConvLSTM(RecurrentNetwork):
             # Preprocess observation with hidden layers and send to LSTM cell
             for i in range(num_fc):
                 layer = tf.keras.layers.Dense(
-                    fc_dim, activation=tf.nn.relu, name="dense{}".format(i + 1) + tag
+                    fc_dim, activation=tf.nn.relu, name="dense{}".format(
+                        i + 1) + tag
                 )
                 dense = layer(dense)
 
-            dense = tf.keras.layers.LayerNormalization(name="layer_norm" + tag)(dense)
+            dense = tf.keras.layers.LayerNormalization(
+                name="layer_norm" + tag)(dense)
 
             lstm_out, state_h, state_c = tf.keras.layers.LSTM(
                 cell_size, return_sequences=True, return_state=True, name="lstm" + tag
@@ -281,21 +286,26 @@ class KerasConvLSTM(RecurrentNetwork):
         self.rnn_model = tf.keras.Model(
             inputs=self._extract_input_list(input_dict)
             + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v],
-            outputs=[logits, values, state_h_p, state_c_p, state_h_v, state_c_v],
+            outputs=[logits, values, state_h_p,
+                     state_c_p, state_h_v, state_c_v],
         )
-        self.register_variables(self.rnn_model.variables)
+        # 🟡 commented register_variables
+        # self.register_variables(self.rnn_model.variables)
         # self.rnn_model.summary()
 
     def _extract_input_list(self, dictionary):
         return [dictionary[k] for k in self._input_keys]
 
+    # 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+    # DOESNT WORK, FIX IT
+    # 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
     def forward(self, input_dict, state, seq_lens):
         """Adds time dimension to batch before sending inputs to forward_rnn().
 
         You should implement forward_rnn() in your subclass."""
         output, new_state = self.forward_rnn(
             [
-                add_time_dimension(t, seq_lens)
+                add_time_dimension(padded_inputs=t, max_seq_len=seq_lens)
                 for t in self._extract_input_list(input_dict["obs"])
             ],
             state,
@@ -333,12 +343,13 @@ class KerasLinear(TFModelV2):
         super().__init__(obs_space, action_space, num_outputs, model_config, name)
         self.MASK_NAME = "action_mask"
         mask = obs_space.original_space.spaces[self.MASK_NAME]
-        mask_input = tf.keras.layers.Input(shape=mask.shape, name=self.MASK_NAME)
+        mask_input = tf.keras.layers.Input(
+            shape=mask.shape, name=self.MASK_NAME)
 
-        custom_options = model_config["custom_options"]
-        if custom_options.get('fully_connected_value', False):
-            self.fc_dim = int(custom_options["fc_dim"])
-            self.num_fc = int(custom_options["num_fc"])
+        custom_model_config = model_config["custom_model_config"]
+        if custom_model_config.get('fully_connected_value', False):
+            self.fc_dim = int(custom_model_config["fc_dim"])
+            self.num_fc = int(custom_model_config["num_fc"])
         else:
             self.fc_dim = 0
             self.num_fc = 0
@@ -355,7 +366,7 @@ class KerasLinear(TFModelV2):
         )(self.inputs[0])
         logits = apply_logit_mask(logits, mask_input)
 
-        if custom_options.get('fully_connected_value', False):
+        if custom_model_config.get('fully_connected_value', False):
             # Value function is fully connected
             fc_layers_val = keras.Sequential(name='fc_layers_val')
             for i in range(self.num_fc):
