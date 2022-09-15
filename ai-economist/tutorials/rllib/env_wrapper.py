@@ -186,7 +186,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
         # Derive a random seed. This gets passed as an uint, but gets
         # checked as an int elsewhere, so we need to keep it below
         # 2**31.
-        seed2 = seeding.hash_seed(seed1 + 1) % 2 ** 31
+        seed2 = seeding.hash_seed(seed1 + 1) % 2**31
 
         if self.verbose:
             print(
