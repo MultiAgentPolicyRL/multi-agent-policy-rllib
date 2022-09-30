@@ -445,7 +445,7 @@ if __name__ == "__main__":
         Should we use tune.run for training or rllib training?
         """
         # Improve trainerAgents policy's
-        print("-- PPO Agents --")
+        print(f"-- PPO Agents --")
         result_ppo_agents = trainerAgents.train()
         # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
         # print(pretty_print(result_ppo_agents))
