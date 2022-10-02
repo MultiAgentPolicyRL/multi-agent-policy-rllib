@@ -10,6 +10,8 @@
 # https://bair.berkeley.edu/blog/2018/12/12/rllib/
 # Edited by Ettore Saggiorato - GitHub@Sa1g
 
+from ray.rllib.agents.ppo import PPOTrainer
+from pkg_resources import get_distribution
 from ray.tune.registry import register_env
 from ray.tune.logger import NoopLogger, pretty_print
 from env_wrapper import RLlibEnvWrapper
@@ -29,11 +31,8 @@ warnings.filterwarnings("ignore")
 
 
 # Settings for multiple RLLIB versions
-from pkg_resources import get_distribution
 
 # For ray[rllib]==0.8.3
-from ray.rllib.agents.ppo import PPOTrainer
-
 
 
 # 🚸 nvm: use PPOTraining instead.
@@ -43,8 +42,6 @@ from ray.rllib.agents.ppo import PPOTrainer
 #     PPO,
 #     PPOTF2Policy,
 # )
-
-ray.init(log_to_driver=False)
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -67,7 +64,7 @@ Working Emojis
 
 def process_args():
     """
-    Processes arguments, checks for correct directory reference and config.yaml file.
+    Processes arguments, checks for correct directory reference and config.yaml file and redis password.
 
     Args:
         None
@@ -79,6 +76,7 @@ def process_args():
     Returns:
         ``run_directory`` (path)
         ``run_configuration`` (yaml)
+        ``redis_pwd`` (password, string)
     """
 
     parser = argparse.ArgumentParser()
@@ -88,6 +86,13 @@ def process_args():
         type=str,
         help="Path to the directory for this run.",
         default="phase1",
+    )
+
+    parser.add_argument(
+        "--pw",
+        type=str,
+        help="Redis password.",
+        default="password",
     )
 
     args = parser.parse_args()
@@ -100,7 +105,8 @@ def process_args():
     with open(config_path, "r") as f:
         run_configuration = yaml.safe_load(f)
 
-    return run_directory, run_configuration
+    redis_pwd = args.pw
+    return run_directory, run_configuration, redis_pwd
 
 
 # 🚸 work in progress
@@ -284,7 +290,8 @@ def set_up_dirs_and_maybe_restore(
         )
         if starting_weights_path_agents:
             logger.info("Restoring agents TF weights...")
-            saving.load_tf_model_weights(trainerAgent, starting_weights_path_agents)
+            saving.load_tf_model_weights(
+                trainerAgent, starting_weights_path_agents)
         else:
             logger.info("Starting with fresh agent TF weights.")
 
@@ -294,7 +301,8 @@ def set_up_dirs_and_maybe_restore(
         )
         if starting_weights_path_planner:
             logger.info("Restoring planner TF weights...")
-            saving.load_tf_model_weights(trainerPlanner, starting_weights_path_planner)
+            saving.load_tf_model_weights(
+                trainerPlanner, starting_weights_path_planner)
         else:
             logger.info("Starting with fresh planner TF weights.")
 
@@ -357,7 +365,8 @@ def maybe_save(
 
         if ckpt_freq > 0:
             if global_step - trainer_step_last_ckpt >= ckpt_freq:
-                saving.save_snapshot(agent_trainer, ckpt_directory, suffix="agent")
+                saving.save_snapshot(
+                    agent_trainer, ckpt_directory, suffix="agent")
                 saving.save_tf_model_weights(
                     agent_trainer, ckpt_directory, global_step, suffix="agent"
                 )
@@ -384,7 +393,10 @@ if __name__ == "__main__":
     # ===================
 
     # Process the args
-    run_dir, run_config = process_args()
+    run_dir, run_config, redis_pwd = process_args()
+    
+    # ray.init(log_to_driver=False)
+    ray.init(log_to_driver=False, address='auto', redis_password=redis_pwd)
 
     # Create a trainer object
     trainerAgents, trainerPlanner = build_trainer(run_config)
@@ -446,6 +458,7 @@ if __name__ == "__main__":
         """
         # Improve trainerAgents policy's
         print(f"-- PPO Agents -- Steps done: {num_parallel_episodes_done}")
+
         result_ppo_agents = trainerAgents.train()
         # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
         # print(pretty_print(result_ppo_agents))
@@ -459,8 +472,10 @@ if __name__ == "__main__":
             # print(pretty_print(result_ppo_planner))
 
             # Swap weights to synchronize
-            trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
-            trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+            trainerAgents.set_weights(
+                trainerPlanner.get_weights(["planner_policy"]))
+            trainerPlanner.set_weights(
+                trainerAgents.get_weights(["agent_policy"]))
 
         # === Counters++ ===
         # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
@@ -514,7 +529,8 @@ if __name__ == "__main__":
     logger.info("Completing! Saving final snapshot...\n\n")
 
     saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
-    saving.save_tf_model_weights(trainerAgents, ckpt_dir, global_step, suffix="agent")
+    saving.save_tf_model_weights(
+        trainerAgents, ckpt_dir, global_step, suffix="agent")
 
     if ifPlanner:
         saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
