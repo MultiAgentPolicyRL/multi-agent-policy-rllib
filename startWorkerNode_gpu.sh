@@ -1,9 +1,14 @@
 #!/bin/bash -l
 
-source ../venv/ai-economist/bin/activate
+source ~/venv/ai-economist/bin/activate
 
-ray start --block --address=$1 \
---redis-password=$2 --num-cpus 4 --num-gpus 1
+param1=$1
+param2=$2
 
-ray stop
-conda deactivate
+echo ${param1}
+echo ${param2}
+
+destnode=`uname -n`
+echo "destnode is = [$destnode]"
+
+ray start --address="${param1}" --redis-password="${param2}" #--num-cpus 4 --num-gpus 1
