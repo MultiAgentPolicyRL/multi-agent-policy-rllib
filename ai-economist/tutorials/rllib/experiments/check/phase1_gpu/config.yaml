@@ -113,7 +113,7 @@ trainer:
   num_gpus: 1
   num_gpus_per_worker: 0
   num_sgd_iter: 1
-  num_workers: 0
+  num_workers: 5 ## MODIFIED
   observation_filter: NoFilter
   rollout_fragment_length: 200
   seed: null
