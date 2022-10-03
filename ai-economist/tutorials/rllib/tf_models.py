@@ -20,8 +20,8 @@ from ray.rllib.models.tf.recurrent_tf_modelv2 import (
     add_time_dimension,
 )
 
-if get_distribution('ray[rllib]').version != '0.8.4':
-    sys.exit(f"FATAL - ray[rllib]=={get_distribution('ray[rllib]').version} not supprted \nEXITING")
+# if get_distribution('ray[rllib]').version != '0.8.4':
+#     sys.exit(f"FATAL - ray[rllib]=={get_distribution('ray[rllib]').version} not supprted \nEXITING")
 
 # Disable TF INFO, WARNING, and ERROR messages
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"

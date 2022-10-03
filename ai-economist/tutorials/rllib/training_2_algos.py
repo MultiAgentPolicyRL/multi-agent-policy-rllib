@@ -94,6 +94,13 @@ def process_args():
         help="Redis password.",
         default="password",
     )
+    
+    parser.add_argument(
+        "--ip_address",
+        type=str,
+        help="Ray ip:port",
+        default="",
+    )
 
     args = parser.parse_args()
     run_directory = args.run_dir
@@ -105,8 +112,7 @@ def process_args():
     with open(config_path, "r") as f:
         run_configuration = yaml.safe_load(f)
 
-    redis_pwd = args.pw
-    return run_directory, run_configuration, redis_pwd
+    return run_directory, run_configuration, args.pw, args.ip_address
 
 
 # 🚸 work in progress
@@ -393,10 +399,10 @@ if __name__ == "__main__":
     # ===================
 
     # Process the args
-    run_dir, run_config, redis_pwd = process_args()
+    run_dir, run_config, redis_pwd, ip_address = process_args()
     
     # ray.init(log_to_driver=False)
-    ray.init(log_to_driver=False, address='auto', redis_password=redis_pwd)
+    ray.init(log_to_driver=False, address=ip_address, redis_password=redis_pwd)
 
     # Create a trainer object
     trainerAgents, trainerPlanner = build_trainer(run_config)
