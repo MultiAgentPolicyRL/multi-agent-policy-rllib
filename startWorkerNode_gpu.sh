@@ -2,11 +2,10 @@
 
 source ~/venv/ai-economist/bin/activate
 
+cd $PBS_O_WORKDIR
+
 param1=$1
 param2=$2
-
-echo ${param1}
-echo ${param2}
 
 destnode=`uname -n`
 echo "destnode is = [$destnode]"
