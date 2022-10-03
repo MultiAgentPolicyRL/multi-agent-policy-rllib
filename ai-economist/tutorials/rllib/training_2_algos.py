@@ -402,7 +402,7 @@ if __name__ == "__main__":
     run_dir, run_config, redis_pwd, ip_address = process_args()
     
     # ray.init(log_to_driver=False)
-    ray.init(log_to_driver=False, address=(f"ray://{ip_address}") , redis_password=redis_pwd)
+    ray.init(log_to_driver=False, address=(f"{ip_address}") , redis_password=redis_pwd)
 
     # Create a trainer object
     trainerAgents, trainerPlanner = build_trainer(run_config)
