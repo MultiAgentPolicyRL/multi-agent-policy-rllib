@@ -14,7 +14,7 @@ redis_password=$(uuidgen)
 
 echo parameters: $ip_head $redis_password
 
-ray start --head --port=6379 \
+ray start --head --redit-port=6379 \
 --redis-password=$redis_password \
 --num-cpus 4 --num-gpus 1
 sleep 10
