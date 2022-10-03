@@ -2,7 +2,7 @@
 ### $1 is path to experiment config
 
 #PBS -l select=5:ncpus=4:mem=10gb
-#PBS -l walltime=00:10:00
+#PBS -l walltime=00:05:00
 #PBS -q short_gpuQ
 
 source ~/venv/ai-economist/bin/activate
@@ -19,7 +19,8 @@ ray start --head --redis-port=6379 \
 --num-cpus 4 --num-gpus 1
 sleep 10
 
-for (( n=4; n<$(($PBS_NCPUS*$PBS_NUM_NODES)); n+=4 ))
+c=$(($PBS_NCPUS*$PBS_NUM_NODES))
+for (( n=4; n<$c; n+=4 ))
 do
   pbsdsh -n $n -v startWorkerNode_gpu.sh \
   $ip_head $redis_password &
