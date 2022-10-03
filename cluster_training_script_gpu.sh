@@ -19,7 +19,7 @@ ray start --head --redis-port=6379 \
 --num-cpus 4 --num-gpus 1
 sleep 10
 
-for (( n=4; n<$PBS_NCPUS; n+=4 ))
+for (( n=4; n<$(($PBS_NCPUS*$PBS_NUM_NODES)); n+=4 ))
 do
   pbsdsh -n $n -v startWorkerNode_gpu.sh \
   $ip_head $redis_password &
@@ -27,7 +27,7 @@ do
 done
 
 cd ~/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/ || exit
-python3 training_2_algos.py --run-dir ./experiments/check/phase1_gpu/ --pw $redis_password --ip_address $ip_head
+python3 training_2_algos.py --run-dir ~/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/experiments/check/phase1_gpu/ --pw $redis_password --ip_address $ip_head
 
 ray stop
 deactivate
