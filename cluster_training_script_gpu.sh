@@ -20,8 +20,22 @@ ray start --head --redis-port=6379 \
 sleep 10
 
 # c=$((PBS_NCPUS*PBS_NUM_NODES))
-for (( n=4; n<20; n+=4 ))
+# for (( n=4; n<20; n+=4 ))
+# do
+#   echo $n
+#   pbsdsh -n $n -v startWorkerNode_gpu.sh \
+#   $ip_head $redis_password &
+#   sleep 10
+# done
+
+n=4
+c=20
+
+while [ $n -lt $c ]
 do
+  echo $n
+  n=$((n+=4))
+  
   pbsdsh -n $n -v startWorkerNode_gpu.sh \
   $ip_head $redis_password &
   sleep 10
