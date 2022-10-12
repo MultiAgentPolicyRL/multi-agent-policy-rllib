@@ -1,0 +1,135 @@
+Allocate Nodes = <hpc-c07-node12 hpc-g04-node01 hpc-c03-node24 hpc-c05-node03 hpc-c07-node15 hpc-c03-node12 hpc-c11-node07 hpc-c11-node08 hpc-c11-node21>
+set up ray cluster...
+
+
+Working with node hpc-c07-node12
+first allocate node - use as headnode ...
+2022-10-04 19:17:13,221	INFO scripts.py:357 -- Using IP address 192.168.115.53 for this node.
+2022-10-04 19:17:13,225	INFO resource_spec.py:212 -- Starting Ray with 123.73 GiB memory available for workers and up to 57.03 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:17:14,365	INFO services.py:1170 -- View the Ray dashboard at [1m[32mlocalhost:8265[39m[22m
+2022-10-04 19:17:14,399	INFO scripts.py:387 -- 
+Started Ray on this node. You can add additional nodes to the cluster by calling
+
+    ray start --address='192.168.115.53:6379' --redis-password='968da222-e1dc-4f5f-848c-d0b806c38db3'
+
+from the node you wish to add. You can connect a driver to the cluster from Python by running
+
+    import ray
+    ray.init(address='auto', redis_password='968da222-e1dc-4f5f-848c-d0b806c38db3')
+
+If you have trouble connecting from a different machine, check that your firewall is configured properly. If you wish to terminate the processes that have been started, run
+
+    ray stop
+
+Working with node hpc-g04-node01
+then allocate other nodes:  1
+node NAME: hpc-g04-node01.unitn.it
+node IP: 192.168.115.24
+dest IP: 192.168.115.53:6379
+2022-10-04 19:17:24,762	INFO scripts.py:429 -- Using IP address 192.168.115.24 for this node.
+2022-10-04 19:17:24,818	INFO resource_spec.py:212 -- Starting Ray with 529.35 GiB memory available for workers and up to 186.26 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:17:24,838	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-g04-node01.unitn.it
+
+Working with node hpc-c03-node24
+then allocate other nodes:  2
+node NAME: hpc-c03-node24.unitn.it
+node IP: 192.168.115.12
+dest IP: 192.168.115.53:6379
+2022-10-04 19:17:34,869	INFO scripts.py:429 -- Using IP address 192.168.115.12 for this node.
+2022-10-04 19:17:34,872	INFO resource_spec.py:212 -- Starting Ray with 232.52 GiB memory available for workers and up to 99.65 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:17:34,908	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-c03-node24.unitn.it
+
+Working with node hpc-c05-node03
+then allocate other nodes:  3
+node NAME: hpc-c05-node03.unitn.it
+node IP: 192.168.115.60
+dest IP: 192.168.115.53:6379
+2022-10-04 19:17:45,197	INFO scripts.py:429 -- Using IP address 192.168.115.60 for this node.
+2022-10-04 19:17:45,275	INFO resource_spec.py:212 -- Starting Ray with 557.62 GiB memory available for workers and up to 186.26 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:17:45,309	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-c05-node03.unitn.it
+
+Working with node hpc-c07-node15
+then allocate other nodes:  4
+node NAME: hpc-c05-node03.unitn.it
+node IP: 192.168.115.60
+dest IP: 192.168.115.53:6379
+2022-10-04 19:17:55,155	INFO scripts.py:429 -- Using IP address 192.168.115.60 for this node.
+2022-10-04 19:17:55,216	INFO resource_spec.py:212 -- Starting Ray with 557.62 GiB memory available for workers and up to 186.26 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:17:55,250	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-c05-node03.unitn.it
+
+Working with node hpc-c03-node12
+then allocate other nodes:  5
+node NAME: hpc-c07-node15.unitn.it
+node IP: 192.168.115.100
+dest IP: 192.168.115.53:6379
+2022-10-04 19:18:05,167	INFO scripts.py:429 -- Using IP address 192.168.115.100 for this node.
+2022-10-04 19:18:05,245	INFO resource_spec.py:212 -- Starting Ray with 174.51 GiB memory available for workers and up to 74.79 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:18:05,279	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-c07-node15.unitn.it
+
+Working with node hpc-c11-node07
+then allocate other nodes:  6
+node NAME: hpc-c07-node15.unitn.it
+node IP: 192.168.115.100
+dest IP: 192.168.115.53:6379
+2022-10-04 19:18:15,057	INFO scripts.py:429 -- Using IP address 192.168.115.100 for this node.
+2022-10-04 19:18:15,061	INFO resource_spec.py:212 -- Starting Ray with 174.46 GiB memory available for workers and up to 74.79 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:18:15,093	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-c07-node15.unitn.it
+
+Working with node hpc-c11-node08
+then allocate other nodes:  7
+node NAME: hpc-c03-node12.unitn.it
+node IP: 192.168.115.105
+dest IP: 192.168.115.53:6379
+2022-10-04 19:18:25,590	INFO scripts.py:429 -- Using IP address 192.168.115.105 for this node.
+2022-10-04 19:18:25,593	INFO resource_spec.py:212 -- Starting Ray with 235.84 GiB memory available for workers and up to 101.09 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:18:25,624	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-c03-node12.unitn.it
+
+Working with node hpc-c11-node21
+then allocate other nodes:  8
+node NAME: hpc-c11-node07.unitn.it
+node IP: 192.168.115.43
+dest IP: 192.168.115.53:6379
+2022-10-04 19:18:36,317	INFO scripts.py:429 -- Using IP address 192.168.115.43 for this node.
+2022-10-04 19:18:36,320	INFO resource_spec.py:212 -- Starting Ray with 318.6 GiB memory available for workers and up to 136.55 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 19:18:36,351	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+
+done, now launching python program
+exiting hpc-c11-node07.unitn.it
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/worker.py", line 871, in shutdown
+    disconnect(exiting_interpreter)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/worker.py", line 1368, in disconnect
+    ray.actor.ActorClassMethodMetadata.reset_cache()
+AttributeError: module 'ray' has no attribute 'actor'

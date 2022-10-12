@@ -1,0 +1,294 @@
+Allocate Nodes = <hpc-c11-node15 hpc-c11-node07 hpc-c10-node01>
+set up ray cluster...
+
+
+Working with node hpc-c11-node15
+first allocate node - use as headnode ...
+2022-10-04 18:48:09,175	INFO scripts.py:357 -- Using IP address 192.168.115.81 for this node.
+2022-10-04 18:48:09,186	INFO resource_spec.py:212 -- Starting Ray with 767.09 GiB memory available for workers and up to 186.26 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 18:48:10,135	INFO services.py:1170 -- View the Ray dashboard at [1m[32mlocalhost:8265[39m[22m
+2022-10-04 18:48:10,175	INFO scripts.py:387 -- 
+Started Ray on this node. You can add additional nodes to the cluster by calling
+
+    ray start --address='192.168.115.81:6379' --redis-password='3756e40d-a5c4-4e41-aa20-ed39e794860c'
+
+from the node you wish to add. You can connect a driver to the cluster from Python by running
+
+    import ray
+    ray.init(address='auto', redis_password='3756e40d-a5c4-4e41-aa20-ed39e794860c')
+
+If you have trouble connecting from a different machine, check that your firewall is configured properly. If you wish to terminate the processes that have been started, run
+
+    ray stop
+
+Working with node hpc-c11-node07
+then allocate other nodes:  1
+node NAME: hpc-c11-node07.unitn.it
+node IP: 192.168.115.43
+dest IP: 192.168.115.81:6379
+2022-10-04 18:48:22,268	INFO scripts.py:429 -- Using IP address 192.168.115.43 for this node.
+2022-10-04 18:48:22,272	INFO resource_spec.py:212 -- Starting Ray with 318.41 GiB memory available for workers and up to 136.48 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 18:48:22,300	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+
+Working with node hpc-c10-node01
+then allocate other nodes:  2
+node NAME: hpc-c11-node07.unitn.it
+node IP: 192.168.115.43
+dest IP: 192.168.115.81:6379
+exiting hpc-c11-node07.unitn.it
+2022-10-04 18:48:37,127	INFO scripts.py:429 -- Using IP address 192.168.115.43 for this node.
+2022-10-04 18:48:37,131	INFO resource_spec.py:212 -- Starting Ray with 318.41 GiB memory available for workers and up to 136.48 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-04 18:48:37,154	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+
+done, now launching python program
+exiting hpc-c11-node07.unitn.it
+Inside covid19_components.py: 0 GPUs are available.
+No GPUs found! Running the simulation on a CPU.
+Inside covid19_env.py: 0 GPUs are available.
+No GPUs found! Running the simulation on a CPU.
+2022-10-04 18:50:14,267	WARNING worker.py:809 -- When connecting to an existing cluster, _internal_config must match the cluster's _internal_config.
+2022-10-04 18:50:14,297 seed (final): 25670000
+2022-10-04 18:50:14,359	INFO trainer.py:421 -- Tip: set 'eager': true or the --eager flag to enable TensorFlow eager execution
+2022-10-04 18:50:14,615	INFO trainer.py:580 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+2022-10-04 18:50:37,990	INFO trainable.py:180 -- _setup took 23.377 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+2022-10-04 18:50:37,990	INFO trainable.py:217 -- Getting current IP.
+2022-10-04 18:50:53,991	INFO trainable.py:180 -- _setup took 15.932 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+2022-10-04 18:50:53,991	INFO trainable.py:217 -- Getting current IP.
+2022-10-04 18:50:53,994 Not restoring trainer...
+2022-10-04 18:50:53,994 Starting with fresh agent TF weights.
+2022-10-04 18:50:53,994 Starting with fresh planner TF weights.
+Training
+-- PPO Agents -- Steps done: 0
+2022-10-04 18:54:12,628 Iter 1: steps this-iter 4000 total 4000 -> 3/5000 episodes done
+2022-10-04 18:54:12,635 custom_metrics: {}
+date: 2022-10-04_18-54-12
+done: false
+episode_len_mean: 1000.0
+episode_reward_max: 55.18132489004
+episode_reward_mean: 30.57079728198597
+episode_reward_min: 0.0
+episodes_this_iter: 3
+episodes_total: 3
+experiment_id: aa6b81cd0782408f8a29e052def2ac10
+hostname: hpc-c11-node15.unitn.it
+info:
+  grad_time_ms: 146049.739
+  learner:
+    agent_policy:
+      cur_kl_coeff: 0.0
+      cur_lr: 0.0003000000142492354
+      entropy: 1.700544834136963
+      entropy_coeff: 0.02500000037252903
+      kl: 0.08656292408704758
+      model: {}
+      policy_loss: -0.12255730479955673
+      total_loss: -0.15233837068080902
+      vf_explained_var: 0.7778180837631226
+      vf_loss: 0.25465133786201477
+  load_time_ms: 1537.732
+  num_steps_sampled: 4000
+  num_steps_trained: 16000
+  sample_time_ms: 41069.177
+  update_time_ms: 8456.394
+iterations_since_restore: 1
+node_ip: 192.168.115.81
+num_healthy_workers: 2
+off_policy_estimator: {}
+optimizer_steps_this_iter: 1
+perf:
+  cpu_util_percent: 67.08686131386862
+  ram_util_percent: 5.392700729927007
+pid: 79532
+policy_reward_max:
+  agent_policy: 21.884090172168516
+  planner_policy: 9.332486978463443
+policy_reward_mean:
+  agent_policy: 6.184436516735673
+  planner_policy: 5.833051215043722
+policy_reward_min:
+  agent_policy: -0.9880655038648842
+  planner_policy: 0.0
+sampler_perf:
+  mean_env_wait_ms: 2.33287963185094
+  mean_inference_ms: 3.4395862086587794
+  mean_processing_ms: 0.7310309056337226
+time_since_restore: 197.57006883621216
+time_this_iter_s: 197.57006883621216
+time_total_s: 197.57006883621216
+timestamp: 1664902452
+timesteps_since_restore: 4000
+timesteps_this_iter: 4000
+timesteps_total: 4000
+training_iteration: 1
+
+2022-10-04 18:54:12,790 >> Wrote dense logs to: /home/ettore.saggiorato/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/experiments/check/phase1_gpu/dense_logs/logs_0000000000004000
+-- PPO Agents -- Steps done: 3
+2022-10-04 18:56:53,122 Iter 2: steps this-iter 4000 total 8000 -> 7/5000 episodes done
+2022-10-04 18:56:53,128 custom_metrics: {}
+date: 2022-10-04_18-56-53
+done: false
+episode_len_mean: 1000.0
+episode_reward_max: 76.84473842639801
+episode_reward_mean: 40.10853620618858
+episode_reward_min: 0.0
+episodes_this_iter: 4
+episodes_total: 7
+experiment_id: aa6b81cd0782408f8a29e052def2ac10
+hostname: hpc-c11-node15.unitn.it
+info:
+  grad_time_ms: 146318.56
+  learner:
+    agent_policy:
+      cur_kl_coeff: 0.0
+      cur_lr: 0.0003000000142492354
+      entropy: 1.664445161819458
+      entropy_coeff: 0.02500000037252903
+      kl: 0.11777643859386444
+      model: {}
+      policy_loss: -0.1586868315935135
+      total_loss: -0.18693730235099792
+      vf_explained_var: 0.8990049958229065
+      vf_loss: 0.2672135829925537
+  load_time_ms: 1105.682
+  num_steps_sampled: 8000
+  num_steps_trained: 32000
+  sample_time_ms: 27028.172
+  update_time_ms: 4234.638
+iterations_since_restore: 2
+node_ip: 192.168.115.81
+num_healthy_workers: 2
+off_policy_estimator: {}
+optimizer_steps_this_iter: 1
+perf:
+  cpu_util_percent: 68.30742574257425
+  ram_util_percent: 5.451980198019802
+pid: 79532
+policy_reward_max:
+  agent_policy: 21.884090172168516
+  planner_policy: 21.148248631338387
+policy_reward_mean:
+  agent_policy: 7.902014600041008
+  planner_policy: 8.500477806024538
+policy_reward_min:
+  agent_policy: -2.8219069016637457
+  planner_policy: 0.0
+sampler_perf:
+  mean_env_wait_ms: 2.3134648650147573
+  mean_inference_ms: 3.37836145432302
+  mean_processing_ms: 0.745261232844303
+time_since_restore: 357.86684823036194
+time_this_iter_s: 160.29677939414978
+time_total_s: 357.86684823036194
+timestamp: 1664902613
+timesteps_since_restore: 8000
+timesteps_this_iter: 4000
+timesteps_total: 8000
+training_iteration: 2
+
+2022-10-04 18:56:53,272 >> Wrote dense logs to: /home/ettore.saggiorato/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/experiments/check/phase1_gpu/dense_logs/logs_0000000000008000
+-- PPO Agents -- Steps done: 7
+2022-10-04 18:59:23,040 Iter 3: steps this-iter 4000 total 12000 -> 11/5000 episodes done
+2022-10-04 18:59:23,046 custom_metrics: {}
+date: 2022-10-04_18-59-23
+done: false
+episode_len_mean: 1000.0
+episode_reward_max: 141.78444637908814
+episode_reward_mean: 63.56908317501236
+episode_reward_min: 0.0
+episodes_this_iter: 4
+episodes_total: 11
+experiment_id: aa6b81cd0782408f8a29e052def2ac10
+hostname: hpc-c11-node15.unitn.it
+info:
+  grad_time_ms: 143056.898
+  learner:
+    agent_policy:
+      cur_kl_coeff: 0.0
+      cur_lr: 0.0003000000142492354
+      entropy: 1.7230281829833984
+      entropy_coeff: 0.02500000037252903
+      kl: 0.13735467195510864
+      model: {}
+      policy_loss: -0.16801846027374268
+      total_loss: -0.19121864438056946
+      vf_explained_var: 0.9370662569999695
+      vf_loss: 0.3975105583667755
+  load_time_ms: 967.136
+  num_steps_sampled: 12000
+  num_steps_trained: 48000
+  sample_time_ms: 22178.135
+  update_time_ms: 2827.356
+iterations_since_restore: 3
+node_ip: 192.168.115.81
+num_healthy_workers: 2
+off_policy_estimator: {}
+optimizer_steps_this_iter: 1
+perf:
+  cpu_util_percent: 68.51016042780749
+  ram_util_percent: 5.487700534759359
+pid: 79532
+policy_reward_max:
+  agent_policy: 37.14641074568383
+  planner_policy: 42.07808988923824
+policy_reward_mean:
+  agent_policy: 11.720486589797709
+  planner_policy: 16.68713681582112
+policy_reward_min:
+  agent_policy: -2.8219069016637457
+  planner_policy: 0.0
+sampler_perf:
+  mean_env_wait_ms: 2.3012193057673316
+  mean_inference_ms: 3.323599474958435
+  mean_processing_ms: 0.7493835639776062
+time_since_restore: 507.60931944847107
+time_this_iter_s: 149.74247121810913
+time_total_s: 507.60931944847107
+timestamp: 1664902763
+timesteps_since_restore: 12000
+timesteps_this_iter: 4000
+timesteps_total: 12000
+training_iteration: 3
+
+-- PPO Agents -- Steps done: 11
+=>> PBS: job killed: walltime 687 exceeded limit 600
+*** Aborted at 1664902773 (unix time) try "date -d @1664902773" if you are using GNU date ***
+PC: @                0x0 (unknown)
+*** SIGTERM (@0xd4b) received by PID 79532 (TID 0x2ab3053163c0) from PID 3403; stack trace: ***
+    @     0x2ab305514630 (unknown)
+    @     0x2ab305510de2 __pthread_cond_timedwait
+    @     0x2ab30d45e011 ray::GetRequest::Wait()
+    @     0x2ab30d45ea97 ray::CoreWorkerMemoryStore::GetImpl()
+    @     0x2ab30d45fd5b ray::CoreWorkerMemoryStore::Wait()
+    @     0x2ab30d40ccae ray::CoreWorker::Wait()
+    @     0x2ab30d3a2831 __pyx_pw_3ray_7_raylet_10CoreWorker_29wait()
+    @           0x4634d4 _PyMethodDef_RawFastCallKeywords
+    @           0x56dfe5 _PyMethodDescr_FastCallKeywords
+    @           0x4fc073 _PyEval_EvalFrameDefault
+    @           0x501a88 _PyEval_EvalCodeWithName
+    @           0x4625aa _PyFunction_FastCallKeywords
+    @           0x4fbdec _PyEval_EvalFrameDefault
+    @           0x46217a function_code_fastcall
+    @           0x4f77d8 _PyEval_EvalFrameDefault
+    @           0x501ed8 _PyEval_EvalCodeWithName
+    @           0x4625aa _PyFunction_FastCallKeywords
+    @           0x4f79ff _PyEval_EvalFrameDefault
+    @           0x501a88 _PyEval_EvalCodeWithName
+    @           0x4625aa _PyFunction_FastCallKeywords
+    @           0x4f79ff _PyEval_EvalFrameDefault
+    @           0x46217a function_code_fastcall
+    @           0x4fbdec _PyEval_EvalFrameDefault
+    @           0x46217a function_code_fastcall
+    @           0x4f79ff _PyEval_EvalFrameDefault
+    @           0x50279e PyEval_EvalCode
+    @           0x5b082e run_mod
+    @           0x439737 PyRun_FileExFlags
+    @           0x439af8 PyRun_SimpleFileExFlags
+    @           0x58d372 pymain_main
+    @           0x58d68c _Py_UnixMain
+    @     0x2ab305e4c555 __libc_start_main

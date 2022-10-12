@@ -1,0 +1,95 @@
+Allocate Nodes = <hpc-g01-node01 hpc-g02-node02>
+set up ray cluster...
+
+
+Working with node hpc-g01-node01
+first allocate node - use as headnode ...
+2022-10-05 12:12:08,766	INFO scripts.py:357 -- Using IP address 192.168.115.75 for this node.
+2022-10-05 12:12:08,770	INFO resource_spec.py:212 -- Starting Ray with 165.33 GiB memory available for workers and up to 74.85 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-05 12:12:09,912	INFO services.py:1170 -- View the Ray dashboard at [1m[32mlocalhost:8265[39m[22m
+2022-10-05 12:12:09,934	INFO scripts.py:387 -- 
+Started Ray on this node. You can add additional nodes to the cluster by calling
+
+    ray start --address='192.168.115.75:3679' --redis-password='f6b2ebb3-c326-44c4-80f9-0f1583b9438d'
+
+from the node you wish to add. You can connect a driver to the cluster from Python by running
+
+    import ray
+    ray.init(address='auto', redis_password='f6b2ebb3-c326-44c4-80f9-0f1583b9438d')
+
+If you have trouble connecting from a different machine, check that your firewall is configured properly. If you wish to terminate the processes that have been started, run
+
+    ray stop
+
+Working with node hpc-g02-node02
+then allocate other nodes:  1
+node NAME: hpc-g02-node02.unitn.it
+node IP: 192.168.115.10
+dest IP: 192.168.115.75:3679
+2022-10-05 12:12:17,845	INFO scripts.py:429 -- Using IP address 192.168.115.10 for this node.
+2022-10-05 12:12:17,914	INFO resource_spec.py:212 -- Starting Ray with 218.46 GiB memory available for workers and up to 93.64 GiB for objects. You can adjust these settings with ray.init(memory=<bytes>, object_store_memory=<bytes>).
+2022-10-05 12:12:17,914	WARNING services.py:1494 -- WARNING: The object store is using /tmp instead of /dev/shm because /dev/shm has only 68429537280 bytes available. This may slow down performance! You may be able to free up space by deleting files in /dev/shm or terminating any running plasma_store_server processes. If you are inside a Docker container, you may need to pass an argument with the flag '--shm-size' to 'docker run'.
+2022-10-05 12:12:17,933	INFO scripts.py:438 -- 
+Started Ray on this node. If you wish to terminate the processes that have been started, run
+
+    ray stop
+exiting hpc-g02-node02.unitn.it
+
+done, now launching python program
+Inside covid19_components.py: 1 GPUs are available.
+Warning: The 'WarpDrive' package is not found and cannot be used! If you wish to use WarpDrive, please run 'pip install rl-warp-drive' first.
+Inside covid19_env.py: 1 GPUs are available.
+Warning: The 'WarpDrive' package is not found and cannot be used! If you wish to use WarpDrive, please run 'pip install rl-warp-drive' first.
+2022-10-05 12:13:31,640	WARNING worker.py:809 -- When connecting to an existing cluster, _internal_config must match the cluster's _internal_config.
+2022-10-05 12:13:31,674 seed (final): 22731000
+2022-10-05 12:13:31,731	INFO trainer.py:421 -- Tip: set 'eager': true or the --eager flag to enable TensorFlow eager execution
+2022-10-05 12:13:31,977	INFO trainer.py:580 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+Traceback (most recent call last):
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 1378, in _do_call
+    return fn(*args)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 1360, in _run_fn
+    self._extend_graph()
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 1401, in _extend_graph
+    tf_session.ExtendSession(self._session)
+tensorflow.python.framework.errors_impl.InternalError: Constraining by assigned device should not cause an error. Original root's assigned device name: /job:localhost/replica:0/task:0/device:GPU:0 node's assigned device name "/job:localhost/replica:0/task:0/device:CPU:0. Error: Cannot merge devices with incompatible types: '/job:localhost/replica:0/task:0/device:GPU:0' and '/job:localhost/replica:0/task:0/device:CPU:0'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ettore.saggiorato/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/training_2_algos.py", line 408, in <module>
+    trainerAgents, trainerPlanner = build_trainer(run_config)
+  File "/home/ettore.saggiorato/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/training_2_algos.py", line 196, in build_trainer
+    * trainer_config.get("num_envs_per_worker"),
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/agents/trainer_template.py", line 90, in __init__
+    Trainer.__init__(self, config, env, logger_creator)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/agents/trainer.py", line 448, in __init__
+    super().__init__(config, logger_creator)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/tune/trainable.py", line 174, in __init__
+    self._setup(copy.deepcopy(self.config))
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/agents/trainer.py", line 591, in _setup
+    self._init(self.config, self.env_creator)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/agents/trainer_template.py", line 129, in _init
+    self.optimizer = make_policy_optimizer(self.workers, config)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/agents/ppo/ppo.py", line 99, in choose_policy_optimizer
+    _fake_gpus=config["_fake_gpus"])
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/optimizers/multi_gpu_optimizer.py", line 130, in __init__
+    self.per_device_batch_size, policy.copy))
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/optimizers/multi_gpu_impl.py", line 92, in __init__
+    len(input_placeholders)))
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/optimizers/multi_gpu_impl.py", line 292, in _setup_device
+    graph_obj = self.build_graph(device_input_slices)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/policy/dynamic_tf_policy.py", line 300, in copy
+    TFPolicy._initialize_loss(instance, loss, loss_inputs)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/ray/rllib/policy/tf_policy.py", line 253, in _initialize_loss
+    self._sess.run(tf.global_variables_initializer())
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 969, in run
+    run_metadata_ptr)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 1192, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 1372, in _do_run
+    run_metadata)
+  File "/home/ettore.saggiorato/venv/ai-economist/lib/python3.7/site-packages/tensorflow/python/client/session.py", line 1397, in _do_call
+    raise type(e)(node_def, op, message)  # pylint: disable=no-value-for-parameter
+tensorflow.python.framework.errors_impl.InternalError: Graph execution error:
+
+Constraining by assigned device should not cause an error. Original root's assigned device name: /job:localhost/replica:0/task:0/device:GPU:0 node's assigned device name "/job:localhost/replica:0/task:0/device:CPU:0. Error: Cannot merge devices with incompatible types: '/job:localhost/replica:0/task:0/device:GPU:0' and '/job:localhost/replica:0/task:0/device:CPU:0'
