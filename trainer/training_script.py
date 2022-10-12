@@ -14,7 +14,7 @@ import ray
 import yaml
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.tune.logger import NoopLogger, pretty_print
-
+from tf_models import KerasConvLSTM  # used by config.yaml
 from env_wrapper import RLlibEnvWrapper
 from utils import remote, saving
 

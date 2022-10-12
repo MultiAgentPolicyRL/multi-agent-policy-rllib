@@ -52,7 +52,7 @@ env:
 general:
   ckpt_frequency_steps: 75000 #20000000
   cpus: 30
-  episodes: 1000 #4000000
+  episodes: 100 #4000000
   gpus: 1
   # restore_tf_weights_agents: ~/home/ettore.saggiorato/ai-economist-ppo-decision-tree/ai-economist/tutorials/rllib/experiments/check/phase1_gpu/ckpts/agent.tf.weights.global-step-1000000
   restore_tf_weights_agents: experiments/check/phase1_gpu/ckpts/agent.tf.weights.global-step-1000000
