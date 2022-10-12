@@ -1,12 +1,18 @@
-# tmp md stuff
+# Useless stuff
 env.md
 link_effettivamente_utili.md
 videoCaLL140922.md
 videoCall020922
 whid.md
 roadmap.md
+
+# Ide
 .vscode
+
+# Experiments Data
 Exp_*
+ckpts/
+dense_logs/
 
 
 # Byte-compiled / optimized / DLL files
