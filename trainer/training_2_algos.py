@@ -412,8 +412,10 @@ if __name__ == "__main__":
     # if experiment is run on a cluster the experiment launcher is going to connect to a remote ray_core with
     # address={ip_address} and redis_password=redis_pwd
     if (cluster):
+        print("using the cluster")
         ray.init(log_to_driver=False, address=(f"{ip_address}") , redis_password=redis_pwd)
     else:
+        print("training locally")
         ray.init(log_to_driver=False)
      
 
@@ -479,6 +481,7 @@ if __name__ == "__main__":
         print(f"-- PPO Agents -- Steps done: {num_parallel_episodes_done}")
 
         result_ppo_agents = trainerAgents.train()
+        
         # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
         # print(pretty_print(result_ppo_agents))
 
@@ -491,9 +494,9 @@ if __name__ == "__main__":
             # print(pretty_print(result_ppo_planner))
 
             # Swap weights to synchronize
-            trainerAgents.set_weights(
+        trainerAgents.set_weights(
                 trainerPlanner.get_weights(["planner_policy"]))
-            trainerPlanner.set_weights(
+        trainerPlanner.set_weights(
                 trainerAgents.get_weights(["agent_policy"]))
 
         # === Counters++ ===
