@@ -26,3 +26,4 @@ ray start --address=${param1} --redis-password=${param2} # --num-gpus=1
 # sleep $SECONDS
 
 echo exiting ${thishost}
+#
