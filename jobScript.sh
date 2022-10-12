@@ -1,42 +1,22 @@
 #!/bin/bash
+
 #PBS -N Exp_1_TEST2_Phase1
 #PBS -l select=2:ncpus=15:mem=10gb:ngpus=1:mpiprocs=1
+#PBS -l walltime=03:00:00
+#PBS -j oe 
 
+# Queues | common_gpuQ | short_gpuQ
+#PBS -q short_gpuQ
+
+# Email references
 #PBS -m abe
 #PBS -M ettore.saggiorato@studenti.unitn.it
 #PBS -M ettoreitaut4.1@gmail.com
 
-# #PBS -N Experiment_5_5_nodes_15_cpu_num_workers_5 ### 11 done in 10 mins
-# #PBS -N Experiment_5_20_nodes_5_cpu_num_workers_20 ### 3 done in 10 mins
-# #PBS -N Experiment_5_20_nodes_15_cpu_num_workers_20 ### 11 done in 10 mins
-
-# #PBS -N Experiment_6_10_nodes_15_cpu_num_workers_10 ### 4 done in 10 mins
-# #PBS -N Experiment_6_4_nodes_15_cpu_num_workers_4_gpu_1_gpus_per_worker_0_25_gpus_1 ### 7 done in 10 mins
-# #PBS -N Experiment_6_4_nodes_15_cpu_num_workers_4_gpu_1_gpus_per_worker_0_25 ### 7 done in 10 mins
-# #PBS -N Experiment_6_4_nodes_15_cpu_num_workers_4_gpu_1_gpus_per_worker_0 ### 12 done in 10 mins
-# #PBS -N Experiment_6_4_nodes_15_cpu_num_workers_4_gpu_1_gpus_per_worker_0 ### 39 done in 30 mins
-# #PBS -N Experiment_6_4_nodes_5_cpu_num_workers_4_gpu_1_gpus_per_worker_0 ### 7 done in 10 mins
-# #PBS -N Experiment_6_2_nodes_15_cpu_num_workers_2_gpu_1_gpus_per_worker_0 ### doesn't work
-
-# #PBS -N Experiment_7_2_nodes_15_cpu_num_workers_2_gpu_1_gpus_per_worker_0 ### 12 done in 10 mins
-# #PBS -N Experiment_7_2_nodes_15_cpu_num_workers_1_gpu_1_gpus_per_worker_0 ### 8 done in 10 mins
-
-# #PBS -N Experiment_8_4_nodes_15_cpu_num_workers_3_gpu_1_gpus_per_worker_0 ### 8 done in 10 mins
-# #PBS -N Experiment_8_2_nodes_15_cpu_num_workers_2_gpu_1_gpus_per_worker_0
-
 
 # then start limiting ram usage
-
-# #PBS -q common_gpuQ
-#PBS -q short_gpuQ
-
-#PBS -l walltime=00:10:00
-#PBS -j oe  
-
-# #PBS -l select=2:ncpus=24:mpiprocs=1
+# IDK
 # #PBS -P CSCIxxxx
-# #PBS -m abe
-# #PBS -M xxxxx@gmail.com
 
 ln -s $PWD $PBS_O_WORKDIR/$PBS_JOBID
 
