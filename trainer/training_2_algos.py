@@ -8,6 +8,7 @@
 # https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 # How it works
 # https://bair.berkeley.edu/blog/2018/12/12/rllib/
+# https://github.com/ray-project/ray/blob/master/rllib/examples/multi_agent_two_trainers.py
 # Edited by Ettore Saggiorato - GitHub@Sa1g
 
 from ray.rllib.agents.ppo import PPOTrainer
@@ -25,23 +26,11 @@ import os
 import logging
 import argparse
 from random import seed
-import warnings
 
+import warnings
 warnings.filterwarnings("ignore")
 
-
-# Settings for multiple RLLIB versions
-
-# For ray[rllib]==0.8.3
-
-
-# 🚸 nvm: use PPOTraining instead.
-# 🔴 BIG ISSUE: rllib[0.8.2] doesn't have this library
-# 🔴 BIG ISSUE: rllib[2.0.0] doesn't have TFModelV2 (used in Keras model)
-# from ray.rllib.algorithms.ppo import (
-#     PPO,
-#     PPOTF2Policy,
-# )
+# For ray[rllib]==0.8.3, 0.8.4, 0.8.5
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -59,7 +48,7 @@ Working Emojis
 🟪 - Original Code, untouched yet
 """
 
-# 🚫 Untouched - added docs
+# 🟢 Untouched - added docs
 
 
 def process_args():
@@ -95,7 +84,7 @@ def process_args():
         help="Redis password.",
         default="password",
     )
-    
+
     parser.add_argument(
         "--ip_address",
         type=str,
@@ -116,7 +105,7 @@ def process_args():
     config_path = os.path.join(args.run_dir, "config.yaml")
     assert os.path.isdir(args.run_dir)
     assert os.path.isfile(config_path)
-    
+
     with open(config_path, "r") as f:
         run_configuration = yaml.safe_load(f)
 
@@ -124,8 +113,6 @@ def process_args():
 
 
 # 🚸 work in progress
-
-
 def build_trainer(run_configuration):
     """Finalize the trainer config by combining the sub-configs.
 
@@ -140,12 +127,13 @@ def build_trainer(run_configuration):
     """
     trainer_config = run_configuration.get("trainer")
 
-    # 🚫 Untouched
+    # 🚸 Untouched
     # === Env ===
     env_config = {
         "env_config_dict": run_configuration.get("env"),
         "num_envs_per_worker": trainer_config.get("num_envs_per_worker"),
     }
+    register_env("ai-economist", lambda _: RLlibEnvWrapper(env_config))
 
     # 🚫 Untouched
     # === Seeding ===
@@ -191,7 +179,7 @@ def build_trainer(run_configuration):
 
     # 🟢 lines 105-125
     ppoAgent = PPOTrainer(
-        env=RLlibEnvWrapper,
+        env="ai-economist",
         config={
             "env_config": env_config,
             "seed": final_seed,
@@ -210,7 +198,7 @@ def build_trainer(run_configuration):
     # editing config.yaml and setting for other algos it's possible to use
     # all `ray.rllib.agents` trainers.
     ppoPlanner = PPOTrainer(
-        env=RLlibEnvWrapper,
+        env="ai-economist",
         config={
             "env_config": env_config,
             "seed": final_seed,
@@ -228,17 +216,11 @@ def build_trainer(run_configuration):
     # def logger_creator(config):
     #     return NoopLogger({}, "/tmp")
 
-    # ppo_trainer = PPOTrainer(
-    #     env=RLlibEnvWrapper, config=trainer_config, logger_creator=logger_creator
-    # )
-
     # 🟢
     return ppoAgent, ppoPlanner
 
 
 # 🟢
-
-
 def set_up_dirs_and_maybe_restore(
     run_directory, run_configuration, trainerAgent, trainerPlanner
 ):
@@ -330,8 +312,6 @@ def set_up_dirs_and_maybe_restore(
 
 
 # 🟢 changed agent_trainer, added planner_trainer and ifPlanner
-
-
 def maybe_store_dense_log(
     agent_trainer,
     planner_trainer,
@@ -408,16 +388,16 @@ if __name__ == "__main__":
 
     # Process the args
     run_dir, run_config, redis_pwd, ip_address, cluster = process_args()
-    
+
     # if experiment is run on a cluster the experiment launcher is going to connect to a remote ray_core with
     # address={ip_address} and redis_password=redis_pwd
     if (cluster):
         print("using the cluster")
-        ray.init(log_to_driver=False, address=(f"{ip_address}") , redis_password=redis_pwd)
+        ray.init(log_to_driver=False, address=(
+            f"{ip_address}"), redis_password=redis_pwd)
     else:
         print("training locally")
         ray.init(log_to_driver=False)
-     
 
     # Create a trainer object
     trainerAgents, trainerPlanner = build_trainer(run_config)
@@ -470,9 +450,6 @@ if __name__ == "__main__":
 
     print("Training")
     while num_parallel_episodes_done < run_config["general"]["episodes"]:
-
-        # Train Planner?
-
         # === Training ===
         """
         Should we use tune.run for training or rllib training?
@@ -481,7 +458,7 @@ if __name__ == "__main__":
         print(f"-- PPO Agents -- Steps done: {num_parallel_episodes_done}")
 
         result_ppo_agents = trainerAgents.train()
-        
+
         # print(f"{result_ppo_agents['episode_reward_max']}, {result_ppo_agents['episode_reward_min']}, {result_ppo_agents['episode_reward_mean']}, {result_ppo_agents['episode_len_mean']}, {result_ppo_agents['episodes_this_iter']}")
         # print(pretty_print(result_ppo_agents))
 
@@ -495,9 +472,10 @@ if __name__ == "__main__":
 
             # Swap weights to synchronize
         trainerAgents.set_weights(
-                trainerPlanner.get_weights(["planner_policy"]))
+            trainerPlanner.get_weights(["planner_policy"]))
+
         trainerPlanner.set_weights(
-                trainerAgents.get_weights(["agent_policy"]))
+            trainerAgents.get_weights(["agent_policy"]))
 
         # === Counters++ ===
         # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
@@ -527,7 +505,7 @@ if __name__ == "__main__":
 
         # === Dense logging ===
         maybe_store_dense_log(
-            trainerAgents,
+            trainerAgents, 
             trainerPlanner,
             result_ppo_agents,
             dense_log_frequency,

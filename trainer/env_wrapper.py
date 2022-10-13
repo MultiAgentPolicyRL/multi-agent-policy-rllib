@@ -63,7 +63,8 @@ class RLlibEnvWrapper(MultiAgentEnv):
                 env_config["num_envs_per_worker"] * (env_config.worker_index - 1)
             ) + env_config.vector_index
         else:
-            self.env_id = None
+            ### Modified from None
+            self.env_id = 1
 
         self.env = foundation.make_env_instance(**self.env_config_dict)
         self.verbose = verbose

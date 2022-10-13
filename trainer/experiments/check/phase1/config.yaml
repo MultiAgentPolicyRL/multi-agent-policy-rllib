@@ -50,8 +50,8 @@ env:
   - 25
 general:
   ckpt_frequency_steps: 75000 #750000
-  cpus: 30
-  episodes: 100 #25000
+  cpus: 12
+  episodes: 1 #25000
   gpus: 1
   restore_tf_weights_agents: ''
   restore_tf_weights_planner: ''
@@ -109,11 +109,11 @@ trainer:
   metrics_smoothing_episodes: null
   multiagent: null
   no_done_at_end: false
-  num_envs_per_worker: 5
+  num_envs_per_worker: 10
   num_gpus: 1
   num_gpus_per_worker: 0
   num_sgd_iter: 1
-  num_workers: 2 ## MODIFIED add rollout workers.
+  num_workers: 10 ## MODIFIED add rollout workers.
   observation_filter: NoFilter
   rollout_fragment_length: 200
   seed: null
