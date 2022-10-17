@@ -43,3 +43,5 @@ Train AI-Economist agents with PPO (as in the paper) and the social planner with
   - simplify saving/loading snapshots
 - add configs for multiple algorithms
 - add [DT algorithm](##Algorithms)
+
+## TEST
