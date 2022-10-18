@@ -33,6 +33,8 @@ logger.setLevel(logging.DEBUG)
 # ✅🚫🟢🟡🚸🟠🔴🟪
 
 # ✅
+
+
 def process_args():
     """
     Processes arguments, checks for correct directory reference and config.yaml file and redis password.
@@ -77,7 +79,9 @@ def process_args():
 
     return run_directory, run_configuration, args.pw, args.ip_address, args.cluster
 
-# 🟢 
+# 🟢
+
+
 def build_trainer(run_configuration):
     """Finalize the trainer config by combining the sub-configs. It makes multi agent two trainers available.  
 
@@ -115,7 +119,7 @@ def build_trainer(run_configuration):
     # === Multiagent Policies ===
 
     dummy_env = RLlibEnvWrapper(env_config)
-    
+
     policies = {
         "agent_policy": (
             None,
@@ -178,7 +182,6 @@ def build_trainer(run_configuration):
     return ppoAgent, ppoPlanner
 
 
-
 """
 If experiment is run on a cluster the experiment launcher is going to connect to a remote 
 ray_core with ```address=ip_address``` and ```redis_password=redis_pwd```
@@ -228,15 +231,16 @@ if __name__ == "__main__":
         """
         # Improve trainerAgents policy's
         result_ppo_agents = trainerAgents.train()
+        trainerAgents.workers
 
-        # train Agents and Planner
-        if ifPlanner:
-            # Improve trainerPlanner policy's
-            result_ppo_planner = trainerPlanner.train()
+        # # train Agents and Planner
+        # if ifPlanner:
+        #     # Improve trainerPlanner policy's
+        #     result_ppo_planner = trainerPlanner.train()
 
-        # Swap weights to synchronize
-        trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
-        trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+        # # Swap weights to synchronize
+        # trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
+        # trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
 
         # === Counters++ ===
         # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
@@ -258,8 +262,8 @@ if __name__ == "__main__":
         if curr_iter == 1 or result_ppo_agents["episodes_this_iter"] > 0:
             logger.info(pretty_print(result_ppo_agents))
 
-            if ifPlanner:
-                logger.info(pretty_print(result_ppo_planner))
+            # if ifPlanner:
+            #     logger.info(pretty_print(result_ppo_planner))
 
         # === Saez logic ===
         # saez label is not in config.yaml, nor for phase1, nor phase2. So it's not needed.
@@ -293,11 +297,11 @@ if __name__ == "__main__":
     saving.save_tf_model_weights(
         trainerAgents, ckpt_dir, global_step, suffix="agent")
 
-    if ifPlanner:
-        saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
-        saving.save_tf_model_weights(
-            trainerPlanner, ckpt_dir, global_step, suffix="planner"
-        )
+    # if ifPlanner:
+    #     saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
+    #     saving.save_tf_model_weights(
+    #         trainerPlanner, ckpt_dir, global_step, suffix="planner"
+    #     )
 
     logger.info("Final snapshot saved! All done.")
     ray.shutdown()  # shutdown Ray after use
