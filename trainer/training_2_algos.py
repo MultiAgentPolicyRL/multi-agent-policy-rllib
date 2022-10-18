@@ -231,7 +231,7 @@ if __name__ == "__main__":
         """
         # Improve trainerAgents policy's
         result_ppo_agents = trainerAgents.train()
-        trainerAgents.workers
+        env = trainerAgents.workers.local_worker()
 
         # # train Agents and Planner
         # if ifPlanner:
