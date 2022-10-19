@@ -5,6 +5,7 @@
 # https://bair.berkeley.edu/blog/2018/12/12/rllib/
 # https://github.com/ray-project/ray/blob/master/rllib/examples/multi_agent_two_trainers.py
 
+import inspect
 import ray
 import time
 import sys
@@ -144,7 +145,7 @@ def build_trainer(run_configuration):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    ppoAgent = PPOTrainer(
+    ppoAgent : PPOTrainer = PPOTrainer(
         env="ai-economist",
         config={
             "env_config": env_config,
@@ -163,7 +164,7 @@ def build_trainer(run_configuration):
     """ 🟡 PPO Planner isn't the final scope
     editing config.yaml and setting for other algos it's possible to use
     all `ray.rllib.agents` trainers."""
-    ppoPlanner = PPOTrainer(
+    ppoPlanner : PPOTrainer = PPOTrainer(
         env="ai-economist",
         config={
             "env_config": env_config,
@@ -178,7 +179,6 @@ def build_trainer(run_configuration):
         },
         logger_creator=logger_creator
     )
-
     return ppoAgent, ppoPlanner
 
 
@@ -223,85 +223,152 @@ if __name__ == "__main__":
     global_step = int(step_last_ckpt)
     ifPlanner = run_config["general"]["train_planner"]
 
-    logger.info("Training")
-    while num_parallel_episodes_done < run_config["general"]["episodes"]:
-        # === Training ===
-        """
-        Should we use tune.run for training or rllib training?
-        """
-        # Improve trainerAgents policy's
-        result_ppo_agents = trainerAgents.train()
-        env = trainerAgents.workers.local_worker()
+    logger.info("Tests:")
 
-        # # train Agents and Planner
-        # if ifPlanner:
-        #     # Improve trainerPlanner policy's
-        #     result_ppo_planner = trainerPlanner.train()
+    """
+    MAYBE USEFUL STUFF
+    per fare girare il progetto su Tune facilmente:
+    https://github.com/ray-project/ray/blob/master/rllib/examples/rollout_worker_custom_workflow.py
+    https://github.com/ray-project/ray/blob/master/rllib/examples/custom_train_fn.py
+    
+    se non riusciamo a fare nulla possiamo creare una policy semplice (con o senza framwork tf/pytorch) 
+    e gestire manualmente i rolloutworkers. Lasciamo questa opzione come ultima spiaggia:
+    https://github.com/ray-project/ray/blob/master/rllib/examples/rollout_worker_custom_workflow.py 
+      
+    take a look at ray callbacks 
 
-        # # Swap weights to synchronize
-        # trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
-        # trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+    SOLUZIONE FORSE ATTUALE:
+        https://docs.ray.io/en/latest/rllib/rllib-training.html#computing-actions
+        +
+        https://docs.ray.io/en/latest/rllib/rllib-env.html#external-agents-and-applications
+        Sembra essere l'unico modo per fare quello che vogliamo.
 
-        # === Counters++ ===
-        # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
-        num_parallel_episodes_done = result_ppo_agents["episodes_total"]
-        global_step = result_ppo_agents["timesteps_total"]
-        curr_iter = result_ppo_agents["training_iteration"]
+        A noi interessa fare cosi:
+        # inizio
+            build_env
 
-        # === Logging ===
-        # 🟠 add planner infos (Idk if timesteps_this_iter is in the Decision Tree algo)
-        logger.info(
-            "Iter %d: steps this-iter %d total %d -> %d/%d episodes done",
-            curr_iter,
-            result_ppo_agents["timesteps_this_iter"],
-            global_step,
-            num_parallel_episodes_done,
-            run_config["general"]["episodes"],
-        )
+            # initial stuff
+            obs, rew, info, done = env.reset()
 
-        if curr_iter == 1 or result_ppo_agents["episodes_this_iter"] > 0:
-            logger.info(pretty_print(result_ppo_agents))
+            # training
+            for ciclo
+                ppoAgent.train(env)***
+                dtPlanner.train(env)
 
-            # if ifPlanner:
-            #     logger.info(pretty_print(result_ppo_planner))
+                ppoAgent.actions(obs)
+                dtPlanner.actions(obs)
 
-        # === Saez logic ===
-        # saez label is not in config.yaml, nor for phase1, nor phase2. So it's not needed.
+                obs, rew, info, done = env.step(azioni)
+            
+            # fine
+            il problema e' in ***: 
+            non c'e' un modo per iniettare l'env "contaminato" dal DT senza 
+            fare il tramaccio con l'env come server esterno
+            
+            
+    https://github.com/ray-project/ray/blob/master/rllib/examples/serving/cartpole_client.py
+    https://github.com/ray-project/ray/blob/master/rllib/examples/serving/cartpole_server.py
+    """
 
-        # === Dense logging ===
-        dirs_restore_logs_save.maybe_store_dense_log(
-            trainerAgents,
-            trainerPlanner,
-            result_ppo_agents,
-            dense_log_frequency,
-            dense_log_dir,
-            ifPlanner,
-        )
+    # print(trainerAgents.workers.local_worker().env)
+    # print(type(trainerAgents.workers.local_worker().env))
+    # print(type(trainerAgents.workers.local_worker().policy_config))
 
-        # === Saving ===
-        # Saving MUST be done after weights sync! -> it's saving weights!
-        step_last_ckpt = dirs_restore_logs_save.maybe_save(
-            trainerAgents,
-            trainerPlanner,
-            result_ppo_agents,
-            ckpt_frequency,
-            ckpt_dir,
-            step_last_ckpt,
-            ifPlanner,
-        )
+    # trainerAgents.workers.local_worker() e' un ROLLOUT WORKER, piu info sotto
+    # https://github.com/ray-project/ray/blob/master/rllib/evaluation/rollout_worker.py
+    # def set_state(self, state: dict) -> None:
+    #     """Restores this RolloutWorker's state from a state dict.
+    #     Args:
+    #         state: The state dict to restore this worker's state from.
+    #     Examples:
+    #         >>> from ray.rllib.evaluation.rollout_worker import RolloutWorker
+    #         >>> # Create a RolloutWorker.
+    #         >>> worker = ... # doctest: +SKIP
+    #         >>> state = worker.get_state() # doctest: +SKIP
+    #         >>> new_worker = RolloutWorker(...) # doctest: +SKIP
+    #         >>> new_worker.set_state(state) # doctest: +SKIP
+    #     """
 
-    # === Finish up ===
-    logger.info("Completing! Saving final snapshot...\n\n")
+    # logger.info("Training")
+    # while num_parallel_episodes_done < run_config["general"]["episodes"]:
+    #     # === Training ===
+    #     """
+    #     Should we use tune.run for training or rllib training?
+    #     """
+    #     # Improve trainerAgents policy's
+    #     result_ppo_agents = trainerAgents.train()
+    #     env = trainerAgents.workers.local_worker()
 
-    saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
-    saving.save_tf_model_weights(
-        trainerAgents, ckpt_dir, global_step, suffix="agent")
+    #     # # train Agents and Planner
+    #     # if ifPlanner:
+    #     #     # Improve trainerPlanner policy's
+    #     #     result_ppo_planner = trainerPlanner.train()
 
-    # if ifPlanner:
-    #     saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
-    #     saving.save_tf_model_weights(
-    #         trainerPlanner, ckpt_dir, global_step, suffix="planner"
+    #     # # Swap weights to synchronize
+    #     # trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
+    #     # trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+
+    #     # === Counters++ ===
+    #     # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
+    #     num_parallel_episodes_done = result_ppo_agents["episodes_total"]
+    #     global_step = result_ppo_agents["timesteps_total"]
+    #     curr_iter = result_ppo_agents["training_iteration"]
+
+    #     # === Logging ===
+    #     # 🟠 add planner infos (Idk if timesteps_this_iter is in the Decision Tree algo)
+    #     logger.info(
+    #         "Iter %d: steps this-iter %d total %d -> %d/%d episodes done",
+    #         curr_iter,
+    #         result_ppo_agents["timesteps_this_iter"],
+    #         global_step,
+    #         num_parallel_episodes_done,
+    #         run_config["general"]["episodes"],
     #     )
 
-    logger.info("Final snapshot saved! All done.")
+    #     if curr_iter == 1 or result_ppo_agents["episodes_this_iter"] > 0:
+    #         logger.info(pretty_print(result_ppo_agents))
+
+    #         # if ifPlanner:
+    #         #     logger.info(pretty_print(result_ppo_planner))
+
+    #     # === Saez logic ===
+    #     # saez label is not in config.yaml, nor for phase1, nor phase2. So it's not needed.
+
+    #     # === Dense logging ===
+    #     dirs_restore_logs_save.maybe_store_dense_log(
+    #         trainerAgents,
+    #         trainerPlanner,
+    #         result_ppo_agents,
+    #         dense_log_frequency,
+    #         dense_log_dir,
+    #         ifPlanner,
+    #     )
+
+    #     # === Saving ===
+    #     # Saving MUST be done after weights sync! -> it's saving weights!
+    #     step_last_ckpt = dirs_restore_logs_save.maybe_save(
+    #         trainerAgents,
+    #         trainerPlanner,
+    #         result_ppo_agents,
+    #         ckpt_frequency,
+    #         ckpt_dir,
+    #         step_last_ckpt,
+    #         ifPlanner,
+    #     )
+
+    # # === Finish up ===
+    # logger.info("Completing! Saving final snapshot...\n\n")
+
+    # saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
+    # saving.save_tf_model_weights(
+    #     trainerAgents, ckpt_dir, global_step, suffix="agent")
+
+    # # if ifPlanner:
+    # #     saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
+    # #     saving.save_tf_model_weights(
+    # #         trainerPlanner, ckpt_dir, global_step, suffix="planner"
+    # #     )
+
+    # logger.info("Final snapshot saved! All done.")
+    logger.info("Done, shut down ray and exit")
     ray.shutdown()  # shutdown Ray after use
