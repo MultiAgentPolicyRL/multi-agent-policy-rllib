@@ -289,85 +289,83 @@ if __name__ == "__main__":
     #         >>> new_worker.set_state(state) # doctest: +SKIP
     #     """
 
-    # logger.info("Training")
-    # while num_parallel_episodes_done < run_config["general"]["episodes"]:
-    #     # === Training ===
-    #     """
-    #     Should we use tune.run for training or rllib training?
-    #     """
-    #     # Improve trainerAgents policy's
-    #     result_ppo_agents = trainerAgents.train()
-    #     env = trainerAgents.workers.local_worker()
+    logger.info("Training")
+    while num_parallel_episodes_done < run_config["general"]["episodes"]:
+        # === Training ===
+        
+        # Improve trainerAgents policy's
+        result_ppo_agents = trainerAgents.train()
+        # env = trainerAgents.workers.local_worker()
 
-    #     # # train Agents and Planner
-    #     # if ifPlanner:
-    #     #     # Improve trainerPlanner policy's
-    #     #     result_ppo_planner = trainerPlanner.train()
+        # # train Agents and Planner
+        if ifPlanner:
+            # Improve trainerPlanner policy's
+            result_ppo_planner = trainerPlanner.train()
 
-    #     # # Swap weights to synchronize
-    #     # trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
-    #     # trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
+        # # Swap weights to synchronize
+        trainerAgents.set_weights(trainerPlanner.get_weights(["planner_policy"]))
+        trainerPlanner.set_weights(trainerAgents.get_weights(["agent_policy"]))
 
-    #     # === Counters++ ===
-    #     # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
-    #     num_parallel_episodes_done = result_ppo_agents["episodes_total"]
-    #     global_step = result_ppo_agents["timesteps_total"]
-    #     curr_iter = result_ppo_agents["training_iteration"]
+        # === Counters++ ===
+        # episodes_total, timesteps_total, training_iteration is the same for Agents and Planner
+        num_parallel_episodes_done = result_ppo_agents["episodes_total"]
+        global_step = result_ppo_agents["timesteps_total"]
+        curr_iter = result_ppo_agents["training_iteration"]
 
-    #     # === Logging ===
-    #     # 🟠 add planner infos (Idk if timesteps_this_iter is in the Decision Tree algo)
-    #     logger.info(
-    #         "Iter %d: steps this-iter %d total %d -> %d/%d episodes done",
-    #         curr_iter,
-    #         result_ppo_agents["timesteps_this_iter"],
-    #         global_step,
-    #         num_parallel_episodes_done,
-    #         run_config["general"]["episodes"],
-    #     )
+        # === Logging ===
+        # 🟠 add planner infos (Idk if timesteps_this_iter is in the Decision Tree algo)
+        logger.info(
+            "Iter %d: steps this-iter %d total %d -> %d/%d episodes done",
+            curr_iter,
+            result_ppo_agents["timesteps_this_iter"],
+            global_step,
+            num_parallel_episodes_done,
+            run_config["general"]["episodes"],
+        )
 
-    #     if curr_iter == 1 or result_ppo_agents["episodes_this_iter"] > 0:
-    #         logger.info(pretty_print(result_ppo_agents))
+        if curr_iter == 1 or result_ppo_agents["episodes_this_iter"] > 0:
+            logger.info(pretty_print(result_ppo_agents))
 
-    #         # if ifPlanner:
-    #         #     logger.info(pretty_print(result_ppo_planner))
+            if ifPlanner:
+                logger.info(pretty_print(result_ppo_planner))
 
-    #     # === Saez logic ===
-    #     # saez label is not in config.yaml, nor for phase1, nor phase2. So it's not needed.
+        # === Saez logic ===
+        # saez label is not in config.yaml, nor for phase1, nor phase2. So it's not needed.
 
-    #     # === Dense logging ===
-    #     dirs_restore_logs_save.maybe_store_dense_log(
-    #         trainerAgents,
-    #         trainerPlanner,
-    #         result_ppo_agents,
-    #         dense_log_frequency,
-    #         dense_log_dir,
-    #         ifPlanner,
-    #     )
+        # === Dense logging ===
+        dirs_restore_logs_save.maybe_store_dense_log(
+            trainerAgents,
+            trainerPlanner,
+            result_ppo_agents,
+            dense_log_frequency,
+            dense_log_dir,
+            ifPlanner,
+        )
 
-    #     # === Saving ===
-    #     # Saving MUST be done after weights sync! -> it's saving weights!
-    #     step_last_ckpt = dirs_restore_logs_save.maybe_save(
-    #         trainerAgents,
-    #         trainerPlanner,
-    #         result_ppo_agents,
-    #         ckpt_frequency,
-    #         ckpt_dir,
-    #         step_last_ckpt,
-    #         ifPlanner,
-    #     )
+        # === Saving ===
+        # Saving MUST be done after weights sync! -> it's saving weights!
+        step_last_ckpt = dirs_restore_logs_save.maybe_save(
+            trainerAgents,
+            trainerPlanner,
+            result_ppo_agents,
+            ckpt_frequency,
+            ckpt_dir,
+            step_last_ckpt,
+            ifPlanner,
+        )
 
-    # # === Finish up ===
-    # logger.info("Completing! Saving final snapshot...\n\n")
+    # === Finish up ===
+    logger.info("Completing! Saving final snapshot...\n\n")
 
-    # saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
-    # saving.save_tf_model_weights(
-    #     trainerAgents, ckpt_dir, global_step, suffix="agent")
+    saving.save_snapshot(trainerAgents, ckpt_dir, suffix="agent")
+    saving.save_tf_model_weights(
+        trainerAgents, ckpt_dir, global_step, suffix="agent")
 
-    # # if ifPlanner:
-    # #     saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
-    # #     saving.save_tf_model_weights(
-    # #         trainerPlanner, ckpt_dir, global_step, suffix="planner"
-    # #     )
+    if ifPlanner:
+        saving.save_snapshot(trainerPlanner, ckpt_dir, suffix="planner")
+        saving.save_tf_model_weights(
+            trainerPlanner, ckpt_dir, global_step, suffix="planner"
+        )
 
     # logger.info("Final snapshot saved! All done.")
     logger.info("Done, shut down ray and exit")

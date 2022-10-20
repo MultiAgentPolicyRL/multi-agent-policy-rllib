@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 # https://raw.githubusercontent.com/ray-project/ray/releases/0.8.4/rllib/examples/serving/cartpole_client.py
-"""
-In two separate shells run:
-    $ python aie_server.py --run=[PPO|DQN]
-    $ python aie_client.py --inference-mode=local|remote
+"""Example of training with a policy server. Copy this file for your use case.
+
+To try this out, in two separate shells run:
+    $ python cartpole_server.py --run=[PPO|DQN]
+    $ python cartpole_client.py --inference-mode=local|remote
+
+Local inference mode offloads inference to the client for better performance.
 """
 
 import argparse
 import gym
 
 from ray.rllib.env.policy_client import PolicyClient
+
+from env_wrapper import RLlibEnvWrapper
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -28,7 +33,19 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    env = gym.make("CartPole-v0")
+
+    from configs.common_config import common_params
+    common_param = common_params()
+    trainer_config = common_param["trainer"]
+
+    # Env config
+    env_config = {
+        "env_config_dict": common_param["env"],
+        "num_envs_per_worker": trainer_config["num_envs_per_worker"]
+    }
+    env = RLlibEnvWrapper(env_config)
+
+
     client = PolicyClient(
         "http://localhost:9900", inference_mode=args.inference_mode)
 
