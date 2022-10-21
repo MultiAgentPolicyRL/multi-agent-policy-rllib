@@ -32,7 +32,7 @@ def get_policy_configs(phase: int = 1):
     # Env config
     env_config = {
         "env_config_dict": common_param["env"],
-        "num_envs_per_worker": trainer_config["num_envs_per_worker"]
+        # "num_envs_per_worker": trainer_config["num_envs_per_worker"]
     }
 
     # Seed
@@ -88,4 +88,4 @@ def get_policy_configs(phase: int = 1):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    return policies, policies_to_train, policy_mapping_fun, logger_creator, dummy_env
+    return policies, policies_to_train, policy_mapping_fun, logger_creator, trainer_config
