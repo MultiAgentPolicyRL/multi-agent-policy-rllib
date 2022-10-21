@@ -10,9 +10,9 @@ from ray.tune.registry import register_env
 from ray.rllib.env.external_multi_agent_env import ExternalMultiAgentEnv
 
 
-from abla.trainer.configs.common_config import common_params
-from abla.trainer.configs.phase1 import ppo_policy_params_1
-from abla.trainer.env_wrapper import RLlibEnvWrapper
+from configs.common_config import common_params
+from configs.phase1 import ppo_policy_params_1
+from env_wrapper import RLlibEnvWrapper
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")

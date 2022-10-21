@@ -1,9 +1,9 @@
-from abla.trainer.env_wrapper import RLlibEnvWrapper
-from abla.trainer.tf_models import KerasConvLSTM
-from abla.trainer.configs.common_config import common_params
+from env_wrapper import RLlibEnvWrapper
+from tf_models import KerasConvLSTM
+from configs.common_config import common_params
 from ray.rllib.env.external_multi_agent_env import ExternalMultiAgentEnv
 from ray.tune.registry import register_env
-from abla.trainer.policy_configs import get_policy_configs
+from policy_configs import get_policy_configs
 from ray.rllib.agents.ppo import PPOTrainer
 import time
 
