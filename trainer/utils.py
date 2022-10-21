@@ -35,11 +35,11 @@ def process_args():
     if not os.path.isfile(config_path):
         logger.error(f"'{config_path}' does not exist.")
 
-    with open(config_path, "r") as f:
-        configuration = yaml.safe_load(f)
-        logger.info(f"Loaded '{config_path}'.")
+    # with open(config_path, "r") as f:
+    #     configuration = yaml.safe_load(f)
+    #     logger.info(f"Loaded '{config_path}'.")
 
-    return args.run_dir, configuration, args.pw, f"{args.ip_address}", args.cluster
+    return args.run_dir, None, args.pw, f"{args.ip_address}", args.cluster
 
 def set_up_dirs(output_folder:str=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Outputs")):
     ### Set up directories for logging and saving. Restore if not completed
