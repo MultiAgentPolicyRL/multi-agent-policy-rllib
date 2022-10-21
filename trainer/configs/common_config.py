@@ -85,7 +85,7 @@ def common_params():
             "multiagent": None,
             "no_done_at_end": False,
             "num_envs_per_worker": 0,
-            "num_gpus": 1,
+            "num_gpus": 0,
             "num_gpus_per_worker": 0,
             "num_sgd_iter": 1,
             "num_workers": 0,
@@ -100,7 +100,7 @@ def common_params():
             "ckpt_frequency_steps": 75000,  # 750000
             "cpus": 12,
             "episodes": 1,  # 25000
-            "gpus": 1,
+            "gpus": 0,
             "restore_tf_weights_agents": '',
             "restore_tf_weights_planner": '',
             "train_planner": False,
