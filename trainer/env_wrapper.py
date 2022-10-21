@@ -101,6 +101,19 @@ class RLlibEnvWrapper(MultiAgentEnv):
             )
             self.action_space_pl.dtype = np.int64
 
+        # Created | build global_action_space and global_observation_space
+        # self.env_config_dict["n_agents"]
+        global_observation_space = {}
+        global_action_space = {}
+        for n in range(self.env_config_dict["n_agents"]):
+            global_observation_space[str(n)] = self.observation_space
+            global_action_space[str(n)] = self.action_space
+        global_observation_space["p"] = self.observation_space_pl
+        global_action_space["p"] = self.action_space_pl
+        
+        self.global_observation_space = global_observation_space
+        self.global_action_space = global_action_space
+            
         self._seed = None
         if self.verbose:
             print("[EnvWrapper] Spaces")

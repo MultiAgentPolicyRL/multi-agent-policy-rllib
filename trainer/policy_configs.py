@@ -7,6 +7,8 @@ import time
 
 from ray.tune.logger import NoopLogger, pretty_print
 from ray.tune.registry import register_env
+from ray.rllib.env.external_multi_agent_env import ExternalMultiAgentEnv
+
 
 from configs.common_config import common_params
 from configs.phase1 import ppo_policy_params_1
@@ -45,6 +47,7 @@ def get_policy_configs(phase: int = 1):
     # Multiagent Policies
     dummy_env = RLlibEnvWrapper(env_config)
     register_env("ai-economist", lambda _: RLlibEnvWrapper(env_config))
+    register_env("ai-economist-external", lambda _: ExternalMultiAgentEnv(action_space=dummy_env.global_action_space, observation_space=dummy_env.global_observation_space))
 
 
     # Policy tuples for agent/planner policy types
@@ -85,4 +88,4 @@ def get_policy_configs(phase: int = 1):
     def logger_creator(config):
         return NoopLogger({}, "/tmp")
 
-    return policies, policies_to_train, policy_mapping_fun, logger_creator
+    return policies, policies_to_train, policy_mapping_fun, logger_creator, dummy_env
