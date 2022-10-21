@@ -25,5 +25,22 @@ trainer = PPOTrainer(env="ai-economist-external", config=dict(trainer_config, **
             },
 }))
 
+# ppoAgent : PPOTrainer = PPOTrainer(
+#         env="ai-economist",
+#         config={
+#             "env_config": env_config,
+#             "seed": final_seed,
+#             "multiagent": {
+#                 "policies": policies,
+#                 "policy_mapping_fn": policy_mapping_fun,
+#                 "policies_to_train": ["agent_policy"],
+#             },
+#             "metrics_smoothing_episodes": trainer_config.get("num_workers")
+#             * trainer_config.get("num_envs_per_worker"),
+#         },
+#         logger_creator=logger_creator
+#     )
+
+
 while True:
     print(trainer.train())
