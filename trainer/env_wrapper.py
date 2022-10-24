@@ -113,7 +113,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
         
         self.global_observation_space = global_observation_space
         self.global_action_space = global_action_space
-            
+
         self._seed = None
         if self.verbose:
             print("[EnvWrapper] Spaces")
