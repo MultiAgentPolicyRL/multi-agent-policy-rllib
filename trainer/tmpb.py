@@ -36,6 +36,9 @@ class AieExternalMultiAgentEnv(ExternalMultiAgentEnv):
             self, action_space=env.global_action_space, observation_space=env.global_observation_space,  max_concurrent=100)
         self.env = copy.deepcopy(env)
 
+    def seed(self, seed):
+        self.env.seed(seed=seed)
+
     def run(self):
         eid = self.start_episode()
         obs = self.env.reset()
@@ -49,7 +52,7 @@ class AieExternalMultiAgentEnv(ExternalMultiAgentEnv):
             logger.info(f"Step: {counter}, Rew: {rew}")
             counter+=1
 
-            if done['__all__']==True or counter==2000: 
+            if done['__all__']==True: 
                 counter=0
                 logger.info(f"Step: {counter}, done:{done}")
                 self.end_episode(eid, obs)
@@ -133,8 +136,8 @@ def build_trainer(run_configuration):
     # === Finalize and create ===
     trainer_config.update(
         {
-            "env_config": env_config,
-            # "seed": final_seed,
+            #"env_config": env_config,
+            "seed": final_seed,
             "multiagent": {
                 "policies": policies,
                 "policies_to_train": policies_to_train,
