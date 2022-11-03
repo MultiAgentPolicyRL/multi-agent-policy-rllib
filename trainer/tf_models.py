@@ -5,27 +5,40 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 import os
-import sys
 import numpy as np
 from gym.spaces import Box, Dict
-from ray.rllib.models import ModelCatalog
-from ray.rllib.models.tf.tf_modelv2 import TFModelV2
-from ray.rllib.utils import try_import_tf
 from tensorflow import keras
+import tensorflow as tf
 
-from pkg_resources import get_distribution
-# For ray[rllib]==0.8.3
-from ray.rllib.models.tf.recurrent_tf_modelv2 import (
-    RecurrentTFModelV2 as RecurrentNetwork,
-    add_time_dimension,
-)
+# From rllib
+def add_time_dimension(padded_inputs, seq_lens):
+    """Adds a time dimension to padded inputs.
 
-# if get_distribution('ray[rllib]').version != '0.8.4':
-#     sys.exit(f"FATAL - ray[rllib]=={get_distribution('ray[rllib]').version} not supprted \nEXITING")
+    Arguments:
+        padded_inputs (Tensor): a padded batch of sequences. That is,
+            for seq_lens=[1, 2, 2], then inputs=[A, *, B, B, C, C], where
+            A, B, C are sequence elements and * denotes padding.
+        seq_lens (Tensor): the sequence lengths within the input batch,
+            suitable for passing to tf.nn.dynamic_rnn().
+
+    Returns:
+        Reshaped tensor of shape [NUM_SEQUENCES, MAX_SEQ_LEN, ...].
+    """
+
+    # Sequence lengths have to be specified for LSTM batch inputs. The
+    # input batch must be padded to the max seq length given here. That is,
+    # batch_size == len(seq_lens) * max(seq_lens)
+    padded_batch_size = tf.shape(padded_inputs)[0]
+    max_seq_len = padded_batch_size // tf.shape(seq_lens)[0]
+
+    # Dynamically reshape the padded batch to introduce a time dimension.
+    new_batch_size = padded_batch_size // max_seq_len
+    new_shape = ([new_batch_size, max_seq_len] +
+                 padded_inputs.get_shape().as_list()[1:])
+    return tf.reshape(padded_inputs, new_shape)
 
 # Disable TF INFO, WARNING, and ERROR messages
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-tf = try_import_tf()
 
 _WORLD_MAP_NAME = "world-map"
 _WORLD_IDX_MAP_NAME = "world-idx_map"
@@ -59,9 +72,7 @@ def apply_logit_mask(logits, mask):
 
     return logits + logit_mask
 
-
-# class KerasConvLSTM(RecurrentTFModelV2):
-class KerasConvLSTM(RecurrentNetwork):
+class KerasConvLSTM():
     """
     The model used in the paper "The AI Economist: Optimal Economic Policy
     Design via Two-level Deep Reinforcement Learning"
@@ -321,122 +332,3 @@ class KerasConvLSTM(RecurrentNetwork):
         return tf.reshape(self._value_out, [-1])
 
 
-ModelCatalog.register_custom_model(KerasConvLSTM.custom_name, KerasConvLSTM)
-
-
-class KerasLinear(TFModelV2):
-    """A linear (feed-forward) model."""
-
-    custom_name = "keras_linear"
-
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        super().__init__(obs_space, action_space, num_outputs, model_config, name)
-        self.MASK_NAME = "action_mask"
-        mask = obs_space.original_space.spaces[self.MASK_NAME]
-        mask_input = tf.keras.layers.Input(shape=mask.shape, name=self.MASK_NAME)
-
-        custom_options = model_config["custom_options"]
-        if custom_options.get('fully_connected_value', False):
-            self.fc_dim = int(custom_options["fc_dim"])
-            self.num_fc = int(custom_options["num_fc"])
-        else:
-            self.fc_dim = 0
-            self.num_fc = 0
-
-        self.inputs = [
-            tf.keras.layers.Input(
-                shape=(get_flat_obs_size(obs_space),), name="observations"
-            ),
-            mask_input,
-        ]
-
-        logits = tf.keras.layers.Dense(
-            self.num_outputs, activation=tf.keras.activations.linear, name="logits"
-        )(self.inputs[0])
-        logits = apply_logit_mask(logits, mask_input)
-
-        if custom_options.get('fully_connected_value', False):
-            # Value function is fully connected
-            fc_layers_val = keras.Sequential(name='fc_layers_val')
-            for i in range(self.num_fc):
-                fc_layers_val.add(
-                    keras.layers.Dense(self.fc_dim,
-                                       activation=tf.nn.relu,
-                                       name="fc_layers_val-{}".format(i))
-                )
-            h_val = fc_layers_val(self.inputs[0])
-            values = tf.keras.layers.Dense(
-                1, activation=tf.keras.activations.linear, name="values"
-            )(h_val)
-        else:
-            # Value function is linear
-            values = tf.keras.layers.Dense(
-                1, activation=tf.keras.activations.linear, name="values"
-            )(self.inputs[0])
-
-        self.base_model = tf.keras.Model(self.inputs, [logits, values])
-        self.register_variables(self.base_model.variables)
-
-    def forward(self, input_dict, state, seq_lens):
-        model_out, self._value_out = self.base_model(
-            [input_dict["obs_flat"], input_dict["obs"][self.MASK_NAME]]
-        )
-        return model_out, state
-
-    def value_function(self):
-        return tf.reshape(self._value_out, [-1])
-
-
-ModelCatalog.register_custom_model(KerasLinear.custom_name, KerasLinear)
-
-
-class RandomAction(TFModelV2):
-    """
-    A "random" model to sample actions from an action space at random.
-    This is used when not training an agent.
-    """
-    custom_name = "random"
-
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        super().__init__(obs_space, action_space, num_outputs, model_config, name)
-
-        if hasattr(obs_space, "original_space"):
-            original_space = obs_space.original_space
-        else:
-            assert isinstance(obs_space, Dict)
-            original_space = obs_space
-
-        mask = original_space.spaces[_MASK_NAME]
-        mask_input = keras.layers.Input(shape=mask.shape, name=_MASK_NAME)
-
-        self.inputs = [
-            keras.layers.Input(shape=(1,), name="observations"),
-            mask_input,
-        ]
-
-        logits_and_value = keras.layers.Dense(
-            num_outputs + 1, activation=None, name="dummy_layer"
-        )(self.inputs[0])
-
-        unmasked_logits = logits_and_value[:, :num_outputs] * 0.0
-        values = logits_and_value[:, -1]
-
-        masked_logits = apply_logit_mask(unmasked_logits, mask_input)
-
-        self.base_model = keras.Model(self.inputs, [masked_logits, values])
-        self.register_variables(self.base_model.variables)
-
-        # This will be set in the forward() call below
-        self.values = None
-
-    def forward(self, input_dict, state, seq_lens):
-        model_out, self.values = self.base_model(
-            [input_dict["obs_flat"][:, :1], input_dict["obs"][_MASK_NAME]]
-        )
-        return model_out, state
-
-    def value_function(self):
-        return tf.reshape(self.values, [-1])
-
-
-ModelCatalog.register_custom_model(RandomAction.custom_name, RandomAction)
