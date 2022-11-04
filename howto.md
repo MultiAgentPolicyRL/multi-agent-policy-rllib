@@ -25,6 +25,7 @@
 
 1. Implement PPO
     1. use custom keras model
+        1. have a working model
     2. get `policies_to_train` and `policy_training_fn` 
     3. if obs is dict, split it and train as described by `policy_training_fn`
     4. it needs a `train_step` -> single step training (we are gonna call it instead of `train`).
