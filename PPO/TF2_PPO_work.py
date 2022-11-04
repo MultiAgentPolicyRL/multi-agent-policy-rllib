@@ -20,7 +20,7 @@ tf.keras.backend.set_floatx('float64')
 # https://github.com/anita-hu/TF2-RL/blob/master/PPO/TF2_PPO.py
 
 
-def model(state_shape, action_dim, units=(400, 300, 100), discrete=True):
+def model(state_shape, action_dim, units=(400, 300, 100)):
     state = Input(shape=state_shape)
 
     # Value function (baseline)
@@ -38,14 +38,9 @@ def model(state_shape, action_dim, units=(400, 300, 100), discrete=True):
         pi = Dense(units[index], name="Policy_L{}".format(
             index), activation="tanh")(pi)
 
-    if discrete:
-        action_probs = Dense(action_dim, name="Out_probs",
-                             activation='softmax')(pi)
-        model = Model(inputs=state, outputs=[action_probs, value_pred])
-    else:
-        actions_mean = Dense(action_dim, name="Out_mean",
-                             activation='tanh')(pi)
-        model = Model(inputs=state, outputs=[actions_mean, value_pred])
+    action_probs = Dense(action_dim, name="Out_probs",
+                         activation='softmax')(pi)
+    model = Model(inputs=state, outputs=[action_probs, value_pred])
 
     return model
 
@@ -91,14 +86,11 @@ class PPO:
         self.env = env
         self.state_shape = env.observation_space.shape  # shape of observations
         # number of actions
-        self.action_dim = env.action_space.n 
-
-        
+        self.action_dim = env.action_space.n
 
         # Define and initialize network
         # Define and initialize Keras Model
-        self.policy = model(self.state_shape, self.action_dim,
-                            hidden_units, discrete=True)
+        self.policy = model(self.state_shape, self.action_dim, hidden_units)
         # Model optimizer used here is Adam, SGD in PPO's paper. (adam is faster)
         self.model_optimizer = Adam(learning_rate=lr)
         print(self.policy.summary())
@@ -154,7 +146,7 @@ class PPO:
 
         return log_probs, entropy, value
 
-    def act(self, obs):
+    def act(self, obs, test=False):
         obs = np.expand_dims(obs, axis=0).astype(np.float64)
         output, value = self.policy.predict(obs, verbose=0)
         dist = self.get_dist(output)
@@ -164,6 +156,50 @@ class PPO:
 
         return action[0].numpy(), value[0][0], log_probs[0].numpy()
 
+    def policy_mapping_fun(i):
+        if str(i).isdigit() or i == "a":
+            return "a"
+        return "p"
+
+    def get_actions(self, obs: dict, policies_to_train: list, policy_mapping_fn = policy_mapping_fun):
+        """
+        Get action dictionary for `policies_to_train` actors in obs  
+
+        Parameters
+        ----------
+        obs: dict, environemnt observations  
+        policy_mapping_fn: function, returns (in this case) "a" or "p" if the policy is agent or planner  
+        policies_to_train: list, list of polcies to train, in this case ["a"] or ["a", "p"]  
+
+        Returns
+        -------
+        actions: dict, values: dict, log_probs: dict  
+
+        Only for trained policies
+        """
+        actions = {}
+        values = {}
+        log_probs = {}
+
+        for obs_key in obs:
+            if policy_mapping_fn(obs_key) in policies_to_train:
+                output, value = self.policy.predict(obs[obs_key], verbose=0)
+                dist = self.get_dist(output)
+
+                action = dist.sample()
+                log_probs = dist.log_prob(action)
+
+                actions[obs_key] = action[0].numpy()
+                values[obs_key] = value[0][0]
+                log_probs[obs_key] = log_probs[0].numpy()
+
+        return actions, values, log_probs
+
+    def _extract_input_list(self, dictionary):
+        return [dictionary[k] for k in self._input_keys]
+
+
+    
     def save_model(self, fn):
         """
         Save tf trained model
@@ -304,27 +340,10 @@ class PPO:
 
         self.save_model("ppo_final_episode{}.h5".format(episode))
 
-    def test(self, render=True, fps=30, filename='test_render.mp4'):
-        cur_state, done, rewards = self.env.reset(), False, 0
-        video = imageio.get_writer(filename, fps=fps)
-        while not done:
-            action, value, log_prob = self.act(cur_state, test=True)
-            next_state, reward, done, _ = self.env.step(action)
-            cur_state = next_state
-            rewards += reward
-            if render:
-                video.append_data(self.env.render(mode='rgb_array'))
-        video.close()
-        return rewards
-
 
 if __name__ == "__main__":
     gym_env = gym.make("CartPole-v1")
-    # gym_env = gym.make("Pendulum-v0")
-    
-    ppo = PPO(gym_env)
 
-    # ppo.load_model("basic_models/ppo_episode176.h5")
+    ppo = PPO(gym_env)
     ppo.train(max_epochs=1000, save_freq=50)
-    # reward = ppo.test()
-    # print("Total rewards: ", reward)
+

@@ -5,32 +5,44 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 import os
-import sys
 import numpy as np
 from gym.spaces import Box, Dict
-from ray.rllib.models import ModelCatalog
-from ray.rllib.models.tf.tf_modelv2 import TFModelV2
-from ray.rllib.utils import try_import_tf
-from tensorflow import keras
-
-from pkg_resources import get_distribution
-# For ray[rllib]==0.8.3
-from ray.rllib.models.tf.recurrent_tf_modelv2 import (
-    RecurrentTFModelV2 as RecurrentNetwork,
-    add_time_dimension,
-)
-
-# if get_distribution('ray[rllib]').version != '0.8.4':
-#     sys.exit(f"FATAL - ray[rllib]=={get_distribution('ray[rllib]').version} not supprted \nEXITING")
+# from tensorflow import keras
+import tensorflow as tf
 
 # Disable TF INFO, WARNING, and ERROR messages
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-tf = try_import_tf()
 
 _WORLD_MAP_NAME = "world-map"
 _WORLD_IDX_MAP_NAME = "world-idx_map"
 _MASK_NAME = "action_mask"
 
+# from RayRllib
+def add_time_dimension(padded_inputs, seq_lens):
+    """Adds a time dimension to padded inputs.
+
+    Arguments:
+        padded_inputs (Tensor): a padded batch of sequences. That is,
+            for seq_lens=[1, 2, 2], then inputs=[A, *, B, B, C, C], where
+            A, B, C are sequence elements and * denotes padding.
+        seq_lens (Tensor): the sequence lengths within the input batch,
+            suitable for passing to tf.nn.dynamic_rnn().
+
+    Returns:
+        Reshaped tensor of shape [NUM_SEQUENCES, MAX_SEQ_LEN, ...].
+    """
+
+    # Sequence lengths have to be specified for LSTM batch inputs. The
+    # input batch must be padded to the max seq length given here. That is,
+    # batch_size == len(seq_lens) * max(seq_lens)
+    padded_batch_size = tf.shape(padded_inputs)[0]
+    max_seq_len = padded_batch_size // tf.shape(seq_lens)[0]
+
+    # Dynamically reshape the padded batch to introduce a time dimension.
+    new_batch_size = padded_batch_size // max_seq_len
+    new_shape = ([new_batch_size, max_seq_len] +
+                 padded_inputs.get_shape().as_list()[1:])
+    return tf.reshape(padded_inputs, new_shape)
 
 def get_flat_obs_size(obs_space):
     if isinstance(obs_space, Box):
@@ -61,7 +73,7 @@ def apply_logit_mask(logits, mask):
 
 
 # class KerasConvLSTM(RecurrentTFModelV2):
-class KerasConvLSTM(RecurrentNetwork):
+class KerasConvLSTM():
     """
     The model used in the paper "The AI Economist: Optimal Economic Policy
     Design via Two-level Deep Reinforcement Learning"
@@ -73,8 +85,8 @@ class KerasConvLSTM(RecurrentNetwork):
 
     custom_name = "keras_conv_lstm"
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        super().__init__(obs_space, action_space, num_outputs, model_config, name)
+    def __init__(self, obs_space, action_space, num_outputs, model_config = None, name = None):
+        self.model_config = model_config
 
         input_emb_vocab = self.model_config["custom_options"]["input_emb_vocab"]
         emb_dim = self.model_config["custom_options"]["idx_emb_dim"]
@@ -83,6 +95,16 @@ class KerasConvLSTM(RecurrentNetwork):
         fc_dim = self.model_config["custom_options"]["fc_dim"]
         cell_size = self.model_config["custom_options"]["lstm_cell_size"]
         generic_name = self.model_config["custom_options"].get("generic_name", None)
+
+        self.num_outputs = num_outputs
+
+        # input_emb_vocab = 100
+        # emb_dim = 100
+        # num_conv = 2
+        # num_fc = 2
+        # fc_dim = 128
+        # cell_size = 128
+        # generic_name = None
 
         self.cell_size = cell_size
 
@@ -257,8 +279,7 @@ class KerasConvLSTM(RecurrentNetwork):
             output = tf.keras.layers.Dense(
                 self.num_outputs if tag == "_pol" else 1,
                 activation=tf.keras.activations.linear,
-                name="logits" if tag == "_pol" else "value",
-            )(lstm_out)
+                name="logits" if tag == "_pol" else "value",)(lstm_out)
 
             if tag == "_pol":
                 state_h_p, state_c_p = state_h, state_c
@@ -283,17 +304,49 @@ class KerasConvLSTM(RecurrentNetwork):
             + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v],
             outputs=[logits, values, state_h_p, state_c_p, state_h_v, state_c_v],
         )
-        self.register_variables(self.rnn_model.variables)
+        
         # self.rnn_model.summary()
 
     def _extract_input_list(self, dictionary):
         return [dictionary[k] for k in self._input_keys]
 
     def forward(self, input_dict, state, seq_lens):
+        # /home/ettore/miniconda3/envs/aie-clear/lib/python3.7/site-packages/ray/rllib/models/modelv2.py
         """Adds time dimension to batch before sending inputs to forward_rnn().
 
-        You should implement forward_rnn() in your subclass."""
-        output, new_state = self.forward_rnn(
+        You should implement forward_rnn() in your subclass.
+        
+        Call the model with the given input tensors and state.
+
+        Any complex observations (dicts, tuples, etc.) will be unpacked by
+        __call__ before being passed to forward(). To access the flattened
+        observation tensor, refer to input_dict["obs_flat"].
+
+        This method can be called any number of times. In eager execution,
+        each call to forward() will eagerly evaluate the model. In symbolic
+        execution, each call to forward creates a computation graph that
+        operates over the variables of this model (i.e., shares weights).
+
+        Custom models should override this instead of __call__.
+
+        Arguments:
+            inputs (dict): observation tensor with shape [B, T, obs_size].
+            input_dict (dict): dictionary of input tensors, including "obs",
+                "obs_flat", "prev_action", "prev_reward", "is_training"
+            input_dict (dict): obs.
+            state (list): list of state tensors, each with shape [B, T, size].
+            seq_lens (Tensor): 1d tensor holding input sequence lengths.
+
+        Returns:
+            (outputs, new_state): The model output tensor of shape
+                [B, T, num_outputs] and the list of new state tensors each with
+                shape [B, size].
+        """
+
+        # for t in self._extract_input_list(input_dict["obs"]):
+        #     print(t)
+            
+        output, new_state = self.__forward_rnn(
             [
                 add_time_dimension(t, seq_lens)
                 for t in self._extract_input_list(input_dict["obs"])
@@ -303,7 +356,9 @@ class KerasConvLSTM(RecurrentNetwork):
         )
         return tf.reshape(output, [-1, self.num_outputs]), new_state
 
-    def forward_rnn(self, inputs, state, seq_lens):
+    def __forward_rnn(self, inputs, state, seq_lens):
+        # print(inputs.get_shape(), state.get_shape(), seq_lens.get_shape())
+        
         model_out, self._value_out, h_p, c_p, h_v, c_v = self.rnn_model(
             inputs + [seq_lens] + state
         )
@@ -321,122 +376,3 @@ class KerasConvLSTM(RecurrentNetwork):
         return tf.reshape(self._value_out, [-1])
 
 
-ModelCatalog.register_custom_model(KerasConvLSTM.custom_name, KerasConvLSTM)
-
-
-class KerasLinear(TFModelV2):
-    """A linear (feed-forward) model."""
-
-    custom_name = "keras_linear"
-
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        super().__init__(obs_space, action_space, num_outputs, model_config, name)
-        self.MASK_NAME = "action_mask"
-        mask = obs_space.original_space.spaces[self.MASK_NAME]
-        mask_input = tf.keras.layers.Input(shape=mask.shape, name=self.MASK_NAME)
-
-        custom_options = model_config["custom_options"]
-        if custom_options.get('fully_connected_value', False):
-            self.fc_dim = int(custom_options["fc_dim"])
-            self.num_fc = int(custom_options["num_fc"])
-        else:
-            self.fc_dim = 0
-            self.num_fc = 0
-
-        self.inputs = [
-            tf.keras.layers.Input(
-                shape=(get_flat_obs_size(obs_space),), name="observations"
-            ),
-            mask_input,
-        ]
-
-        logits = tf.keras.layers.Dense(
-            self.num_outputs, activation=tf.keras.activations.linear, name="logits"
-        )(self.inputs[0])
-        logits = apply_logit_mask(logits, mask_input)
-
-        if custom_options.get('fully_connected_value', False):
-            # Value function is fully connected
-            fc_layers_val = keras.Sequential(name='fc_layers_val')
-            for i in range(self.num_fc):
-                fc_layers_val.add(
-                    keras.layers.Dense(self.fc_dim,
-                                       activation=tf.nn.relu,
-                                       name="fc_layers_val-{}".format(i))
-                )
-            h_val = fc_layers_val(self.inputs[0])
-            values = tf.keras.layers.Dense(
-                1, activation=tf.keras.activations.linear, name="values"
-            )(h_val)
-        else:
-            # Value function is linear
-            values = tf.keras.layers.Dense(
-                1, activation=tf.keras.activations.linear, name="values"
-            )(self.inputs[0])
-
-        self.base_model = tf.keras.Model(self.inputs, [logits, values])
-        self.register_variables(self.base_model.variables)
-
-    def forward(self, input_dict, state, seq_lens):
-        model_out, self._value_out = self.base_model(
-            [input_dict["obs_flat"], input_dict["obs"][self.MASK_NAME]]
-        )
-        return model_out, state
-
-    def value_function(self):
-        return tf.reshape(self._value_out, [-1])
-
-
-ModelCatalog.register_custom_model(KerasLinear.custom_name, KerasLinear)
-
-
-class RandomAction(TFModelV2):
-    """
-    A "random" model to sample actions from an action space at random.
-    This is used when not training an agent.
-    """
-    custom_name = "random"
-
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        super().__init__(obs_space, action_space, num_outputs, model_config, name)
-
-        if hasattr(obs_space, "original_space"):
-            original_space = obs_space.original_space
-        else:
-            assert isinstance(obs_space, Dict)
-            original_space = obs_space
-
-        mask = original_space.spaces[_MASK_NAME]
-        mask_input = keras.layers.Input(shape=mask.shape, name=_MASK_NAME)
-
-        self.inputs = [
-            keras.layers.Input(shape=(1,), name="observations"),
-            mask_input,
-        ]
-
-        logits_and_value = keras.layers.Dense(
-            num_outputs + 1, activation=None, name="dummy_layer"
-        )(self.inputs[0])
-
-        unmasked_logits = logits_and_value[:, :num_outputs] * 0.0
-        values = logits_and_value[:, -1]
-
-        masked_logits = apply_logit_mask(unmasked_logits, mask_input)
-
-        self.base_model = keras.Model(self.inputs, [masked_logits, values])
-        self.register_variables(self.base_model.variables)
-
-        # This will be set in the forward() call below
-        self.values = None
-
-    def forward(self, input_dict, state, seq_lens):
-        model_out, self.values = self.base_model(
-            [input_dict["obs_flat"][:, :1], input_dict["obs"][_MASK_NAME]]
-        )
-        return model_out, state
-
-    def value_function(self):
-        return tf.reshape(self.values, [-1])
-
-
-ModelCatalog.register_custom_model(RandomAction.custom_name, RandomAction)
