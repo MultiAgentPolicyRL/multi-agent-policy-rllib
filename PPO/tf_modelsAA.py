@@ -301,7 +301,9 @@ class KerasConvLSTM(RecurrentNetwork):
             state,
             seq_lens,
         )
-        return tf.reshape(output, [-1, self.num_outputs]), new_state
+
+        return 0
+        # tf.reshape(output, [-1, self.num_outputs]), new_state
 
     def forward_rnn(self, inputs, state, seq_lens):
         model_out, self._value_out, h_p, c_p, h_v, c_v = self.rnn_model(

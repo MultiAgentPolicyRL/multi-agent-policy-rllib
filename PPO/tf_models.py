@@ -5,6 +5,7 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 import os
+import sys
 import numpy as np
 from gym.spaces import Box, Dict
 # from tensorflow import keras
@@ -42,7 +43,9 @@ def add_time_dimension(padded_inputs, seq_lens):
     new_batch_size = padded_batch_size // max_seq_len
     new_shape = ([new_batch_size, max_seq_len] +
                  padded_inputs.get_shape().as_list()[1:])
-    return tf.reshape(padded_inputs, new_shape)
+    last_value = tf.reshape(padded_inputs, new_shape)
+    print(f"added time dimension: {last_value}")
+    return last_value
 
 def get_flat_obs_size(obs_space):
     if isinstance(obs_space, Box):
@@ -97,14 +100,6 @@ class KerasConvLSTM():
         generic_name = self.model_config["custom_options"].get("generic_name", None)
 
         self.num_outputs = num_outputs
-
-        # input_emb_vocab = 100
-        # emb_dim = 100
-        # num_conv = 2
-        # num_fc = 2
-        # fc_dim = 128
-        # cell_size = 128
-        # generic_name = None
 
         self.cell_size = cell_size
 
@@ -307,11 +302,11 @@ class KerasConvLSTM():
         
         # self.rnn_model.summary()
 
-    def _extract_input_list(self, dictionary):
+    def _extract_input_list(self, dictionary: dict):
         return [dictionary[k] for k in self._input_keys]
 
     def forward(self, input_dict, state, seq_lens):
-        # /home/ettore/miniconda3/envs/aie-clear/lib/python3.7/site-packages/ray/rllib/models/modelv2.py
+        # python3.7/site-packages/ray/rllib/models/modelv2.py
         """Adds time dimension to batch before sending inputs to forward_rnn().
 
         You should implement forward_rnn() in your subclass.
@@ -346,6 +341,16 @@ class KerasConvLSTM():
         # for t in self._extract_input_list(input_dict["obs"]):
         #     print(t)
             
+        for t in self._extract_input_list(input_dict["obs"]):
+            """
+            t e' il contenuto del dict in dict (x.es tempo, world-idx, etc)
+            """
+            print(f"siamo qui {t}")
+            add_time_dimension(t, seq_lens)
+
+
+        sys.exit(1)
+
         output, new_state = self.__forward_rnn(
             [
                 add_time_dimension(t, seq_lens)
