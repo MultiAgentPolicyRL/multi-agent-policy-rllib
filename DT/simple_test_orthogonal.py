@@ -1,15 +1,16 @@
-import os
-import gym
-import json
-import string
-import datetime
 import argparse
-import subprocess
+import datetime
+import os
+import string
+from time import sleep, time
+
+import gym
 import numpy as np
-from time import time, sleep
 from numpy import random
-from dt import EpsGreedyLeaf, PythonDT, RandomlyInitializedEpsGreedyLeaf
-from grammatical_evolution import GrammaticalEvolutionTranslator, grammatical_evolution, differential_evolution
+
+from dt import PythonDT, RandomlyInitializedEpsGreedyLeaf
+from grammatical_evolution import (GrammaticalEvolutionTranslator,
+                                   grammatical_evolution)
 
 
 def string_to_dict(x):
@@ -51,7 +52,7 @@ parser.add_argument("--input_space", default=8, type=int,
                     help="Number of inputs given to the agent")
 parser.add_argument("--episodes", default=50, type=int,
                     help="Number of episodes that the agent faces in the fitness evaluation phase")
-parser.add_argument("--episode_len", default=1000, type=int,
+parser.add_argument("--episode_len", default=200, type=int,
                     help="The max length of an episode in timesteps")
 parser.add_argument("--lambda_", default=30, type=int, help="Population size")
 parser.add_argument("--generations", default=1000,
@@ -188,6 +189,7 @@ def fitness(x: PythonDT, episodes=args.episodes):
 
 if __name__ == '__main__':
     import collections
+
     from joblib import parallel_backend
 
     def fit_fcn(x):

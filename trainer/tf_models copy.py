@@ -1,25 +1,10 @@
-# Copyright (c) 2021, salesforce.com, inc.
-# All rights reserved.
-# SPDX-License-Identifier: BSD-3-Clause
-# For full license text, see the LICENSE file in the repo root
-# or https://opensource.org/licenses/BSD-3-Clause
-
 import os
-import sys
+
 import numpy as np
-from gym.spaces import Box, Dict
-# from tensorflow import keras
 import tensorflow as tf
+from gym.spaces import Box, Dict
 
-# Disable TF INFO, WARNING, and ERROR messages
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-_WORLD_MAP_NAME = "world-map"
-_WORLD_IDX_MAP_NAME = "world-idx_map"
-_MASK_NAME = "action_mask"
-
-# from RayRllib
-def add_time_dimension(padded_inputs, seq_lens):
+def add_time_dimension(padded_inputs, seq_lens, framework="tf"):
     """Adds a time dimension to padded inputs.
 
     Arguments:
@@ -36,16 +21,25 @@ def add_time_dimension(padded_inputs, seq_lens):
     # Sequence lengths have to be specified for LSTM batch inputs. The
     # input batch must be padded to the max seq length given here. That is,
     # batch_size == len(seq_lens) * max(seq_lens)
-    padded_batch_size = tf.shape(padded_inputs)[0]
-    max_seq_len = padded_batch_size // tf.shape(seq_lens)[0]
+    if framework == "tf":
+        padded_batch_size = tf.shape(padded_inputs)[0]
+        max_seq_len = padded_batch_size // tf.shape(seq_lens)[0]
 
-    # Dynamically reshape the padded batch to introduce a time dimension.
-    new_batch_size = padded_batch_size // max_seq_len
-    new_shape = ([new_batch_size, max_seq_len] +
-                 padded_inputs.get_shape().as_list()[1:])
-    last_value = tf.reshape(padded_inputs, new_shape)
-    print(f"added time dimension: {last_value}")
-    return last_value
+        # Dynamically reshape the padded batch to introduce a time dimension.
+        new_batch_size = padded_batch_size // max_seq_len
+        new_shape = ([new_batch_size, max_seq_len] +
+                     padded_inputs.get_shape().as_list()[1:])
+        return tf.reshape(padded_inputs, new_shape)
+    else:
+        NotImplementedError("Use Tensorflow!")
+
+# Disable TF INFO, WARNING, and ERROR messages
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+_WORLD_MAP_NAME = "world-map"
+_WORLD_IDX_MAP_NAME = "world-idx_map"
+_MASK_NAME = "action_mask"
+
 
 def get_flat_obs_size(obs_space):
     if isinstance(obs_space, Box):
@@ -74,8 +68,6 @@ def apply_logit_mask(logits, mask):
 
     return logits + logit_mask
 
-
-# class KerasConvLSTM(RecurrentTFModelV2):
 class KerasConvLSTM():
     """
     The model used in the paper "The AI Economist: Optimal Economic Policy
@@ -88,8 +80,8 @@ class KerasConvLSTM():
 
     custom_name = "keras_conv_lstm"
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config = None, name = None):
-        self.model_config = model_config
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+        super().__init__(obs_space, action_space, num_outputs, model_config, name)
 
         input_emb_vocab = self.model_config["custom_options"]["input_emb_vocab"]
         emb_dim = self.model_config["custom_options"]["idx_emb_dim"]
@@ -98,8 +90,6 @@ class KerasConvLSTM():
         fc_dim = self.model_config["custom_options"]["fc_dim"]
         cell_size = self.model_config["custom_options"]["lstm_cell_size"]
         generic_name = self.model_config["custom_options"].get("generic_name", None)
-
-        self.num_outputs = num_outputs
 
         self.cell_size = cell_size
 
@@ -192,7 +182,13 @@ class KerasConvLSTM():
             conv_input_idx = None
 
         logits, values, state_h_p, state_c_p, state_h_v, state_c_v = (
-            None, None, None, None, None, None, )
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
 
         # Define the policy and value function models
         for tag in ["_pol", "_val"]:
@@ -268,7 +264,8 @@ class KerasConvLSTM():
             output = tf.keras.layers.Dense(
                 self.num_outputs if tag == "_pol" else 1,
                 activation=tf.keras.activations.linear,
-                name="logits" if tag == "_pol" else "value",)(lstm_out)
+                name="logits" if tag == "_pol" else "value",
+            )(lstm_out)
 
             if tag == "_pol":
                 state_h_p, state_c_p = state_h, state_c
@@ -293,62 +290,19 @@ class KerasConvLSTM():
             + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v],
             outputs=[logits, values, state_h_p, state_c_p, state_h_v, state_c_v],
         )
-        
-        self.rnn_model.summary()
+        self.register_variables(self.rnn_model.variables)
+        # self.rnn_model.summary()
 
-    def _extract_input_list(self, dictionary: dict):
+    def _extract_input_list(self, dictionary):
         return [dictionary[k] for k in self._input_keys]
 
     def forward(self, input_dict, state, seq_lens):
-        # python3.7/site-packages/ray/rllib/models/modelv2.py
         """Adds time dimension to batch before sending inputs to forward_rnn().
 
-        You should implement forward_rnn() in your subclass.
-        
-        Call the model with the given input tensors and state.
-
-        Any complex observations (dicts, tuples, etc.) will be unpacked by
-        __call__ before being passed to forward(). To access the flattened
-        observation tensor, refer to input_dict["obs_flat"].
-
-        This method can be called any number of times. In eager execution,
-        each call to forward() will eagerly evaluate the model. In symbolic
-        execution, each call to forward creates a computation graph that
-        operates over the variables of this model (i.e., shares weights).
-
-        Custom models should override this instead of __call__.
-
-        Arguments:
-            inputs (dict): observation tensor with shape [B, T, obs_size].
-            input_dict (dict): dictionary of input tensors, including "obs",
-                "obs_flat", "prev_action", "prev_reward", "is_training"
-            input_dict (dict): obs.
-            state (list): list of state tensors, each with shape [B, T, size].
-            seq_lens (Tensor): 1d tensor holding input sequence lengths.
-
-        Returns:
-            (outputs, new_state): The model output tensor of shape
-                [B, T, num_outputs] and the list of new state tensors each with
-                shape [B, size].
-        """
-
-        # for t in self._extract_input_list(input_dict["obs"]):
-        #     print(t)
-            
-        # for t in self._extract_input_list(input_dict["obs"]):
-        #     """
-        #     t e' il contenuto del dict in dict (x.es tempo, world-idx, etc)
-        #     """
-        #     print(f"siamo qui {t}")
-        #     add_time_dimension(t, seq_lens)
-
-
-        # sys.exit(1)
-
-        output, new_state = self.__forward_rnn(
+        You should implement forward_rnn() in your subclass."""
+        output, new_state = self._forward_rnn(
             [
-                t
-                # add_time_dimension(t, seq_lens)
+                add_time_dimension(t, seq_lens)
                 for t in self._extract_input_list(input_dict["obs"])
             ],
             state,
@@ -356,9 +310,7 @@ class KerasConvLSTM():
         )
         return tf.reshape(output, [-1, self.num_outputs]), new_state
 
-    def __forward_rnn(self, inputs, state, seq_lens):
-        # print(inputs.get_shape(), state.get_shape(), seq_lens.get_shape())
-        
+    def _forward_rnn(self, inputs, state, seq_lens):
         model_out, self._value_out, h_p, c_p, h_v, c_v = self.rnn_model(
             inputs + [seq_lens] + state
         )
@@ -374,5 +326,3 @@ class KerasConvLSTM():
 
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
-
-

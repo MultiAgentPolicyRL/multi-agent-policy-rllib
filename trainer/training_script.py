@@ -29,7 +29,7 @@ def process_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--run-dir", type=str, help="Path to the directory for this run."
+        "--run-dir", type=str, help="Path to the directory for this run.", default="/home/ettore/MultiAgentPolicyRL/DT-multi-agent-policy-rllib/trainer/experiments/_original_phases/phase1"
     )
 
     args = parser.parse_args()
@@ -43,8 +43,6 @@ def process_args():
         run_configuration = yaml.safe_load(f)
 
     return run_directory, run_configuration
-
-
 def build_trainer(run_configuration):
     """Finalize the trainer config by combining the sub-configs."""
     trainer_config = run_configuration.get("trainer")

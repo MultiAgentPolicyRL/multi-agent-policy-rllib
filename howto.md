@@ -1,3 +1,21 @@
+# 9 11 2022
+- take a look on rllib core docs to understand how Ray's Core works -> so it's easier to implement a policy + algo
+- start clearing DT's code and (?) rewriting to make it ray compatible -> make tests pls! -> docs is NEEDED -> Paper refs are MANDATORY.
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------------------------------------------
+# Abandoned
 # Inside a `global_trainer`:
 - `fitness` -> it's a modified version of decision tree's fitness function
     - tf_model = kerasLSTMmodel

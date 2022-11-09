@@ -6,31 +6,26 @@ Author: Leonardo Lucio Custode
 Creation Date: 04-04-2020
 Last modified: mer 6 mag 2020, 16:30:41
 """
-from joblib import Parallel, delayed
-from scoop import futures
-import argparse
-from matplotlib import pyplot as plt
-import multiprocess
-import gym
-from dt import EpsGreedyLeaf, PythonDT
-from deap.tools import mutShuffleIndexes, mutUniformInt
-from deap import base, creator, tools, algorithms
-from functools import partial
-import pathos
 import datetime
-import numpy as np
-import re
 import os
-import sys
-import deap
 import random
+import re
+import sys
+
+import numpy as np
+from deap import base, creator, tools
 from deap.algorithms import varAnd
+from deap.tools import mutShuffleIndexes, mutUniformInt
+from joblib import Parallel, delayed
+
+from dt import EpsGreedyLeaf
+from dataclasses import dataclass
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 
 TAB = " " * 4
 
-
+@dataclass
 class ListWithParents(list):
     def __init__(self, *iterable):
         super(ListWithParents, self).__init__(*iterable)
@@ -311,7 +306,6 @@ class GrammaticalEvolutionTranslator:
 
 
 def mutate(individual, attribute, mut_rate, max_value):
-    random_number = np.random.uniform()
     """
     if random_number < 0.33:
         return ge_mutate(ind, attribute)
@@ -320,7 +314,7 @@ def mutate(individual, attribute, mut_rate, max_value):
     else:
         return mutShuffleIndexes(individual, 0.1)
     """
-    if random_number < 0.5:
+    if np.random.uniform() < 0.5:
         return mutUniformInt(individual, 0, max_value, mut_rate)
     else:
         return mutShuffleIndexes(individual, mut_rate)

@@ -6,7 +6,8 @@ Author: Leonardo Lucio Custode
 Creation Date: 08-04-2020
 Last modified: mer 6 mag 2020, 11:28:42
 """
-import abc
+from abc import abstractmethod
+
 import numpy as np
 
 
@@ -15,7 +16,7 @@ class DecisionTree:
         self.current_reward = 0
         self.last_leaf = None
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_action(self, input):
         pass
     

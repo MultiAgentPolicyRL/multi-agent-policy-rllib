@@ -1,0 +1,51 @@
+__name__: __main__
+__doc__: None
+__package__: None
+__loader__: <_frozen_importlib_external.SourceFileLoader object at 0x7f250b40d7e0>
+__spec__: None
+__annotations__: {}
+__builtins__: <module 'builtins' (built-in)>
+__file__: /home/ettore/MultiAgentPolicyRL/DT-multi-agent-policy-rllib/DT/simple_test_orthogonal.py
+__cached__: None
+os: <module 'os' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/os.py'>
+gym: <module 'gym' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/site-packages/gym/__init__.py'>
+json: <module 'json' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/json/__init__.py'>
+string: <module 'string' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/string.py'>
+datetime: <module 'datetime' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/datetime.py'>
+argparse: <module 'argparse' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/argparse.py'>
+subprocess: <module 'subprocess' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/subprocess.py'>
+np: <module 'numpy' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/site-packages/numpy/__init__.py'>
+time: <built-in function time>
+sleep: <built-in function sleep>
+random: <module 'numpy.random' from '/home/ettore/anaconda3/envs/dt/lib/python3.10/site-packages/numpy/random/__init__.py'>
+EpsGreedyLeaf: <class 'dt.decision_tree.EpsGreedyLeaf'>
+PythonDT: <class 'dt.python_decision_tree.PythonDT'>
+RandomlyInitializedEpsGreedyLeaf: <class 'dt.decision_tree.RandomlyInitializedEpsGreedyLeaf'>
+GrammaticalEvolutionTranslator: <class 'grammatical_evolution.GrammaticalEvolutionTranslator'>
+grammatical_evolution: <function grammatical_evolution at 0x7f24f34b0dc0>
+differential_evolution: <function differential_evolution at 0x7f24f34b0f70>
+string_to_dict: <function string_to_dict at 0x7f250b2d1bd0>
+parser: ArgumentParser(prog='simple_test_orthogonal.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+date: 2022-11-09_14-35-41
+logdir: logs/gym/2022-11-09_14-35-41_prwdvmsm
+logfile: logs/gym/2022-11-09_14-35-41_prwdvmsm/log.txt
+args: Namespace(jobs=1, seed=0, environment_name='LunarLander-v2', n_actions=4, learning_rate='auto', df=0.9, eps=0.05, input_space=8, episodes=50, episode_len=1000, lambda_=30, generations=1000, cxp=0.5, mp=0.5, mutation={'function': 'tools.mutUniformInt', 'low': 0, 'up': 40000, 'indpb': 0.1}, crossover={'function': 'tools.cxOnePoint'}, selection={'function': 'tools.selTournament', 'tournsize': 2}, genotype_len=100, low=-10, up=10, types=None)
+best: None
+input_space_size: 8
+lr: auto
+CLeaf: <class '__main__.CLeaf'>
+grammar: {'bt': ['<if>'], 'if': ['if <condition>:{<action>}else:{<action>}'], 'condition': ['_in_0<comp_op><const_type_0>', '_in_1<comp_op><const_type_1>', '_in_2<comp_op><const_type_2>', '_in_3<comp_op><const_type_3>', '_in_4<comp_op><const_type_4>', '_in_5<comp_op><const_type_5>', '_in_6<comp_op><const_type_6>', '_in_7<comp_op><const_type_7>'], 'action': ['out=_leaf;leaf="_leaf"', '<if>'], 'comp_op': [' < ', ' > '], 'const_type_0': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_1': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_2': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_3': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_4': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_5': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_6': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], 'const_type_7': ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']}
+types: 0,10,1,10;0,10,1,10;0,10,1,10;0,10,1,10;0,10,1,10;0,10,1,10;0,10,1,10;0,10,1,10
+index: 7
+type_: 0,10,1,10
+rng: ['0', '10', '1', '10']
+start: 0
+stop: 10
+step: 1
+divisor: 10
+consts_: ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']
+f: <_io.TextIOWrapper name='logs/gym/2022-11-09_14-35-41_prwdvmsm/log.txt' mode='a' encoding='UTF-8'>
+[2022-11-09 14:35:41.940845] New best at generation 0 with fitness (-1000.0,)
+[25247, 27562, 2653, 16968, 33506, 31845, 26537, 19877, 31234, 23465, 38232, 14315, 33075, 9127, 18470, 9158, 6214, 16417, 34902, 39446, 9631, 20325, 6472, 4832, 21639, 30942, 36687, 6599, 23186, 28453, 20722, 13400, 36210, 31261, 29012, 34167, 17071, 4081, 35959, 920, 6112, 26137, 74, 32347, 21832, 15984, 21312, 4127, 12521, 37192, 14529, 15637, 9338, 35585, 29358, 5977, 5272, 20975, 33288, 32065, 7147, 19755, 36127, 19076, 8179, 35877, 21807, 35408, 13317, 39530, 35863, 38510, 18851, 29162, 6005, 39078, 25224, 20777, 37725, 15866, 19027, 12050, 12411, 12237, 2160, 17043, 31229, 4527, 5886, 8534, 9800, 2532, 5259, 35428, 25643, 34378, 18063, 34196, 15433, 14103]
+Leaves
+{}
