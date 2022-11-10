@@ -1,6 +1,8 @@
 # Evolutionary learning of interpretable decision trees 
 This repo hosts the code of the paper [L. L. Custode and G. Iacca, Evolutionary learning of interpretable decision trees. 2020](https://arxiv.org/abs/2012.07723).
 
+Python 3.7.13
+
 ``@misc{custode2020evolutionary,
       title={Evolutionary learning of interpretable decision trees},
       author={Leonardo Lucio Custode and Giovanni Iacca},

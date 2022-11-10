@@ -2,7 +2,6 @@ import argparse
 import datetime
 import os
 import string
-from time import sleep, time
 
 import gym
 import numpy as np
@@ -139,6 +138,25 @@ with open(logfile, "a") as f:
 
 # Definition of the fitness evaluation function
 def evaluate_fitness(fitness_function, leaf, genotype, episodes=args.episodes):
+    """
+    Fitness eval fun. NOT DOCUMENTED 3.1.5
+
+    Args:
+        fitness_function: desc
+        leaf:
+        genotype: 
+        episodes: 
+
+    Returns:
+    
+    Raises:
+
+    From `2012.07723 :  
+        The Fitness evaluation process consists in the following steps:
+        - The genotype is translated to the corresponding phenotype.
+        - The policy encoded by the tree is executed and the reward signals obtained
+         from the environment are used to update the Q-values of the leaves.
+    """
     phenotype, _ = GrammaticalEvolutionTranslator(
         grammar).genotype_to_str(genotype)
     bt = PythonDT(phenotype, leaf)
@@ -188,8 +206,6 @@ def fitness(x: PythonDT, episodes=args.episodes):
 
 
 if __name__ == '__main__':
-    import collections
-
     from joblib import parallel_backend
 
     def fit_fcn(x):
