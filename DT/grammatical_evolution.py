@@ -132,17 +132,6 @@ class GrammaticalEvolutionTranslator:
         return string, genes_used
 
 
-# TODO MASTER 1: understand how to remove this good boy and start working
-# on how to use this with ray.
-def get_map(jobs, timeout=None):
-
-    def map_(f, args):
-        # print(f"ARGS: {args}")
-        return Parallel(jobs, timeout=timeout)(delayed(f)(i) for i in args)
-
-    return map_
-
-
 def varAnd(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb):
     # FIXME: `cxpb`, `mutpb` pb: probability, mut: mutation, cx=? -> add type ref
     """Part of an evolutionary algorithm applying only the variation part
@@ -435,7 +424,6 @@ def grammatical_evolution(fitness_function,
                               'individual': None
                           },
                           seed=0,
-                          jobs=1,
                           logfile=None,
                           timeout=10 * 60):
     """
@@ -478,8 +466,9 @@ def grammatical_evolution(fitness_function,
     toolbox.register("attr_bool", random.randint, 0, _max_value)
 
     # Structure initializers
-    if jobs > 1:
-        toolbox.register("map", get_map(jobs, timeout))
+    # FIXME how to distribute on ray?
+    # if jobs > 1:
+    #     toolbox.register("map", get_map(jobs, timeout))
     
     toolbox.register("individual", tools.initRepeat, creator.Individual,
                      toolbox.attr_bool, initial_len)

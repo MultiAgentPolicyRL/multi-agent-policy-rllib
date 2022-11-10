@@ -289,22 +289,21 @@ if __name__ == '__main__':
     def fit_fcn(x):
         return evaluate_fitness(fitness, x)
 
-    with parallel_backend("multiprocessing"):
-        pop, log, hof, best_leaves = grammatical_evolution(
-            fit_fcn,
-            inputs=input_space_size,
-            leaf=CLeaf,
-            individuals=args.lambda_,
-            generations=args.generations,
-            jobs=args.jobs,
-            cx_prob=args.cxp,
-            m_prob=args.mp,
-            logfile=logfile,
-            seed=args.seed,
-            mutation=args.mutation,
-            crossover=args.crossover,
-            initial_len=args.genotype_len,
-            selection=args.selection)
+    # with parallel_backend("multiprocessing"):
+    pop, log, hof, best_leaves = grammatical_evolution(
+        fit_fcn,
+        inputs=input_space_size,
+        leaf=CLeaf,
+        individuals=args.lambda_,
+        generations=args.generations,
+        cx_prob=args.cxp,
+        m_prob=args.mp,
+        logfile=logfile,
+        seed=args.seed,
+        mutation=args.mutation,
+        crossover=args.crossover,
+        initial_len=args.genotype_len,
+        selection=args.selection)
 
     # Log best individual
 
@@ -326,5 +325,6 @@ if __name__ == '__main__':
         log_.write(str(hof[0]) + "\n")
         log_.write(phenotype + "\n")
         log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
+
     with open(os.path.join(logdir, "fitness.tsv"), "w") as f:
         f.write(str(log))
