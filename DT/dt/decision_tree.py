@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 """
 Implementation of the abstract class BehaviourTree
 
@@ -99,13 +98,14 @@ class RandomlyInitializedEpsGreedyLeaf(EpsGreedyLeaf):
     def __init__(self, n_actions, learning_rate, discount_factor, epsilon, low=-100, up=100):
         """
         Initialize the leaf.
-        Params:
-            - n_actions: The number of actions
-            - learning_rate: the learning rate to use, callable or float
-            - discount_factor: the discount factor, float
-            - epsilon: epsilon parameter for the random choice
-            - low: lower bound for the initialization
-            - up: upper bound for the initialization
+        
+        Args:
+            n_actions: The number of actions
+            learning_rate: the learning rate to use, callable or float
+            discount_factor: the discount factor, float
+            epsilon: epsilon parameter for the random choice
+            low: lower bound for the initialization
+            up: upper bound for the initialization
         """
         super(RandomlyInitializedEpsGreedyLeaf, self).__init__(n_actions, learning_rate, discount_factor, epsilon)
         self.q = np.random.uniform(low, up, n_actions)

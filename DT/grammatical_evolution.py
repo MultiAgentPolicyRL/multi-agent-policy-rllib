@@ -5,7 +5,7 @@ import re
 import numpy as np
 import deap
 from deap import base, creator, tools
-from deap.algorithms import varAnd
+# from deap.algorithms import varAnd
 from deap.tools import mutShuffleIndexes, mutUniformInt
 from joblib import Parallel, delayed
 
@@ -13,17 +13,133 @@ from dataclasses import dataclass
 
 TAB = " " * 4
 
+
 @dataclass
 class ListWithParents(list):
+
     def __init__(self, *iterable):
         super(ListWithParents, self).__init__(*iterable)
         self.parents = []
 
-# TODO MASTER 1: understand how to remove this good boy and start working 
+
+class GrammaticalEvolutionTranslator:
+
+    def __init__(self, grammar):
+        """
+        Initializes a new instance of the Grammatical Evolution
+        :param grammar: A dictionary containing the rules of the grammar and their production
+        """
+        self.operators = grammar
+
+    def _find_candidates(self, string):
+        """
+        Args:
+            string -> str: FIXME probably a string containing the DT
+
+        Returns:
+            Returns a list of all non-overlappign mathes in the string.
+        """
+        return re.findall("<[^> ]+>", string)
+
+    def _find_replacement(self, candidate: str, gene):
+        """
+        FIXME: description
+
+        Args:
+            candidate: str: 
+            gene:
+        
+        Returns:
+
+        """
+        key = candidate.replace("<", "").replace(">", "")
+        value = self.operators[key][gene % len(self.operators[key])]
+        return value
+
+    def _fix_indentation(self, string):
+        """
+        Changes indentation for better readability.
+
+        Args:
+            string: 
+
+        Returns:
+            FIXME: check returned type!
+        """
+        # If parenthesis are present in the outermost block, remove them
+        if string[0] == "{":
+            string = string[1:-1]
+
+        # Split in lines
+        string = string.replace(";", "\n")
+        string = string.replace("{", "{\n")
+        string = string.replace("}", "}\n")
+        lines = string.split("\n")
+
+        fixed_lines = []
+        n_tabs = 0
+
+        # Fix lines
+        for line in lines:
+            if len(line) > 0:
+                fixed_lines.append(TAB * n_tabs +
+                                   line.replace("{", "").replace("}", ""))
+
+                if line[-1] == "{":
+                    n_tabs += 1
+                while len(line) > 0 and line[-1] == "}":
+                    n_tabs -= 1
+                    line = line[:-1]
+                if n_tabs >= 100:
+                    return "None"
+
+        return "\n".join(fixed_lines)
+
+    def genotype_to_str(self, genotype):
+        """ 
+        This method translates a genotype into an executable program (python)
+        FIXME
+        Args:
+            genotype:
+
+        Returns:
+            string:
+            genes_used: TODO
+        """
+        string = "<bt>"
+        candidates = [None]
+        ctr = 0
+        _max_trials = 1
+        genes_used = 0
+
+        # Generate phenotype starting from the genotype
+        # If the individual runs out of genes, it restarts from the beginning, as suggested by Ryan et al 1998
+        # TODO: ctr <= _max_trials to !=
+        while len(candidates) > 0 and ctr <= _max_trials:
+            if ctr == _max_trials:
+                return "", len(genotype)
+            for gene in genotype:
+                candidates = self._find_candidates(string)
+                if len(candidates) > 0:
+                    value = self._find_replacement(candidates[0], gene)
+                    string = string.replace(candidates[0], value, 1)
+                    genes_used += 1
+                else:
+                    break
+            ctr += 1
+
+        string = self._fix_indentation(string)
+        return string, genes_used
+
+
+# TODO MASTER 1: understand how to remove this good boy and start working
 # on how to use this with ray.
 def get_map(jobs, timeout=None):
+
     def map_(f, args):
+        # print(f"ARGS: {args}")
         return Parallel(jobs, timeout=timeout)(delayed(f)(i) for i in args)
+
     return map_
 
 
@@ -70,8 +186,9 @@ def varAnd(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb):
     # Step 2
     for i in range(1, len(offspring), 2):
         if random.random() < cxpb:
-            offspring[i - 1], offspring[i] = toolbox.mate(offspring[i - 1], offspring[i])
-            offspring[i-1].parents.append(i)
+            offspring[i - 1], offspring[i] = toolbox.mate(
+                offspring[i - 1], offspring[i])
+            offspring[i - 1].parents.append(i)
             offspring[i].parents.append(i - 1)
             del offspring[i - 1].fitness.values, offspring[i].fitness.values
 
@@ -84,8 +201,16 @@ def varAnd(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb):
     return offspring
 
 
-def eaSimple(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb, ngen, stats:deap.tools.Statistics=None,
-             halloffame:deap.tools.HallOfFame=None, verbose=__debug__, logfile=None, var=varAnd):
+def eaSimple(population: list,
+             toolbox: deap.base.Toolbox,
+             cxpb,
+             mutpb,
+             ngen,
+             stats: deap.tools.Statistics = None,
+             halloffame: deap.tools.HallOfFame = None,
+             verbose=__debug__,
+             logfile=None,
+             var=varAnd):
     """This algorithm reproduce the simplest evolutionary algorithm as
     presented in chapter 7 of [Back2000]_.
 
@@ -162,8 +287,9 @@ def eaSimple(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb, ngen, st
             best = fit[0]
             best_leaves = leaves[i]
             with open(logfile, "a") as log_:
-                log_.write("[{}] New best at generation 0 with fitness {}\n".format(
-                    datetime.datetime.now(), fit))
+                log_.write(
+                    "[{}] New best at generation 0 with fitness {}\n".format(
+                        datetime.datetime.now(), fit))
                 log_.write(str(ind) + "\n")
                 log_.write("Leaves\n")
                 log_.write(str(leaves[i]) + "\n")
@@ -197,8 +323,9 @@ def eaSimple(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb, ngen, st
                 best = fit[0]
                 best_leaves = leaves[i]
                 with open(logfile, "a") as log_:
-                    log_.write("[{}] New best at generation {} with fitness {}\n".format(
-                        datetime.datetime.now(), gen, fit))
+                    log_.write(
+                        "[{}] New best at generation {} with fitness {}\n".
+                        format(datetime.datetime.now(), gen, fit))
                     log_.write(str(ind) + "\n")
                     log_.write("Leaves\n")
                     log_.write(str(leaves[i]) + "\n")
@@ -212,7 +339,8 @@ def eaSimple(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb, ngen, st
             argmin = np.argmin(
                 map(lambda x: population[x].fitness.values[0], o.parents))
 
-            if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+            if o.fitness.values[0] > population[
+                    o.parents[argmin]].fitness.values[0]:
                 population[o.parents[argmin]] = o
 
         # Append the current generation statistics to the logbook
@@ -222,117 +350,6 @@ def eaSimple(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb, ngen, st
             print(logbook.stream)
 
     return population, logbook, best_leaves
-
-
-class GrammaticalEvolutionTranslator:
-    def __init__(self, grammar):
-        """
-        Initializes a new instance of the Grammatical Evolution
-        :param grammar: A dictionary containing the rules of the grammar and their production
-        """
-        self.operators = grammar
-
-    def _find_candidates(self, string):
-        """
-        Args:
-            string -> str: FIXME probably a string containing the DT
-
-        Returns:
-            Returns a list of all non-overlappign mathes in the string.
-        """
-        return re.findall("<[^> ]+>", string)
-
-    def _find_replacement(self, candidate: str, gene):
-        """
-        FIXME: description
-
-        Args:
-            candidate: str: 
-            gene:
-        
-        Returns:
-
-        """
-        key = candidate.replace("<", "").replace(">", "")
-        value = self.operators[key][gene % len(self.operators[key])]
-        return value
-
-    def _fix_indentation(self, string):
-        """
-        Changes indentation for better readability.
-
-        Args:
-            string: 
-
-        Returns:
-            FIXME: check returned type!
-        """
-        # If parenthesis are present in the outermost block, remove them
-        if string[0] == "{":
-            string = string[1:-1]
-
-        # Split in lines
-        string = string.replace(";", "\n")
-        string = string.replace("{", "{\n")
-        string = string.replace("}", "}\n")
-        lines = string.split("\n")
-
-        fixed_lines = []
-        n_tabs = 0
-
-        # Fix lines
-        for line in lines:
-            if len(line) > 0:
-                fixed_lines.append(
-                    TAB * n_tabs + line.replace("{", "").replace("}", ""))
-
-                if line[-1] == "{":
-                    n_tabs += 1
-                while len(line) > 0 and line[-1] == "}":
-                    n_tabs -= 1
-                    line = line[:-1]
-                if n_tabs >= 100:
-                    return "None"
-
-        return "\n".join(fixed_lines)
-
-    def genotype_to_str(self, genotype):
-        """ 
-        This method translates a genotype into an executable program (python)
-        FIXME
-        Args:
-            genotype:
-
-        Returns:
-            string:
-            genes_used: TODO
-        """
-        string = "<bt>"
-        candidates = [None]
-        ctr = 0
-        _max_trials = 1
-        genes_used = 0
-
-        # Generate phenotype starting from the genotype
-        # If the individual runs out of genes, it restarts from the beginning, as suggested by Ryan et al 1998
-        # TODO: ctr <= _max_trials to !=
-        while len(candidates) > 0 and ctr <= _max_trials:
-            if ctr == _max_trials:
-                return "", len(genotype)
-            for gene in genotype:
-                candidates = self._find_candidates(string)
-                if len(candidates) > 0:
-                    value = self._find_replacement(candidates[0], gene)
-                    string = string.replace(candidates[0], value, 1)
-                    genes_used += 1
-                else:
-                    break
-            ctr += 1
-
-        string = self._fix_indentation(string)
-        return string, genes_used
-
-    
 
 
 def mutate(individual, attribute, mut_rate, max_value):
@@ -367,8 +384,8 @@ def ge_mate(ind1, ind2, individual):
     if random.random() < 0.5:
         new_offspring = []
         for idx, ind in enumerate([ind1, ind2]):
-            _, used = GrammaticalEvolutionTranslator(
-                1, [object], [0]).genotype_to_str(ind)
+            _, used = GrammaticalEvolutionTranslator(1, [object],
+                                                     [0]).genotype_to_str(ind)
             if used > len(ind):
                 used = len(ind)
             new_offspring.append(individual(offspring[idx][:used]))
@@ -400,44 +417,60 @@ def ge_mutate(ind, attribute):
     return ind,
 
 
-def grammatical_evolution(fitness_function, inputs, leaf, individuals, generations,
-                          cx_prob, m_prob, initial_len=100,
+def grammatical_evolution(fitness_function,
+                          inputs,
+                          leaf,
+                          individuals,
+                          generations,
+                          cx_prob,
+                          m_prob,
+                          initial_len=100,
                           selection={'function': "tools.selBest"},
-                          mutation={'function': "ge_mutate",
-                                    'attribute': None},
-                          crossover={'function': "ge_mate",
-                                     'individual': None},
-                          seed=0, jobs=1, logfile=None, timeout=10*60):
+                          mutation={
+                              'function': "ge_mutate",
+                              'attribute': None
+                          },
+                          crossover={
+                              'function': "ge_mate",
+                              'individual': None
+                          },
+                          seed=0,
+                          jobs=1,
+                          logfile=None,
+                          timeout=10 * 60):
     """
-    FIXME:
+    FIXME: add description
 
     Args:
-        fitness_function:
-        inputs:
-        leaf:
-        individuals:
-        generations:
-        cx_prob:
-        m_prob:
-        initial_len:
-        sleection:
-        mutation:
-        crossover:
-        seed:
-        jobs:
+        fitness_function: fit_fcn(x) >> evaluate_fitness(fitness, x) >> fitness(x: PythonDT, episodes=args.episodes)
+        inputs: input space size
+        leaf: leaf class 
+        individuals: population size
+        generations: Number of generations
+        cx_prob: Crossover probability
+        m_prob: Mutation probability
+        initial_len: Length of the fixed-length genotype
+        selection: Selection operator, see Mutation operator. Default: tournament of size 2
+        mutation: Mutation operator. String in the format function-value#function_param_-value_1... The operators from the DEAP library can be used by setting the function to 'function-tools.<operator_name>'. Default: Uniform Int Mutation
+        crossover: Crossover operator, see Mutation operator. Default: One point
+        seed: seed
+        jobs: n_jobs for parallel distribution
         logfile:
         timeout:
 
     Returns:
+        TODO
     """
     random.seed(seed)
     np.random.seed(seed)
 
     _max_value = 40000
 
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", ListWithParents,
-                   typecode='d', fitness=creator.FitnessMax)
+    creator.create("FitnessMax", base.Fitness, weights=(1.0, ))
+    creator.create("Individual",
+                   ListWithParents,
+                   typecode='d',
+                   fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
 
@@ -447,9 +480,9 @@ def grammatical_evolution(fitness_function, inputs, leaf, individuals, generatio
     # Structure initializers
     if jobs > 1:
         toolbox.register("map", get_map(jobs, timeout))
-        # toolbox.register("map", multiprocess.Pool(jobs).map)
-    toolbox.register("individual", tools.initRepeat,
-                     creator.Individual, toolbox.attr_bool, initial_len)
+    
+    toolbox.register("individual", tools.initRepeat, creator.Individual,
+                     toolbox.attr_bool, initial_len)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
     toolbox.register("evaluate", fitness_function)
@@ -460,12 +493,15 @@ def grammatical_evolution(fitness_function, inputs, leaf, individuals, generatio
         if "individual" in d:
             d['individual'] = creator.Individual
 
-    toolbox.register("mate", eval(
-        crossover['function']), **{k: v for k, v in crossover.items() if k != "function"})
-    toolbox.register("mutate", eval(
-        mutation['function']), **{k: v for k, v in mutation.items() if k != "function"})
-    toolbox.register("select", eval(
-        selection['function']), **{k: v for k, v in selection.items() if k != "function"})
+    toolbox.register("mate", eval(crossover['function']),
+                     **{k: v
+                        for k, v in crossover.items() if k != "function"})
+    toolbox.register("mutate", eval(mutation['function']),
+                     **{k: v
+                        for k, v in mutation.items() if k != "function"})
+    toolbox.register("select", eval(selection['function']),
+                     **{k: v
+                        for k, v in selection.items() if k != "function"})
 
     pop = toolbox.population(n=individuals)
     hof = tools.HallOfFame(1)
@@ -475,8 +511,15 @@ def grammatical_evolution(fitness_function, inputs, leaf, individuals, generatio
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    pop, log, best_leaves = eaSimple(pop, toolbox, cxpb=cx_prob, mutpb=m_prob, ngen=generations,
-                                     stats=stats, halloffame=hof, verbose=True, logfile=logfile)
+    pop, log, best_leaves = eaSimple(pop,
+                                     toolbox,
+                                     cxpb=cx_prob,
+                                     mutpb=m_prob,
+                                     ngen=generations,
+                                     stats=stats,
+                                     halloffame=hof,
+                                     verbose=True,
+                                     logfile=logfile)
 
     return pop, log, hof, best_leaves
 
@@ -497,7 +540,8 @@ def varDE(population, toolbox, cxpb, mutpb):
         o.parents = [i]
 
     b = sorted(range(len(offspring)),
-               key=lambda x: offspring[x].fitness, reverse=True)[0]
+               key=lambda x: offspring[x].fitness,
+               reverse=True)[0]
 
     # Apply crossover and mutation on the offspring
     for i in range(len(offspring)):
@@ -512,9 +556,7 @@ def varDE(population, toolbox, cxpb, mutpb):
         elif offspring[l].fitness > offspring[j].fitness:
             j, l = l, j
         """
-        offspring[i] = toolbox.mate(offspring[j],
-                                    offspring[k],
-                                    offspring[l],
+        offspring[i] = toolbox.mate(offspring[j], offspring[k], offspring[l],
                                     offspring[i])
         offspring[i].parents.append(i)
         del offspring[i].fitness.values
@@ -543,60 +585,88 @@ def de_mate(a, b, c, x, F, CR, individual):
     return individual(x)
 
 
-def differential_evolution(fitness_function, inputs, leaf, individuals, generations, cx_prob, m_prob, initial_len=100, selection=None, mutation=None, crossover=None, seed=0, jobs=1, logfile=None, F=1.2, CR=0.9, timeout=10*60):
-    """
-    NOTE: cx_prob and m_prob are not used here. They are present just to keep the compatibility with the interface
-    """
-    random.seed(seed)
-    np.random.seed(seed)
+# def differential_evolution(fitness_function,
+#                            inputs,
+#                            leaf,
+#                            individuals,
+#                            generations,
+#                            cx_prob,
+#                            m_prob,
+#                            initial_len=100,
+#                            selection=None,
+#                            mutation=None,
+#                            crossover=None,
+#                            seed=0,
+#                            jobs=1,
+#                            logfile=None,
+#                            F=1.2,
+#                            CR=0.9,
+#                            timeout=10 * 60):
+#     """
+#     NOTE: cx_prob and m_prob are not used here. They are present just to keep the compatibility with the interface
+#     """
+#     random.seed(seed)
+#     np.random.seed(seed)
 
-    _max_value = 40000
+#     _max_value = 40000
 
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", ListWithParents,
-                   typecode='d', fitness=creator.FitnessMax)
+#     creator.create("FitnessMax", base.Fitness, weights=(1.0, ))
+#     creator.create("Individual",
+#                    ListWithParents,
+#                    typecode='d',
+#                    fitness=creator.FitnessMax)
 
-    toolbox = base.Toolbox()
+#     toolbox = base.Toolbox()
 
-    # Attribute generator
-    toolbox.register("attr_bool", random.randint, 0, _max_value)
+#     # Attribute generator
+#     toolbox.register("attr_bool", random.randint, 0, _max_value)
 
-    # Structure initializers
-    if jobs > 1:
-        toolbox.register("map", get_map(jobs, timeout))
-        # toolbox.register("map", multiprocess.Pool(jobs).map)
-    toolbox.register("individual", tools.initRepeat,
-                     creator.Individual, toolbox.attr_bool, initial_len)
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+#     # Structure initializers
+#     if jobs > 1:
+#         toolbox.register("map", get_map(jobs, timeout))
+#         # toolbox.register("map", multiprocess.Pool(jobs).map)
+#     toolbox.register("individual", tools.initRepeat, creator.Individual,
+#                      toolbox.attr_bool, initial_len)
+#     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-    toolbox.register("evaluate", fitness_function)
+#     toolbox.register("evaluate", fitness_function)
 
-    for d in [mutation, crossover]:
-        if "attribute" in d:
-            d['attribute'] = toolbox.attr_bool
-        if "individual" in d:
-            d['individual'] = creator.Individual
+#     for d in [mutation, crossover]:
+#         if "attribute" in d:
+#             d['attribute'] = toolbox.attr_bool
+#         if "individual" in d:
+#             d['individual'] = creator.Individual
 
-    toolbox.register("mate", de_mate, CR=CR, F=F,
-                     individual=creator.Individual)
-    toolbox.register("select", tools.selRandom)
+#     toolbox.register("mate",
+#                      de_mate,
+#                      CR=CR,
+#                      F=F,
+#                      individual=creator.Individual)
+#     toolbox.register("select", tools.selRandom)
 
-    pop = toolbox.population(n=individuals)
-    hof = tools.HallOfFame(1)
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", np.mean)
-    stats.register("std", np.std)
-    stats.register("min", np.min)
-    stats.register("max", np.max)
+#     pop = toolbox.population(n=individuals)
+#     hof = tools.HallOfFame(1)
+#     stats = tools.Statistics(lambda ind: ind.fitness.values)
+#     stats.register("avg", np.mean)
+#     stats.register("std", np.std)
+#     stats.register("min", np.min)
+#     stats.register("max", np.max)
 
-    pop, log, best_leaves = eaSimple(pop, toolbox, cxpb=cx_prob, mutpb=m_prob, ngen=generations,
-                                     stats=stats, halloffame=hof, verbose=True, logfile=logfile, var=varDE)
+#     pop, log, best_leaves = eaSimple(pop,
+#                                      toolbox,
+#                                      cxpb=cx_prob,
+#                                      mutpb=m_prob,
+#                                      ngen=generations,
+#                                      stats=stats,
+#                                      halloffame=hof,
+#                                      verbose=True,
+#                                      logfile=logfile,
+#                                      var=varDE)
 
-    return pop, log, hof, best_leaves
+#     return pop, log, hof, best_leaves
 
 
-
-# TODO: move this in a unit test module. 
+# TODO: move this in a unit test module.
 # if __name__ == '__main__':
 #     import sys
 

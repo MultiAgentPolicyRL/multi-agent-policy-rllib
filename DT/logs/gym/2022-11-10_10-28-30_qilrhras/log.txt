@@ -1,35 +1,29 @@
 __name__: __main__
 __doc__: None
 __package__: None
-__loader__: <_frozen_importlib_external.SourceFileLoader object at 0x7f3d93c6c8d0>
+__loader__: <_frozen_importlib_external.SourceFileLoader object at 0x7f37675907d0>
 __spec__: None
 __annotations__: {}
 __builtins__: <module 'builtins' (built-in)>
 __file__: simple_test_orthogonal.py
 __cached__: None
-os: <module 'os' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/os.py'>
-gym: <module 'gym' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/site-packages/gym/__init__.py'>
-json: <module 'json' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/json/__init__.py'>
-string: <module 'string' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/string.py'>
-datetime: <module 'datetime' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/datetime.py'>
-argparse: <module 'argparse' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/argparse.py'>
-subprocess: <module 'subprocess' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/subprocess.py'>
-np: <module 'numpy' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/site-packages/numpy/__init__.py'>
-time: <built-in function time>
-sleep: <built-in function sleep>
-random: <module 'numpy.random' from '/home/ettore/miniconda3/envs/geqdts/lib/python3.7/site-packages/numpy/random/__init__.py'>
-EpsGreedyLeaf: <class 'dt.decision_tree.EpsGreedyLeaf'>
+argparse: <module 'argparse' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/argparse.py'>
+datetime: <module 'datetime' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/datetime.py'>
+os: <module 'os' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/os.py'>
+string: <module 'string' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/string.py'>
+gym: <module 'gym' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/site-packages/gym/__init__.py'>
+np: <module 'numpy' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/site-packages/numpy/__init__.py'>
+random: <module 'numpy.random' from '/home/ettore/anaconda3/envs/dt/lib/python3.7/site-packages/numpy/random/__init__.py'>
 PythonDT: <class 'dt.python_decision_tree.PythonDT'>
 RandomlyInitializedEpsGreedyLeaf: <class 'dt.decision_tree.RandomlyInitializedEpsGreedyLeaf'>
 GrammaticalEvolutionTranslator: <class 'grammatical_evolution.GrammaticalEvolutionTranslator'>
-grammatical_evolution: <function grammatical_evolution at 0x7f3d71119710>
-differential_evolution: <function differential_evolution at 0x7f3d711198c0>
-string_to_dict: <function string_to_dict at 0x7f3d93b69b00>
+grammatical_evolution: <function grammatical_evolution at 0x7f3766b2d7a0>
+string_to_dict: <function string_to_dict at 0x7f376748ecb0>
 parser: ArgumentParser(prog='simple_test_orthogonal.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
-date: 2022-10-24_19-36-41
-logdir: logs/gym/2022-10-24_19-36-41_zugiygab
-logfile: logs/gym/2022-10-24_19-36-41_zugiygab/log.txt
-args: Namespace(crossover={'function': 'tools.cxOnePoint'}, cxp=0.0, df=0.05, environment_name='CartPole-v1', episode_len=1000, episodes=10, eps=0.05, generations=100, genotype_len=100, input_space=4, jobs=12, lambda_=200, learning_rate='0.001', low=-1.0, mp=1.0, mutation={'function': 'tools.mutUniformInt', 'low': 0, 'up': 40000, 'indpb': 0.1}, n_actions=2, seed=12, selection={'function': 'tools.selTournament', 'tournsize': 2}, types='#-48,48,5,10;-50,50,5,10;-418,418,5,1000;-836,836,5,1000', up=1.0)
+date: 2022-11-10_10-28-30
+logdir: logs/gym/2022-11-10_10-28-30_qilrhras
+logfile: logs/gym/2022-11-10_10-28-30_qilrhras/log.txt
+args: Namespace(crossover={'function': 'tools.cxOnePoint'}, cxp=0.0, df=0.05, environment_name='CartPole-v1', episode_len=200, episodes=10, eps=0.05, generations=100, genotype_len=100, input_space=4, jobs=1, lambda_=200, learning_rate='0.001', low=-1.0, mp=1.0, mutation={'function': 'tools.mutUniformInt', 'low': 0, 'up': 40000, 'indpb': 0.1}, n_actions=2, seed=2, selection={'function': 'tools.selTournament', 'tournsize': 2}, types='#-48,48,5,10;-50,50,5,10;-418,418,5,1000;-836,836,5,1000', up=1.0)
 best: None
 input_space_size: 4
 lr: 0.001
@@ -44,4 +38,48 @@ stop: 836
 step: 5
 divisor: 1000
 consts_: ['-0.836', '-0.831', '-0.826', '-0.821', '-0.816', '-0.811', '-0.806', '-0.801', '-0.796', '-0.791', '-0.786', '-0.781', '-0.776', '-0.771', '-0.766', '-0.761', '-0.756', '-0.751', '-0.746', '-0.741', '-0.736', '-0.731', '-0.726', '-0.721', '-0.716', '-0.711', '-0.706', '-0.701', '-0.696', '-0.691', '-0.686', '-0.681', '-0.676', '-0.671', '-0.666', '-0.661', '-0.656', '-0.651', '-0.646', '-0.641', '-0.636', '-0.631', '-0.626', '-0.621', '-0.616', '-0.611', '-0.606', '-0.601', '-0.596', '-0.591', '-0.586', '-0.581', '-0.576', '-0.571', '-0.566', '-0.561', '-0.556', '-0.551', '-0.546', '-0.541', '-0.536', '-0.531', '-0.526', '-0.521', '-0.516', '-0.511', '-0.506', '-0.501', '-0.496', '-0.491', '-0.486', '-0.481', '-0.476', '-0.471', '-0.466', '-0.461', '-0.456', '-0.451', '-0.446', '-0.441', '-0.436', '-0.431', '-0.426', '-0.421', '-0.416', '-0.411', '-0.406', '-0.401', '-0.396', '-0.391', '-0.386', '-0.381', '-0.376', '-0.371', '-0.366', '-0.361', '-0.356', '-0.351', '-0.346', '-0.341', '-0.336', '-0.331', '-0.326', '-0.321', '-0.316', '-0.311', '-0.306', '-0.301', '-0.296', '-0.291', '-0.286', '-0.281', '-0.276', '-0.271', '-0.266', '-0.261', '-0.256', '-0.251', '-0.246', '-0.241', '-0.236', '-0.231', '-0.226', '-0.221', '-0.216', '-0.211', '-0.206', '-0.201', '-0.196', '-0.191', '-0.186', '-0.181', '-0.176', '-0.171', '-0.166', '-0.161', '-0.156', '-0.151', '-0.146', '-0.141', '-0.136', '-0.131', '-0.126', '-0.121', '-0.116', '-0.111', '-0.106', '-0.101', '-0.096', '-0.091', '-0.086', '-0.081', '-0.076', '-0.071', '-0.066', '-0.061', '-0.056', '-0.051', '-0.046', '-0.041', '-0.036', '-0.031', '-0.026', '-0.021', '-0.016', '-0.011', '-0.006', '-0.001', '0.004', '0.009', '0.014', '0.019', '0.024', '0.029', '0.034', '0.039', '0.044', '0.049', '0.054', '0.059', '0.064', '0.069', '0.074', '0.079', '0.084', '0.089', '0.094', '0.099', '0.104', '0.109', '0.114', '0.119', '0.124', '0.129', '0.134', '0.139', '0.144', '0.149', '0.154', '0.159', '0.164', '0.169', '0.174', '0.179', '0.184', '0.189', '0.194', '0.199', '0.204', '0.209', '0.214', '0.219', '0.224', '0.229', '0.234', '0.239', '0.244', '0.249', '0.254', '0.259', '0.264', '0.269', '0.274', '0.279', '0.284', '0.289', '0.294', '0.299', '0.304', '0.309', '0.314', '0.319', '0.324', '0.329', '0.334', '0.339', '0.344', '0.349', '0.354', '0.359', '0.364', '0.369', '0.374', '0.379', '0.384', '0.389', '0.394', '0.399', '0.404', '0.409', '0.414', '0.419', '0.424', '0.429', '0.434', '0.439', '0.444', '0.449', '0.454', '0.459', '0.464', '0.469', '0.474', '0.479', '0.484', '0.489', '0.494', '0.499', '0.504', '0.509', '0.514', '0.519', '0.524', '0.529', '0.534', '0.539', '0.544', '0.549', '0.554', '0.559', '0.564', '0.569', '0.574', '0.579', '0.584', '0.589', '0.594', '0.599', '0.604', '0.609', '0.614', '0.619', '0.624', '0.629', '0.634', '0.639', '0.644', '0.649', '0.654', '0.659', '0.664', '0.669', '0.674', '0.679', '0.684', '0.689', '0.694', '0.699', '0.704', '0.709', '0.714', '0.719', '0.724', '0.729', '0.734', '0.739', '0.744', '0.749', '0.754', '0.759', '0.764', '0.769', '0.774', '0.779', '0.784', '0.789', '0.794', '0.799', '0.804', '0.809', '0.814', '0.819', '0.824', '0.829', '0.834']
-f: <_io.TextIOWrapper name='logs/gym/2022-10-24_19-36-41_zugiygab/log.txt' mode='a' encoding='UTF-8'>
+f: <_io.TextIOWrapper name='logs/gym/2022-11-10_10-28-30_qilrhras/log.txt' mode='a' encoding='UTF-8'>
+[2022-11-10 10:28:31.348006] New best at generation 0 with fitness (9.1,)
+Individual()
+Leaves
+{'leaf_0': -0.03, -0.95, 'leaf_1': 0.10, -0.13, 'leaf_2': -0.16, -0.34, 'leaf_3': -0.59, 0.24, 'leaf_4': -0.40, -0.47, 'leaf_5': 0.24, 0.06, 'leaf_6': -0.73, 0.03, 'leaf_7': -0.63, 0.57}
+[2022-11-10 10:28:31.348198] New best at generation 0 with fitness (10.1,)
+Individual()
+Leaves
+{'leaf_0': -0.13, -0.95, 'leaf_1': 0.10, -0.13, 'leaf_2': -0.16, -0.34, 'leaf_3': -0.59, 0.24, 'leaf_4': -0.40, -0.47, 'leaf_5': 0.24, 0.06, 'leaf_6': -0.73, 0.12}
+[2022-11-10 10:28:31.348330] New best at generation 0 with fitness (11.8,)
+Individual()
+Leaves
+{'leaf_0': -0.16, 0.20, 'leaf_1': -0.79, -0.26, 'leaf_2': -0.57, 0.64, 'leaf_3': 0.62, 0.11, 'leaf_4': 0.79, 0.86}
+[2022-11-10 10:28:31.348455] New best at generation 0 with fitness (22.1,)
+Individual()
+Leaves
+{'leaf_0': -0.13, -0.95, 'leaf_1': 0.10, -0.13, 'leaf_2': -0.05, -0.34, 'leaf_3': -0.59, 0.24, 'leaf_4': -0.39, -0.46, 'leaf_5': 0.24, 0.06, 'leaf_6': -0.73, 0.13}
+[2022-11-10 10:28:31.348594] New best at generation 0 with fitness (49.0,)
+Individual()
+Leaves
+{'leaf_0': -0.13, -0.95, 'leaf_1': 0.10, -0.13, 'leaf_2': -0.16, -0.34, 'leaf_3': -0.59, 0.24, 'leaf_4': -0.40, -0.47, 'leaf_5': 0.40, 0.07, 'leaf_6': -0.72, 0.23}
+[2022-11-10 10:28:31.348742] New best at generation 0 with fitness (53.7,)
+Individual()
+Leaves
+{'leaf_0': 0.97, 0.84, 'leaf_1': -0.91, 0.61, 'leaf_2': 0.79, 0.68, 'leaf_3': 0.07, -0.36, 'leaf_4': -0.21, -0.45, 'leaf_5': 0.87, -0.07, 'leaf_6': 0.70, -0.57, 'leaf_7': -1.00, -0.81, 'leaf_8': -0.65, 0.03, 'leaf_9': 0.76, 0.57, 'leaf_10': 0.06, -0.45, 'leaf_11': -0.95, 0.74, 'leaf_12': -0.45, -0.71, 'leaf_13': 0.01, -0.33, 'leaf_14': -0.68, -0.56, 'leaf_15': 0.67, 0.44, 'leaf_16': -0.90, 0.25}
+[2022-11-10 10:28:32.766545] New best at generation 1 with fitness (63.3,)
+Individual()
+Leaves
+{'leaf_0': -0.16, 0.20, 'leaf_1': -0.79, -0.26, 'leaf_2': -0.57, 0.62, 'leaf_3': 0.62, 0.11, 'leaf_4': 0.79, 0.91, 'leaf_5': 0.97, 0.84}
+[2022-11-10 10:28:32.766755] New best at generation 1 with fitness (127.9,)
+Individual()
+Leaves
+{'leaf_0': 0.99, 0.65, 'leaf_1': 0.39, 0.47, 'leaf_2': 0.75, 0.90, 'leaf_3': 0.84, 0.29, 'leaf_4': -0.85, 0.25, 'leaf_5': -0.29, -0.67, 'leaf_6': 0.79, 0.65, 'leaf_7': 0.05, -0.07, 'leaf_8': -0.02, -0.48, 'leaf_9': -0.19, -0.13, 'leaf_10': -0.95, 0.86, 'leaf_11': -0.93, 0.09, 'leaf_12': -0.81, -0.61}
+[2022-11-10 10:28:34.055294] New best at generation 2 with fitness (175.3,)
+Individual()
+Leaves
+{'leaf_0': 0.96, 0.84, 'leaf_1': -0.89, 0.78, 'leaf_2': 0.79, 0.68, 'leaf_3': 0.10, -0.36, 'leaf_4': 0.50, -0.42}
+[2022-11-10 10:28:35.421597] New best at generation 3 with fitness (194.5,)
+Individual()
+Leaves
+{'leaf_0': 0.99, 0.84, 'leaf_1': -0.88, 0.83, 'leaf_2': 0.86, 0.68}
+[2022-11-10 10:28:37.044952] New best at generation 4 with fitness (200.0,)
+Individual()
+Leaves
+{'leaf_0': 0.56, -0.38, 'leaf_1': 0.41, 0.11, 'leaf_2': 0.23, -0.34, 'leaf_3': 0.86, 0.51, 'leaf_4': 0.67, 1.01, 'leaf_5': 0.09, -0.40, 'leaf_6': 0.46, -0.47, 'leaf_7': -0.75, 0.97, 'leaf_8': -0.26, 0.06, 'leaf_9': -0.49, 0.55, 'leaf_10': -0.95, -0.91, 'leaf_11': -0.55, -0.54, 'leaf_12': 0.68, -0.03}
