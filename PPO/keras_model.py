@@ -136,7 +136,7 @@ if __name__=='__main__':
 
     # ===== STANDARD ARGUMENTS ======
     # kwargs that are used by every Scenario class (i.e. defined in BaseEnvironment)
-    'n_agents': 4,          # Number of non-planner agents (must be > 1)
+    'n_agents': 8,          # Number of non-planner agents (must be > 1)
     'world_size': [25, 25],  # [Height, Width] of the env world
     'episode_length': 1000,  # Number of timesteps per episode
 
@@ -158,6 +158,8 @@ if __name__=='__main__':
 
     env = RLlibEnvWrapper(env_config)
     obs = env.reset()
-
+    # print(obs['p'])
     
-    model = build_model(env.observation_space, env.action_space)
+    for key, value in obs['p'].items():
+        print(f"Key: {key}, value: {value}")
+    # model = build_model(env.observation_space, env.action_space)

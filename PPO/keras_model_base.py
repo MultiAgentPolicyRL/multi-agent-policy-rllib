@@ -6,6 +6,8 @@ from keras import Model
 def feed_model(obs, model):
     """ Takes in input an observation (for a single agent (e.g., obs['0'])) and a model and returns the output. """
     numerical_features = []
+    # numerical_features = obs['flat']
+
 
     for x in ['world-inventory-Coin',
               'world-inventory-Wood',
@@ -14,7 +16,7 @@ def feed_model(obs, model):
               'Build-build_skill',
               'ContinuousDoubleAuction-market_rate-Stone',
               'ContinuousDoubleAuction-market_rate-Wood']:
-        numerical_features.append(x)
+        numerical_features.append(obs[x])
 
     for x in ['ContinuousDoubleAuction-market_rate-Stone',
               'ContinuousDoubleAuction-price_history-Stone',
@@ -28,24 +30,26 @@ def feed_model(obs, model):
               'ContinuousDoubleAuction-available_bids-Wood',
               'ContinuousDoubleAuction-my_asks-Wood',
               'ContinuousDoubleAuction-my_bids-Wood']:
-        numerical_features.extend(x)
+        numerical_features.extend(obs[x])
 
-    return obs['action_mask'] * model(obs['world-map'], numerical_features)
+    return obs['action_mask'] * model([obs['world-map'], numerical_features])
 
 
 def get_model(conv_filters, filter_size):
     """ Builds the model. Takes in input the parameters that were not specified in the paper. """
-    map_cnn = k.Input(shape=(15, 15, 7))
-    map_cnn = k.Conv2D(conv_filters[0], filter_size, activation='relu')(map_cnn)
+    cnn_in = k.Input(shape=(15, 15, 7))
+    map_cnn = k.Conv2D(conv_filters[0], filter_size, activation='relu')(cnn_in)
     map_cnn = k.Conv2D(conv_filters[1], filter_size, activation='relu')(map_cnn)
     map_cnn = k.Flatten()(map_cnn)
 
     info_input = k.Input(shape=(56*2+5))
-    mlp1 = k.Concatenate([map_cnn, info_input])
+    mlp1 = k.Concatenate()([map_cnn, info_input])
     mlp1 = k.Dense(128, activation='relu')(mlp1)
     mlp1 = k.Dense(128, activation='relu')(mlp1)
+    mlp1 = k.Reshape([1, -1])(mlp1)
 
     lstm = k.LSTM(128)(mlp1)
     mlp2 = k.Dense(50)(lstm)
 
-    model = Model(inputs=[map_cnn.Input, info_input.Input], outputs=mlp2])
+    model = Model(inputs=[cnn_in, info_input], outputs=mlp2)
+    return model

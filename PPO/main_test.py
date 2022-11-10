@@ -4,7 +4,11 @@ from tf_models import KerasConvLSTM, get_flat_obs_size
 import tensorflow as tf
 from tensorflow.python.framework.ops import enable_eager_execution
 import numpy as np
+from keras_model_base import feed_model, get_model
+
 enable_eager_execution()
+
+
 
 model_config = {
     'custom_model': "keras_conv_lstm",
@@ -109,7 +113,7 @@ def dict_to_tensor_dict(a_dict: dict):
         # print(f"key: {key}, value: {value}")
 
         # FLAT DATA
-        tensor_dict[key] = tf.reshape(value, [-1], key)
+        tensor_dict[key] = tf.reshape(value, [1, -1], key)
 
         # DATA STILL MATRIX
         # tensor_dict[key] = tf.convert_to_tensor(value, name=key)
@@ -117,35 +121,45 @@ def dict_to_tensor_dict(a_dict: dict):
         # TEST TO GET seq_lens dinamically (basta scomporre la lista di liste che si genera in una unica lista uni dimensionale.)
         # seq_lens.append(tensor_dict[key].get_shape().as_list())
         # seq_lens.append(tf.shape(tensor_dict[key]))
-        print(f"Tensor KEY: {key}, shape: {tensor_dict[key].get_shape()}")
+        # print(f"Tensor KEY: {key}, shape: {tensor_dict[key].get_shape()}")
 
     #seq_lens = tf.convert_to_tensor(seq_lens)
     # tensor_dict['flat'] = tf.reshape(tensor_dict['flat'], [135])
-    return tensor_dict, seq_lens
+    return tensor_dict #, seq_lens
 
 
 
 if __name__ == '__main__':
+    # FIXME: use ai-economist without rllibenvwrapper
     env = RLlibEnvWrapper(env_config)
     obs = env.reset()
 
-    model = KerasConvLSTM(env.observation_space,
-                        env.action_space, num_outputs=50, model_config=model_config, name=None)
-    state = model.get_initial_state()
 
-    # FIXME add padding
+    model = get_model([16, 32], 3)
+
+    actions = feed_model(dict_to_tensor_dict(obs['0']), model)
+    print(f"actions: {actions}")
+
+
+    {
+    # model = KerasConvLSTM(env.observation_space,
+    #                     env.action_space, num_outputs=50, model_config=model_config, name=None)
+    # state = model.get_initial_state()
+
+    # # FIXME add padding
     
-    data = obs['0'] # padded
-    obs_tensor_dict, seq_lens = dict_to_tensor_dict(data)
-    seq_lens = tf.constant([847, 242, 1, 137, 50])
+    # data = obs['0'] # padded
+    # obs_tensor_dict, seq_lens = dict_to_tensor_dict(data)
+    # seq_lens = tf.constant([847, 242, 1, 137, 50])
 
 
-    input_dict = {
-        'obs': obs_tensor_dict,
-        # 'obs_flat': ,
-        'prev_action': None,
-        'prev_reward': None,
-        'is_training': True
+    # input_dict = {
+    #     'obs': obs_tensor_dict,
+    #     # 'obs_flat': ,
+    #     'prev_action': None,
+    #     'prev_reward': None,
+    #     'is_training': True
+    # }
+
+    # output, new_state = model.forward(input_dict, state, seq_lens)
     }
-
-    output, new_state = model.forward(input_dict, state, seq_lens)
