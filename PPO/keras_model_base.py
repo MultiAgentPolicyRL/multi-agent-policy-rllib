@@ -6,32 +6,34 @@ from keras import Model
 def feed_model(obs, model):
     """ Takes in input an observation (for a single agent (e.g., obs['0'])) and a model and returns the output. """
     numerical_features = []
-    # numerical_features = obs['flat']
 
+    for data in ['action_mask', 'flat', 'time', 'world-idx_map', 'world-map']:
+        numerical_features.append(obs[data])
 
-    for x in ['world-inventory-Coin',
-              'world-inventory-Wood',
-              'world-inventory-Stone',
-              'Build-build_payment',
-              'Build-build_skill',
-              'ContinuousDoubleAuction-market_rate-Stone',
-              'ContinuousDoubleAuction-market_rate-Wood']:
-        numerical_features.append(obs[x])
+    # for x in ['world-inventory-Coin',
+    #           'world-inventory-Wood',
+    #           'world-inventory-Stone',
+    #           'Build-build_payment',
+    #           'Build-build_skill',
+    #           'ContinuousDoubleAuction-market_rate-Stone',
+    #           'ContinuousDoubleAuction-market_rate-Wood']:
+    #     numerical_features.append(obs[x])
 
-    for x in ['ContinuousDoubleAuction-market_rate-Stone',
-              'ContinuousDoubleAuction-price_history-Stone',
-              'ContinuousDoubleAuction-available_asks-Stone',
-              'ContinuousDoubleAuction-available_bids-Stone',
-              'ContinuousDoubleAuction-my_asks-Stone',
-              'ContinuousDoubleAuction-my_bids-Stone',
-              'ContinuousDoubleAuction-market_rate-Wood',
-              'ContinuousDoubleAuction-price_history-Wood',
-              'ContinuousDoubleAuction-available_asks-Wood',
-              'ContinuousDoubleAuction-available_bids-Wood',
-              'ContinuousDoubleAuction-my_asks-Wood',
-              'ContinuousDoubleAuction-my_bids-Wood']:
-        numerical_features.extend(obs[x])
+    # for x in ['ContinuousDoubleAuction-market_rate-Stone',
+    #           'ContinuousDoubleAuction-price_history-Stone',
+    #           'ContinuousDoubleAuction-available_asks-Stone',
+    #           'ContinuousDoubleAuction-available_bids-Stone',
+    #           'ContinuousDoubleAuction-my_asks-Stone',
+    #           'ContinuousDoubleAuction-my_bids-Stone',
+    #           'ContinuousDoubleAuction-market_rate-Wood',
+    #           'ContinuousDoubleAuction-price_history-Wood',
+    #           'ContinuousDoubleAuction-available_asks-Wood',
+    #           'ContinuousDoubleAuction-available_bids-Wood',
+    #           'ContinuousDoubleAuction-my_asks-Wood',
+    #           'ContinuousDoubleAuction-my_bids-Wood']:
+    #     numerical_features.extend(obs[x])
 
+    # print([obs['world-map'], numerical_features])
     return obs['action_mask'] * model([obs['world-map'], numerical_features])
 
 
