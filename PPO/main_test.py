@@ -7,8 +7,8 @@ from keras_model_base import feed_model, get_model
 from ai_economist import foundation
 from keras import Model
 
-# from tensorflow.python.framework.ops import enable_eager_execution
-# enable_eager_execution()
+from tensorflow.python.framework.ops import enable_eager_execution
+enable_eager_execution()
 
 model_config = {
     'custom_model': "keras_conv_lstm",
@@ -173,10 +173,11 @@ def dict_to_tensor_dict(a_dict: dict):
         # print(f"key: {key}, value: {value}")
 
         # FLAT DATA
-        tensor_dict[key] = tf.reshape(value, [1, -1], key)
+        #tensor_dict[key] = tf.reshape(value, [-1], key)
 
         # DATA STILL MATRIX
-        # tensor_dict[key] = tf.convert_to_tensor(value, name=key)
+        tensor_dict[key] = tf.convert_to_tensor(value, name=key)
+        tensor_dict[key] = tf.expand_dims(tensor_dict[key], axis=0)
 
         # TEST TO GET seq_lens dinamically (basta scomporre la lista di liste che si genera in una unica lista uni dimensionale.)
         # seq_lens.append(tensor_dict[key].get_shape().as_list())
@@ -202,8 +203,10 @@ if __name__ == '__main__':
     model: Model = get_model([16, 32], 3)
     # model.summary()
     # print(dict_to_tensor_dict(obs['0']))
-    actions = feed_model(dict_to_tensor_dict(obs['0']), model)
-    # print(f"actions: {actions}")
+    actions:tf.Tensor = feed_model(dict_to_tensor_dict(obs['0']), model)
+    
+    print(actions.numpy())
+    #print(f"actions: {[i for i in actions]}")
     """
     env.observation_space:
     Dict(

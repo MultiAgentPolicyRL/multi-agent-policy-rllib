@@ -7,7 +7,7 @@ def feed_model(obs, model):
     """ Takes in input an observation (for a single agent (e.g., obs['0'])) and a model and returns the output. """
     numerical_features = []
 
-    for data in ['action_mask', 'flat', 'time', 'world-idx_map', 'world-map']:
+    for data in ['flat']:
         numerical_features.append(obs[data])
 
     # for x in ['world-inventory-Coin',
@@ -33,18 +33,18 @@ def feed_model(obs, model):
     #           'ContinuousDoubleAuction-my_bids-Wood']:
     #     numerical_features.extend(obs[x])
 
-    # print([obs['world-map'], numerical_features])
-    return obs['action_mask'] * model([obs['world-map'], numerical_features])
+    #print([obs['world-map']])
+    return obs['action_mask'] * model([obs['world-map'], [numerical_features]])
 
 
 def get_model(conv_filters, filter_size):
     """ Builds the model. Takes in input the parameters that were not specified in the paper. """
-    cnn_in = k.Input(shape=(15, 15, 7))
+    cnn_in = k.Input(shape=(7, 11, 11))
     map_cnn = k.Conv2D(conv_filters[0], filter_size, activation='relu')(cnn_in)
     map_cnn = k.Conv2D(conv_filters[1], filter_size, activation='relu')(map_cnn)
     map_cnn = k.Flatten()(map_cnn)
 
-    info_input = k.Input(shape=(56*2+5))
+    info_input = k.Input(shape=(136))
     mlp1 = k.Concatenate()([map_cnn, info_input])
     mlp1 = k.Dense(128, activation='relu')(mlp1)
     mlp1 = k.Dense(128, activation='relu')(mlp1)
