@@ -1,7 +1,7 @@
 import tensorflow as tf
 import keras.layers as k
 from keras import Model
-
+import numpy as np
 
 def feed_model(obs, model):
     """ Takes in input an observation (for a single agent (e.g., obs['0'])) and a model and returns the output. """
@@ -34,7 +34,7 @@ def feed_model(obs, model):
     #     numerical_features.extend(obs[x])
 
     #print([obs['world-map']])
-    return obs['action_mask'] * model([obs['world-map'], [numerical_features]])
+    return np.reshape(obs['action_mask'] * model([obs['world-map'], [numerical_features]]), [-1])
 
 
 def get_model(conv_filters, filter_size):

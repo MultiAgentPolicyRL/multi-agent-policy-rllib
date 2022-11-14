@@ -203,10 +203,24 @@ if __name__ == '__main__':
     model: Model = get_model([16, 32], 3)
     # model.summary()
     # print(dict_to_tensor_dict(obs['0']))
-    actions:tf.Tensor = feed_model(dict_to_tensor_dict(obs['0']), model)
+
+    ### Train the model 
+    for i in range(100):
+        action_dict = {}
+        obs = env.reset()
+        for agent_id in obs.keys():
+            if agent_id != 'p':
+                action_dict[agent_id] = feed_model(dict_to_tensor_dict(obs[agent_id]), model)
+                print(f"Agent {agent_id} action: {action_dict[agent_id]}")
+            else:
+                action_dict['p'] = []
+        obs, reward, done, info = env.step(action_dict)
+        print(f"Reward: {reward}, Done: {done}, Info: {info}")
+
+    # actions:tf.Tensor = feed_model(dict_to_tensor_dict(obs['0']), model)
     
-    print(actions.numpy())
-    #print(f"actions: {[i for i in actions]}")
+    # print(actions.numpy())
+    # #print(f"actions: {[i for i in actions]}")
     """
     env.observation_space:
     Dict(
