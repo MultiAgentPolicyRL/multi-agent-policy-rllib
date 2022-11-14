@@ -201,10 +201,27 @@ if __name__ == '__main__':
 
     model: Model = get_model([16, 32], 3)
     # model.summary()
+    # print(dict_to_tensor_dict(obs['0']))
+    actions:tf.Tensor = feed_model(dict_to_tensor_dict(obs['0']), model)
     
-    # actions:tf.Tensor = feed_model(dict_to_tensor_dict(obs['0']), model)
-    
-    # print(actions.numpy())
+    print(actions.numpy())
+    #print(f"actions: {[i for i in actions]}")
+    """
+    env.observation_space:
+    Dict(
+        action_mask:Box(-1e+20, 1e+20, (50,), float32), 
+        flat:Box(-1e+20, 1e+20, (136,), float32), 
+        time:Box(-1e+20, 1e+20, (1,), float64), 
+        world-idx_map:Box(-30178, 30178, (2, 11, 11), int16), 
+        world-map:Box(-1e+20, 1e+20, (7, 11, 11), float32)
+    )
+    action_mask, flat, time, world_idx_map, world-map
+    """
+
+    {
+        # model = KerasConvLSTM(env.observation_space,
+        #                     env.action_space, num_outputs=50, model_config=model_config, name=None)
+        # state = model.get_initial_state()
 
     actions = {'0': 41, '1': 46, '2': 4, '3': 49, 'p': [0]}
     env.step(actions)
