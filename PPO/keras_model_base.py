@@ -5,10 +5,10 @@ import numpy as np
 
 def feed_model(obs, model):
     """ Takes in input an observation (for a single agent (e.g., obs['0'])) and a model and returns the output. """
-    numerical_features = []
+    # numerical_features = []
 
-    for data in ['flat']:
-        numerical_features.append(obs[data])
+    # for data in obs.keys():
+    #     numerical_features.append(obs[data])
 
     # for x in ['world-inventory-Coin',
     #           'world-inventory-Wood',
@@ -34,7 +34,8 @@ def feed_model(obs, model):
     #     numerical_features.extend(obs[x])
 
     #print([obs['world-map']])
-    return np.reshape(obs['action_mask'] * model([obs['world-map'], [numerical_features]]), [-1])
+    #return obs['action_mask'] * model([obs['world-map'], obs['flat']])
+    return tf.reshape(model([obs['world-map'], obs['flat']]), [-1])
 
 
 def get_model(conv_filters, filter_size):
@@ -53,5 +54,12 @@ def get_model(conv_filters, filter_size):
     lstm = k.LSTM(128)(mlp1)
     mlp2 = k.Dense(50)(lstm)
 
-    model = Model(inputs=[cnn_in, info_input], outputs=mlp2)
+    ### Output layer must return an integer
+    output = k.Dense(1, activation='relu')(mlp2)
+
+    model = Model(inputs=[cnn_in, info_input], outputs=output)
+    #model = Model(inputs=[cnn_in, info_input], outputs=mlp2)
+
+    #print(model.summary())
+
     return model
