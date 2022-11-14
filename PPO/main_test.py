@@ -218,10 +218,10 @@ if __name__ == '__main__':
     action_mask, flat, time, world_idx_map, world-map
     """
 
-    {
-        # model = KerasConvLSTM(env.observation_space,
-        #                     env.action_space, num_outputs=50, model_config=model_config, name=None)
-        # state = model.get_initial_state()
+   
+    # model = KerasConvLSTM(env.observation_space,
+    # env.action_space, num_outputs=50, model_config=model_config, name=None)
+    # state = model.get_initial_state()
 
     actions = {'0': 41, '1': 46, '2': 4, '3': 49, 'p': [0]}
     env.step(actions)
