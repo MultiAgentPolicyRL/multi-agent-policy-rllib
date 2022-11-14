@@ -38,7 +38,7 @@ def feed_model(obs, model):
     return tf.reshape(model([obs['world-map'], obs['flat']]), [-1])
 
 
-def get_policy_model(conv_filters, filter_size):
+def get_model(conv_filters, filter_size):
     """ Builds the model. Takes in input the parameters that were not specified in the paper. """
     cnn_in = k.Input(shape=(7, 11, 11))
     map_cnn = k.Conv2D(conv_filters[0], filter_size, activation='relu')(cnn_in)
@@ -52,14 +52,13 @@ def get_policy_model(conv_filters, filter_size):
     mlp1 = k.Reshape([1, -1])(mlp1)
 
     lstm = k.LSTM(128)(mlp1)
-    mlp2 = k.Dense(50)(lstm)
-    #output = k.Dense(1, activation='relu')(mlp2)
+    mlp2 = k.Dense(1)(lstm)
 
     model = Model(inputs=[cnn_in, info_input], outputs=mlp2)
 
     return model
 
-def get_model(state_shape, action_dim, units=(400, 300, 100)):
+def get_A_model(state_shape, action_dim, units=(400, 300, 100)):
     state = k.Input(shape=state_shape)
 
     # Value function (baseline)

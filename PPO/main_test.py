@@ -5,6 +5,7 @@ from ai_economist import foundation
 from keras import Model
 
 from tensorflow.python.framework.ops import enable_eager_execution
+
 enable_eager_execution()
 
 env_config_wrapper = {
@@ -89,6 +90,7 @@ env_config_wrapper = {
     }
 }
 
+
 def dict_to_tensor_dict(a_dict: dict):
     """
     pass a single agent obs, returns it's tensor_dict
@@ -97,14 +99,15 @@ def dict_to_tensor_dict(a_dict: dict):
     for key, value in a_dict.items():
         tensor_dict[key] = tf.convert_to_tensor(value, name=key)
         tensor_dict[key] = tf.expand_dims(tensor_dict[key], axis=0)
-        
-    return tensor_dict 
+
+    return tensor_dict
+
 
 if __name__ == '__main__':
-    epochs = 100
+    epochs = 1
 
-    env = foundation.make_env_instance(**env_config_wrapper['env_config_dict']) #Edited
-    #env = foundation.make_env_instance(**env_config) # Original
+    env = foundation.make_env_instance(
+        **env_config_wrapper['env_config_dict'])  #Edited
     obs = env.reset()
 
     model: Model = get_model([16, 32], 3)
@@ -113,9 +116,11 @@ if __name__ == '__main__':
         actions_dict = {}
         for agent_id in obs.keys():
             if agent_id != 'p':
-                actions_dict[agent_id] = feed_model(dict_to_tensor_dict(obs[agent_id]), model)
+                actions_dict[agent_id] = feed_model(
+                    dict_to_tensor_dict(obs[agent_id]), model)
             else:
-                actions_dict['p'] = np.array([0 for _ in range(env.get_agent('p')._unique_actions)])
+                actions_dict['p'] = np.array(
+                    [0 for _ in range(env.get_agent('p')._unique_actions)])
 
         obs, rewards, dones, infos = env.step(actions_dict)
         print(f"Rewards: {rewards}, dones: {dones}, infos: {infos}")
