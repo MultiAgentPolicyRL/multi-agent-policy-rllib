@@ -105,7 +105,7 @@ def dict_to_tensor_dict(a_dict: dict):
 
 if __name__ == '__main__':
     epochs = 1
-
+    
     env = foundation.make_env_instance(
         **env_config_wrapper['env_config_dict'])  #Edited
     obs = env.reset()
