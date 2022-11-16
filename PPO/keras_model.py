@@ -1,6 +1,9 @@
 import tensorflow as tf
 from typing import Tuple
 
+"""
+TODO: add documentation, saving and loading weights functions, add a "learn" function and stuff like that
+"""
 
 class AieModel():
     """
