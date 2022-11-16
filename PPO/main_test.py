@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from keras_model_base import feed_model, get_model
+from keras_model import AieModel
 from ai_economist import foundation
 from keras import Model
 
@@ -110,14 +110,14 @@ if __name__ == '__main__':
         **env_config_wrapper['env_config_dict'])  #Edited
     obs = env.reset()
 
-    model: Model = get_model([16, 32], 3)
+    model : AieModel = AieModel()
 
     for i in range(epochs):
         actions_dict = {}
         for agent_id in obs.keys():
             if agent_id != 'p':
-                actions_dict[agent_id] = feed_model(
-                    dict_to_tensor_dict(obs[agent_id]), model)
+                actions_dict[agent_id] = model.call(
+                    dict_to_tensor_dict(obs[agent_id]))[0]
             else:
                 actions_dict['p'] = np.array(
                     [0 for _ in range(env.get_agent('p')._unique_actions)])
