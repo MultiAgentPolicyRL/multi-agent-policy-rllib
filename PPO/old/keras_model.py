@@ -37,12 +37,12 @@ class AieModel():
 
         self.model = tf.keras.Model(inputs=[self.cnn_in, self.info_input], outputs=[self.action_probs, self.value_pred])
 
-        # https://github.com/ray-project/ray/issues/8091
+        # reason of Adam optimizer https://github.com/ray-project/ray/issues/8091
         # 0.0003
         # TODO maybe add custom loss function
         self.model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0003))
 
-    def call(self, obs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, obs: dict) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Feed the neural network
         """
@@ -50,10 +50,12 @@ class AieModel():
         output = self.model([obs['world-map'], obs['flat']])
         return [tf.reshape(output[0], [-1]), output[1]]
 
+
 if __name__ == '__main__':
     model: AieModel = AieModel()
     model.model.summary()
-#model = ctach_model((136,), 55)
-#print(model([np.random.rand(1, 136)]))
+
+# model = ctach_model((136,), 55)
+# print(model([np.random.rand(1, 136)]))
 # model.compile(optimizer='adam', loss='mse')
 # model.fit([np.random.rand(1, 136), np.random.rand(1, 136)], [np.random.rand(1, 50), np.random.rand(1, 1)], epochs=1)

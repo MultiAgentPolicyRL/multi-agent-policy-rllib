@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from keras_model import AieModel
+# from keras_model import AieModel
 from ai_economist import foundation
 from keras import Model
 
@@ -8,7 +8,7 @@ from tensorflow.python.framework.ops import enable_eager_execution
 
 enable_eager_execution()
 
-env_config_wrapper = {
+env_config = {
     'env_config_dict': {
         # ===== SCENARIO CLASS =====
         # Which Scenario class to use: the class's name in the Scenario Registry (foundation.scenarios).
@@ -90,6 +90,11 @@ env_config_wrapper = {
     }
 }
 
+def get_environment():
+    """
+    Returns builded environment with `env_config` config
+    """
+    return foundation.make_env_instance(**env_config['env_config_dict'])
 
 def dict_to_tensor_dict(a_dict: dict):
     """
@@ -106,8 +111,7 @@ def dict_to_tensor_dict(a_dict: dict):
 if __name__ == '__main__':
     epochs = 1
     
-    env = foundation.make_env_instance(
-        **env_config_wrapper['env_config_dict'])  #Edited
+    env = get_environment()
     obs = env.reset()
 
     model : AieModel = AieModel()
