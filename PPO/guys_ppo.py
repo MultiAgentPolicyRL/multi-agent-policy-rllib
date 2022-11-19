@@ -25,14 +25,15 @@ import gym
 import random
 import os
 import sys
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # -1:cpu, 0:first gpu
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # -1:cpu, 0:first gpu
 # tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
 tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
 
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
+gpus = tf.config.experimental.list_physical_devices("GPU")
 if len(gpus) > 0:
-    print(f'GPUs {gpus}')
+    print(f"GPUs {gpus}")
     try:
         tf.config.experimental.set_memory_growth(gpus[0], True)
     except RuntimeError:
@@ -40,7 +41,9 @@ if len(gpus) > 0:
 
 
 class Environment(Process):
-    def __init__(self, env_idx, child_conn, env_name, state_size, action_size, visualize=False):
+    def __init__(
+        self, env_idx, child_conn, env_name, state_size, action_size, visualize=False
+    ):
         super(Environment, self).__init__()
         self.env = gym.make(env_name)
         self.is_render = visualize
@@ -74,9 +77,21 @@ class Actor_Model:
         X_input = Input(input_shape)
         self.action_space = action_space
 
-        X = Dense(512, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(X_input)
-        X = Dense(256, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(X)
-        X = Dense(64, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(X)
+        X = Dense(
+            512,
+            activation="relu",
+            kernel_initializer=tf.random_normal_initializer(stddev=0.01),
+        )(X_input)
+        X = Dense(
+            256,
+            activation="relu",
+            kernel_initializer=tf.random_normal_initializer(stddev=0.01),
+        )(X)
+        X = Dense(
+            64,
+            activation="relu",
+            kernel_initializer=tf.random_normal_initializer(stddev=0.01),
+        )(X)
         output = Dense(self.action_space, activation="softmax")(X)
 
         self.Actor = Model(inputs=X_input, outputs=output)
@@ -84,7 +99,11 @@ class Actor_Model:
 
     def ppo_loss(self, y_true, y_pred):
         # Defined in https://arxiv.org/abs/1707.06347
-        advantages, prediction_picks, actions = y_true[:, :1], y_true[:, 1:1+self.action_space], y_true[:, 1+self.action_space:]
+        advantages, prediction_picks, actions = (
+            y_true[:, :1],
+            y_true[:, 1 : 1 + self.action_space],
+            y_true[:, 1 + self.action_space :],
+        )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
 
@@ -97,7 +116,10 @@ class Actor_Model:
         ratio = K.exp(K.log(prob) - K.log(old_prob))
 
         p1 = ratio * advantages
-        p2 = K.clip(ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING) * advantages
+        p2 = (
+            K.clip(ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING)
+            * advantages
+        )
 
         actor_loss = -K.mean(K.minimum(p1, p2))
 
@@ -117,24 +139,29 @@ class Critic_Model:
         X_input = Input(input_shape)
         old_values = Input(shape=(1,))
 
-        V = Dense(512, activation="relu", kernel_initializer='he_uniform')(X_input)
-        V = Dense(256, activation="relu", kernel_initializer='he_uniform')(V)
-        V = Dense(64, activation="relu", kernel_initializer='he_uniform')(V)
+        V = Dense(512, activation="relu", kernel_initializer="he_uniform")(X_input)
+        V = Dense(256, activation="relu", kernel_initializer="he_uniform")(V)
+        V = Dense(64, activation="relu", kernel_initializer="he_uniform")(V)
         value = Dense(1, activation=None)(V)
 
         self.Critic = Model(inputs=[X_input, old_values], outputs=value)
-        self.Critic.compile(loss=[self.critic_PPO2_loss(old_values)], optimizer=optimizer(lr=lr))
+        self.Critic.compile(
+            loss=[self.critic_PPO2_loss(old_values)], optimizer=optimizer(lr=lr)
+        )
 
     def critic_PPO2_loss(self, values):
         def loss(y_true, y_pred):
             LOSS_CLIPPING = 0.2
-            clipped_value_loss = values + K.clip(y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING)
+            clipped_value_loss = values + K.clip(
+                y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
+            )
             v_loss1 = (y_true - clipped_value_loss) ** 2
             v_loss2 = (y_true - y_pred) ** 2
 
             # value_loss = 0.5 * K.mean(K.maximum(v_loss1, v_loss2))
             value_loss = K.mean((y_true - y_pred) ** 2)  # standard PPO loss
             return value_loss
+
         return loss
 
     def predict(self, state):
@@ -157,24 +184,45 @@ class PPOAgent:
         self.epochs = 10  # training epochs
         self.shuffle = False
         self.Training_batch = 1000
-        #self.optimizer = RMSprop
+        # self.optimizer = RMSprop
         self.optimizer = Adam
 
         self.replay_count = 0
-        self.writer = SummaryWriter(comment="_"+self.env_name+"_"+self.optimizer.__name__+"_"+str(self.lr))
+        self.writer = SummaryWriter(
+            comment="_"
+            + self.env_name
+            + "_"
+            + self.optimizer.__name__
+            + "_"
+            + str(self.lr)
+        )
 
         # Instantiate plot memory
-        self.scores_, self.episodes_, self.average_ = [], [], []  # used in matplotlib plots
+        self.scores_, self.episodes_, self.average_ = (
+            [],
+            [],
+            [],
+        )  # used in matplotlib plots
 
         # Create Actor-Critic network models
-        self.Actor = Actor_Model(input_shape=self.state_size, action_space=self.action_size, lr=self.lr, optimizer=self.optimizer)
-        self.Critic = Critic_Model(input_shape=self.state_size, action_space=self.action_size, lr=self.lr, optimizer=self.optimizer)
+        self.Actor = Actor_Model(
+            input_shape=self.state_size,
+            action_space=self.action_size,
+            lr=self.lr,
+            optimizer=self.optimizer,
+        )
+        self.Critic = Critic_Model(
+            input_shape=self.state_size,
+            action_space=self.action_size,
+            lr=self.lr,
+            optimizer=self.optimizer,
+        )
 
         self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
         self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
 
     def act(self, state):
-        """ example:
+        """example:
         pred = np.array([0.05, 0.85, 0.1])
         action_size = 3
         np.random.choice(a, p=pred)
@@ -190,7 +238,7 @@ class PPOAgent:
     def discount_rewards(self, reward):  # gaes is better
         # Compute the gamma-discounted rewards over an episode
         # We apply the discount and normalize it to avoid big variability of rewards
-        gamma = 0.99    # discount rate
+        gamma = 0.99  # discount rate
         running_add = 0
         discounted_r = np.zeros_like(reward)
         for i in reversed(range(0, len(reward))):
@@ -198,11 +246,16 @@ class PPOAgent:
             discounted_r[i] = running_add
 
         discounted_r -= np.mean(discounted_r)  # normalizing the result
-        discounted_r /= (np.std(discounted_r) + 1e-8)  # divide by standard deviation
+        discounted_r /= np.std(discounted_r) + 1e-8  # divide by standard deviation
         return discounted_r
 
-    def get_gaes(self, rewards, dones, values, next_values, gamma=0.99, lamda=0.9, normalize=True):
-        deltas = [r + gamma * (1 - d) * nv - v for r, d, nv, v in zip(rewards, dones, next_values, values)]
+    def get_gaes(
+        self, rewards, dones, values, next_values, gamma=0.99, lamda=0.9, normalize=True
+    ):
+        deltas = [
+            r + gamma * (1 - d) * nv - v
+            for r, d, nv, v in zip(rewards, dones, next_values, values)
+        ]
         deltas = np.stack(deltas)
         gaes = copy.deepcopy(deltas)
         for t in reversed(range(len(deltas) - 1)):
@@ -227,7 +280,9 @@ class PPOAgent:
         # Compute discounted rewards and advantages
         # discounted_r = self.discount_rewards(rewards)
         # advantages = np.vstack(discounted_r - values)
-        advantages, target = self.get_gaes(rewards, dones, np.squeeze(values), np.squeeze(next_values))
+        advantages, target = self.get_gaes(
+            rewards, dones, np.squeeze(values), np.squeeze(next_values)
+        )
 
         # stack everything to numpy array
         # pack all advantages, predictions and actions to y_true and when they are received
@@ -235,11 +290,27 @@ class PPOAgent:
         y_true = np.hstack([advantages, predictions, actions])
 
         # training Actor and Critic networks
-        a_loss = self.Actor.Actor.fit(states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
-        c_loss = self.Critic.Critic.fit([states, values], target, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
+        a_loss = self.Actor.Actor.fit(
+            states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
+        )
+        c_loss = self.Critic.Critic.fit(
+            [states, values],
+            target,
+            epochs=self.epochs,
+            verbose=0,
+            shuffle=self.shuffle,
+        )
 
-        self.writer.add_scalar('Data/actor_loss_per_replay', np.sum(a_loss.history['loss']), self.replay_count)
-        self.writer.add_scalar('Data/critic_loss_per_replay', np.sum(c_loss.history['loss']), self.replay_count)
+        self.writer.add_scalar(
+            "Data/actor_loss_per_replay",
+            np.sum(a_loss.history["loss"]),
+            self.replay_count,
+        )
+        self.writer.add_scalar(
+            "Data/critic_loss_per_replay",
+            np.sum(c_loss.history["loss"]),
+            self.replay_count,
+        )
         self.replay_count += 1
 
     def load(self):
@@ -258,14 +329,14 @@ class PPOAgent:
         self.episodes_.append(episode)
         self.average_.append(sum(self.scores_[-50:]) / len(self.scores_[-50:]))
         if str(episode)[-2:] == "00":  # much faster than episode % 100
-            pylab.plot(self.episodes_, self.scores_, 'b')
-            pylab.plot(self.episodes_, self.average_, 'r')
-            pylab.title(self.env_name+" PPO training cycle", fontsize=18)
-            pylab.ylabel('Score', fontsize=18)
-            pylab.xlabel('Steps', fontsize=18)
+            pylab.plot(self.episodes_, self.scores_, "b")
+            pylab.plot(self.episodes_, self.average_, "r")
+            pylab.title(self.env_name + " PPO training cycle", fontsize=18)
+            pylab.ylabel("Score", fontsize=18)
+            pylab.xlabel("Steps", fontsize=18)
             try:
                 pylab.grid(True)
-                pylab.savefig(self.env_name+".png")
+                pylab.savefig(self.env_name + ".png")
             except OSError:
                 pass
         # saving best models
@@ -286,10 +357,17 @@ class PPOAgent:
         state = self.env.reset()
         state = np.reshape(state, [1, self.state_size[0]])
 
-        done, score, SAVING = False, 0, ''
+        done, score, SAVING = False, 0, ""
         while True:
             # Instantiate or reset games memory
-            states, next_states, actions, rewards, predictions, dones = [], [], [], [], [], []
+            states, next_states, actions, rewards, predictions, dones = (
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
             while not done:
                 # self.env.render()
                 # Actor picks an action
@@ -309,13 +387,23 @@ class PPOAgent:
                 if done:
                     self.episode += 1
                     average, SAVING = self.PlotModel(score, self.episode)
-                    print("episode: {}/{}, score: {}, average: {:.2f} {}".format(self.episode, self.EPISODES, score, average, SAVING))
-                    self.writer.add_scalar(f'Workers:{1}/score_per_episode', score, self.episode)
-                    self.writer.add_scalar(f'Workers:{1}/learning_rate', self.lr, self.episode)
+                    print(
+                        "episode: {}/{}, score: {}, average: {:.2f} {}".format(
+                            self.episode, self.EPISODES, score, average, SAVING
+                        )
+                    )
+                    self.writer.add_scalar(
+                        f"Workers:{1}/score_per_episode", score, self.episode
+                    )
+                    self.writer.add_scalar(
+                        f"Workers:{1}/learning_rate", self.lr, self.episode
+                    )
 
-                    self.replay(states, actions, rewards, predictions, dones, next_states)
+                    self.replay(
+                        states, actions, rewards, predictions, dones, next_states
+                    )
 
-                    state, done, score, SAVING = self.env.reset(), False, 0, ''
+                    state, done, score, SAVING = self.env.reset(), False, 0, ""
                     state = np.reshape(state, [1, self.state_size[0]])
 
             if self.episode >= self.EPISODES:
@@ -325,10 +413,17 @@ class PPOAgent:
     def run_batch(self):  # train every self.Training_batch episodes
         state = self.env.reset()
         state = np.reshape(state, [1, self.state_size[0]])
-        done, score, SAVING = False, 0, ''
+        done, score, SAVING = False, 0, ""
         while True:
             # Instantiate or reset games memory
-            states, next_states, actions, rewards, predictions, dones = [], [], [], [], [], []
+            states, next_states, actions, rewards, predictions, dones = (
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
             for t in range(self.Training_batch):
                 # self.env.render()
                 # Actor picks an action
@@ -348,11 +443,19 @@ class PPOAgent:
                 if done:
                     self.episode += 1
                     average, SAVING = self.PlotModel(score, self.episode)
-                    print("episode: {}/{}, score: {}, average: {:.2f} {}".format(self.episode, self.EPISODES, score, average, SAVING))
-                    self.writer.add_scalar(f'Workers:{1}/score_per_episode', score, self.episode)
-                    self.writer.add_scalar(f'Workers:{1}/learning_rate', self.lr, self.episode)
+                    print(
+                        "episode: {}/{}, score: {}, average: {:.2f} {}".format(
+                            self.episode, self.EPISODES, score, average, SAVING
+                        )
+                    )
+                    self.writer.add_scalar(
+                        f"Workers:{1}/score_per_episode", score, self.episode
+                    )
+                    self.writer.add_scalar(
+                        f"Workers:{1}/learning_rate", self.lr, self.episode
+                    )
 
-                    state, done, score, SAVING = self.env.reset(), False, 0, ''
+                    state, done, score, SAVING = self.env.reset(), False, 0, ""
                     state = np.reshape(state, [1, self.state_size[0]])
 
             self.replay(states, actions, rewards, predictions, dones, next_states)
@@ -365,7 +468,14 @@ class PPOAgent:
         works, parent_conns, child_conns = [], [], []
         for idx in range(num_worker):
             parent_conn, child_conn = Pipe()
-            work = Environment(idx, child_conn, self.env_name, self.state_size[0], self.action_size, True)
+            work = Environment(
+                idx,
+                child_conn,
+                self.env_name,
+                self.state_size[0],
+                self.action_size,
+                True,
+            )
             work.start()
             works.append(work)
             parent_conns.append(parent_conn)
@@ -384,8 +494,12 @@ class PPOAgent:
             state[worker_id] = parent_conn.recv()
 
         while self.episode < self.EPISODES:
-            predictions_list = self.Actor.predict(np.reshape(state, [num_worker, self.state_size[0]]))
-            actions_list = [np.random.choice(self.action_size, p=i) for i in predictions_list]
+            predictions_list = self.Actor.predict(
+                np.reshape(state, [num_worker, self.state_size[0]])
+            )
+            actions_list = [
+                np.random.choice(self.action_size, p=i) for i in predictions_list
+            ]
 
             for worker_id, parent_conn in enumerate(parent_conns):
                 parent_conn.send(actions_list[worker_id])
@@ -406,16 +520,38 @@ class PPOAgent:
 
                 if done:
                     average, SAVING = self.PlotModel(score[worker_id], self.episode)
-                    print("episode: {}/{}, worker: {}, score: {}, average: {:.2f} {}".format(self.episode, self.EPISODES, worker_id, score[worker_id], average, SAVING))
-                    self.writer.add_scalar(f'Workers:{num_worker}/score_per_episode', score[worker_id], self.episode)
-                    self.writer.add_scalar(f'Workers:{num_worker}/learning_rate', self.lr, self.episode)
+                    print(
+                        "episode: {}/{}, worker: {}, score: {}, average: {:.2f} {}".format(
+                            self.episode,
+                            self.EPISODES,
+                            worker_id,
+                            score[worker_id],
+                            average,
+                            SAVING,
+                        )
+                    )
+                    self.writer.add_scalar(
+                        f"Workers:{num_worker}/score_per_episode",
+                        score[worker_id],
+                        self.episode,
+                    )
+                    self.writer.add_scalar(
+                        f"Workers:{num_worker}/learning_rate", self.lr, self.episode
+                    )
                     score[worker_id] = 0
-                    if (self.episode < self.EPISODES):
+                    if self.episode < self.EPISODES:
                         self.episode += 1
 
             for worker_id in range(num_worker):
                 if len(states[worker_id]) >= self.Training_batch:
-                    self.replay(states[worker_id], actions[worker_id], rewards[worker_id], predictions[worker_id], dones[worker_id], next_states[worker_id])
+                    self.replay(
+                        states[worker_id],
+                        actions[worker_id],
+                        rewards[worker_id],
+                        predictions[worker_id],
+                        dones[worker_id],
+                        next_states[worker_id],
+                    )
 
                     states[worker_id] = []
                     next_states[worker_id] = []
@@ -428,7 +564,7 @@ class PPOAgent:
         works.append(work)
         for work in works:
             work.terminate()
-            print('TERMINATED:', work)
+            print("TERMINATED:", work)
             work.join()
 
     def test(self, test_episodes=100):

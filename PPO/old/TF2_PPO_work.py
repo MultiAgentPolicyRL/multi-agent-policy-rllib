@@ -12,7 +12,7 @@ import tensorflow_probability as tfp
 
 tfd = tfp.distributions
 
-tf.keras.backend.set_floatx('float64')
+tf.keras.backend.set_floatx("float64")
 
 # paper https://arxiv.org/pdf/1707.06347.pdf
 # code references https://github.com/uidilr/ppo_tf/blob/master/ppo.py,
@@ -27,19 +27,16 @@ def model(state_shape, action_dim, units=(400, 300, 100)):
     # used to calculate advantage estimate
     vf = Dense(units[0], name="Value_L0", activation="tanh")(state)
     for index in range(1, len(units)):
-        vf = Dense(units[index], name="Value_L{}".format(
-            index), activation="tanh")(vf)
+        vf = Dense(units[index], name="Value_L{}".format(index), activation="tanh")(vf)
 
     value_pred = Dense(1, name="Out_value")(vf)
 
     # Our Policy
     pi = Dense(units[0], name="Policy_L0", activation="tanh")(state)
     for index in range(1, len(units)):
-        pi = Dense(units[index], name="Policy_L{}".format(
-            index), activation="tanh")(pi)
+        pi = Dense(units[index], name="Policy_L{}".format(index), activation="tanh")(pi)
 
-    action_probs = Dense(action_dim, name="Out_probs",
-                         activation='softmax')(pi)
+    action_probs = Dense(action_dim, name="Out_probs", activation="softmax")(pi)
     model = Model(inputs=state, outputs=[action_probs, value_pred])
 
     return model
@@ -70,17 +67,17 @@ class PPO:
     """
 
     def __init__(
-            self,
-            env,
-            lr=5e-4,
-            hidden_units=(24, 16),
-            c1=1.0,
-            c2=0.01,
-            clip_ratio=0.2,
-            gamma=0.95,
-            lam=1.0,
-            batch_size=64,
-            n_updates=4,
+        self,
+        env,
+        lr=5e-4,
+        hidden_units=(24, 16),
+        c1=1.0,
+        c2=0.01,
+        clip_ratio=0.2,
+        gamma=0.95,
+        lam=1.0,
+        batch_size=64,
+        n_updates=4,
     ):
         # Define environment, observation_shape and action_shape (or dimension)
         self.env = env
@@ -114,7 +111,7 @@ class PPO:
 
             [From Wikipedia](https://en.wikipedia.org/wiki/Categorical_distribution)  \n
             In probability theory and statistics, a categorical distribution (also called a
-            generalized Bernoulli distribution, multinoulli distribution[1]) is a discrete 
+            generalized Bernoulli distribution, multinoulli distribution[1]) is a discrete
             probability distribution that describes the possible results of a random variable
             that can take on one of K possible categories, with the probability of each
             category separately specified. There is no innate underlying ordering of these
@@ -161,19 +158,21 @@ class PPO:
             return "a"
         return "p"
 
-    def get_actions(self, obs: dict, policies_to_train: list, policy_mapping_fn = policy_mapping_fun):
+    def get_actions(
+        self, obs: dict, policies_to_train: list, policy_mapping_fn=policy_mapping_fun
+    ):
         """
-        Get action dictionary for `policies_to_train` actors in obs  
+        Get action dictionary for `policies_to_train` actors in obs
 
         Parameters
         ----------
-        obs: dict, environemnt observations  
-        policy_mapping_fn: function, returns (in this case) "a" or "p" if the policy is agent or planner  
-        policies_to_train: list, list of polcies to train, in this case ["a"] or ["a", "p"]  
+        obs: dict, environemnt observations
+        policy_mapping_fn: function, returns (in this case) "a" or "p" if the policy is agent or planner
+        policies_to_train: list, list of polcies to train, in this case ["a"] or ["a", "p"]
 
         Returns
         -------
-        actions: dict, values: dict, log_probs: dict  
+        actions: dict, values: dict, log_probs: dict
 
         Only for trained policies
         """
@@ -198,8 +197,6 @@ class PPO:
     def _extract_input_list(self, dictionary):
         return [dictionary[k] for k in self._input_keys]
 
-
-    
     def save_model(self, fn):
         """
         Save tf trained model
@@ -215,12 +212,14 @@ class PPO:
 
     def get_gaes(self, rewards, v_preds, next_v_preds):
         """
-            Calculate GAE - Truncated version of Generalized Advantage Estimation
+        Calculate GAE - Truncated version of Generalized Advantage Estimation
         """
 
         # source: https://github.com/uidilr/ppo_tf/blob/master/ppo.py#L98
-        deltas = [r_t + self.gamma * v_next - v for r_t,
-                  v_next, v in zip(rewards, next_v_preds, v_preds)]
+        deltas = [
+            r_t + self.gamma * v_next - v
+            for r_t, v_next, v in zip(rewards, next_v_preds, v_preds)
+        ]
         # calculate generative advantage estimator(lambda = 1), see ppo paper eq(11)
         gaes = copy.deepcopy(deltas)
         # is T-1, where T is time step which run policy
@@ -235,17 +234,20 @@ class PPO:
 
         with tf.GradientTape() as tape:
             new_log_probs, entropy, state_values = self.evaluate_actions(
-                observations, actions)
+                observations, actions
+            )
 
             ratios = tf.exp(new_log_probs - log_probs)
-            clipped_ratios = tf.clip_by_value(ratios, clip_value_min=1-self.clip_ratio,
-                                              clip_value_max=1+self.clip_ratio)
+            clipped_ratios = tf.clip_by_value(
+                ratios,
+                clip_value_min=1 - self.clip_ratio,
+                clip_value_max=1 + self.clip_ratio,
+            )
             loss_clip = tf.minimum(gaes * ratios, gaes * clipped_ratios)
             loss_clip = tf.reduce_mean(loss_clip)
 
             target_values = rewards + self.gamma * next_v_preds
-            vf_loss = tf.reduce_mean(
-                tf.math.square(state_values - target_values))
+            vf_loss = tf.reduce_mean(tf.math.square(state_values - target_values))
 
             entropy = tf.reduce_mean(entropy)
             total_loss = -loss_clip + self.c1 * vf_loss - self.c2 * entropy
@@ -255,14 +257,14 @@ class PPO:
         self.model_optimizer.apply_gradients(zip(grad, train_variables))
 
         # tensorboard info
-        self.summaries['total_loss'] = total_loss
-        self.summaries['surr_loss'] = loss_clip
-        self.summaries['vf_loss'] = vf_loss
-        self.summaries['entropy'] = entropy
+        self.summaries["total_loss"] = total_loss
+        self.summaries["surr_loss"] = loss_clip
+        self.summaries["vf_loss"] = vf_loss
+        self.summaries["entropy"] = entropy
 
     def train(self, max_epochs=8000, max_steps=500, save_freq=50):
         current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        train_log_dir = 'logs/' + current_time
+        train_log_dir = "logs/" + current_time
         summary_writer = tf.summary.create_file_writer(train_log_dir)
 
         episode, epoch = 0, 0
@@ -270,7 +272,14 @@ class PPO:
         while epoch < max_epochs:
             done, steps = False, 0
             cur_state = self.env.reset()
-            obs, actions, log_probs, rewards, v_preds, next_v_preds = [], [], [], [], [], []
+            obs, actions, log_probs, rewards, v_preds, next_v_preds = (
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
 
             # Collecting data for batching
             while not done and steps < max_steps:
@@ -298,36 +307,44 @@ class PPO:
             for i in range(self.n_updates):
                 # Sample training data
                 sample_indices = np.random.randint(
-                    low=0, high=len(rewards), size=self.batch_size)
+                    low=0, high=len(rewards), size=self.batch_size
+                )
                 sampled_data = [
-                    np.take(a=a, indices=sample_indices, axis=0) for a in data]
+                    np.take(a=a, indices=sample_indices, axis=0) for a in data
+                ]
 
                 # Train model
                 self.learn(*sampled_data)
 
                 # Tensorboard update
                 with summary_writer.as_default():
-                    tf.summary.scalar('Loss/total_loss',
-                                      self.summaries['total_loss'], step=epoch)
-                    tf.summary.scalar('Loss/clipped_surr',
-                                      self.summaries['surr_loss'], step=epoch)
                     tf.summary.scalar(
-                        'Loss/vf_loss', self.summaries['vf_loss'], step=epoch)
+                        "Loss/total_loss", self.summaries["total_loss"], step=epoch
+                    )
                     tf.summary.scalar(
-                        'Loss/entropy', self.summaries['entropy'], step=epoch)
+                        "Loss/clipped_surr", self.summaries["surr_loss"], step=epoch
+                    )
+                    tf.summary.scalar(
+                        "Loss/vf_loss", self.summaries["vf_loss"], step=epoch
+                    )
+                    tf.summary.scalar(
+                        "Loss/entropy", self.summaries["entropy"], step=epoch
+                    )
 
                 summary_writer.flush()
                 epoch += 1
 
             episode += 1
-            print("episode {}: {} total reward, {} steps, {} epochs".format(
-                episode, np.sum(rewards), steps, epoch))
+            print(
+                "episode {}: {} total reward, {} steps, {} epochs".format(
+                    episode, np.sum(rewards), steps, epoch
+                )
+            )
 
             # Tensorboard update
             with summary_writer.as_default():
-                tf.summary.scalar('Main/episode_reward',
-                                  np.sum(rewards), step=episode)
-                tf.summary.scalar('Main/episode_steps', steps, step=episode)
+                tf.summary.scalar("Main/episode_reward", np.sum(rewards), step=episode)
+                tf.summary.scalar("Main/episode_steps", steps, step=episode)
 
             summary_writer.flush()
 
@@ -346,4 +363,3 @@ if __name__ == "__main__":
 
     ppo = PPO(gym_env)
     ppo.train(max_epochs=1000, save_freq=50)
-
