@@ -104,9 +104,6 @@ if __name__ == "__main__":
         # }
     }
     
-    
-    print(obs['0'].keys())
-    sys.exit()
     # TODO: make this list automatic
     available_agent_groups = ["a", "p"]
 
