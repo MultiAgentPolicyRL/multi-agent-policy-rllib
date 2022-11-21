@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from gym.spaces import Box, Dict
 
+
 def add_time_dimension(padded_inputs, seq_lens, framework="tf"):
     """Adds a time dimension to padded inputs.
 
@@ -27,11 +28,13 @@ def add_time_dimension(padded_inputs, seq_lens, framework="tf"):
 
         # Dynamically reshape the padded batch to introduce a time dimension.
         new_batch_size = padded_batch_size // max_seq_len
-        new_shape = ([new_batch_size, max_seq_len] +
-                     padded_inputs.get_shape().as_list()[1:])
+        new_shape = [new_batch_size, max_seq_len] + padded_inputs.get_shape().as_list()[
+            1:
+        ]
         return tf.reshape(padded_inputs, new_shape)
     else:
         NotImplementedError("Use Tensorflow!")
+
 
 # Disable TF INFO, WARNING, and ERROR messages
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -68,7 +71,8 @@ def apply_logit_mask(logits, mask):
 
     return logits + logit_mask
 
-class KerasConvLSTM():
+
+class KerasConvLSTM:
     """
     The model used in the paper "The AI Economist: Optimal Economic Policy
     Design via Two-level Deep Reinforcement Learning"

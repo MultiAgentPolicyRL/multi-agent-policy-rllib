@@ -18,7 +18,7 @@ class DecisionTree:
     @abstractmethod
     def get_action(self, input):
         pass
-    
+
     def set_reward(self, reward):
         self.current_reward = reward
 
@@ -52,11 +52,16 @@ class QLearningLeaf(Leaf):
 
     def update(self, reward, qprime):
         if self.last_action is not None:
-            lr = self.learning_rate if not callable(self.learning_rate) else self.learning_rate(self.iteration[self.last_action])
+            lr = (
+                self.learning_rate
+                if not callable(self.learning_rate)
+                else self.learning_rate(self.iteration[self.last_action])
+            )
             if lr == "auto":
-                lr = 1/self.iteration[self.last_action]
+                lr = 1 / self.iteration[self.last_action]
             self.q[self.last_action] += lr * (
-                        reward + self.discount_factor * qprime - self.q[self.last_action])
+                reward + self.discount_factor * qprime - self.q[self.last_action]
+            )
 
     def next_iteration(self):
         self.iteration[self.last_action] += 1
@@ -80,7 +85,7 @@ class EpsGreedyLeaf(QLearningLeaf):
             # Get the argmax. If there are equal values, choose randomly between them
             best = [None]
             max_ = -float("inf")
-            
+
             for i, v in enumerate(self.q):
                 if v > max_:
                     max_ = v
@@ -94,11 +99,14 @@ class EpsGreedyLeaf(QLearningLeaf):
         self.next_iteration()
         return action
 
+
 class RandomlyInitializedEpsGreedyLeaf(EpsGreedyLeaf):
-    def __init__(self, n_actions, learning_rate, discount_factor, epsilon, low=-100, up=100):
+    def __init__(
+        self, n_actions, learning_rate, discount_factor, epsilon, low=-100, up=100
+    ):
         """
         Initialize the leaf.
-        
+
         Args:
             n_actions: The number of actions
             learning_rate: the learning rate to use, callable or float
@@ -107,5 +115,7 @@ class RandomlyInitializedEpsGreedyLeaf(EpsGreedyLeaf):
             low: lower bound for the initialization
             up: upper bound for the initialization
         """
-        super(RandomlyInitializedEpsGreedyLeaf, self).__init__(n_actions, learning_rate, discount_factor, epsilon)
+        super(RandomlyInitializedEpsGreedyLeaf, self).__init__(
+            n_actions, learning_rate, discount_factor, epsilon
+        )
         self.q = np.random.uniform(low, up, n_actions)

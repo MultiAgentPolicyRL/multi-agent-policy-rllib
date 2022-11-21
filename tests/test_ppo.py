@@ -3,12 +3,14 @@ import tensorflow as tf
 import unittest
 import numpy as np
 from PPO.main_test import get_environment, dict_to_tensor_dict
-from PPO.my_own_ppo import ActorModel, CriticModel, PPOAgent
+from PPO.policy import ActorModel, CriticModel, PPOAgent
+
 
 class ModelChecking(unittest.TestCase):
     """
     Testing NN model used in PPO, gets the environemnt from ..PPO.main_test import get_environment
     """
+
     def setUp(self):
         """
         Test setup
@@ -23,7 +25,7 @@ class ModelChecking(unittest.TestCase):
         """
         Feeds actorModel network
         """
-        actor_value = self.actor_model.predict(self.obs['0'])
+        actor_value = self.actor_model.predict(self.obs["0"])
         self.assertIsNot(actor_value, None)
 
     # def test_feeding_critic_nn(self):
@@ -39,6 +41,7 @@ class ModelChecking(unittest.TestCase):
         """
         actions = self.ppo_agent.build_action_dict(self.obs)
         self.assertIsInstance(actions, dict)
-        
+
+
 if __name__ == "__main__":
     unittest.main()

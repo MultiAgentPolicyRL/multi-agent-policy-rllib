@@ -30,10 +30,15 @@ logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
 
+
 class AieExternalMultiAgentEnv(ExternalMultiAgentEnv):
     def __init__(self, env: RLlibEnvWrapper):
         ExternalMultiAgentEnv.__init__(
-            self, action_space=env.global_action_space, observation_space=env.global_observation_space,  max_concurrent=100)
+            self,
+            action_space=env.global_action_space,
+            observation_space=env.global_observation_space,
+            max_concurrent=100,
+        )
         self.env = copy.deepcopy(env)
 
     def seed(self, seed):
@@ -50,10 +55,10 @@ class AieExternalMultiAgentEnv(ExternalMultiAgentEnv):
             obs, rew, done, info = self.env.step(action_dict)
             self.log_returns(eid, rew)
             logger.info(f"Step: {counter}, Rew: {rew}")
-            counter+=1
+            counter += 1
 
-            if done['__all__']==True: 
-                counter=0
+            if done["__all__"] == True:
+                counter = 0
                 logger.info(f"Step: {counter}, done:{done}")
                 self.end_episode(eid, obs)
                 obs = self.env.reset()
@@ -100,7 +105,7 @@ def build_trainer(run_configuration):
     else:
         start_seed = int(trainer_config["seed"])
 
-    final_seed = int(start_seed % (2 ** 16)) * 1000
+    final_seed = int(start_seed % (2**16)) * 1000
     logger.info("seed (final): %s", final_seed)
 
     # === Multiagent Policies ===
@@ -136,7 +141,7 @@ def build_trainer(run_configuration):
     # === Finalize and create ===
     trainer_config.update(
         {
-            #"env_config": env_config,
+            # "env_config": env_config,
             "seed": final_seed,
             "multiagent": {
                 "policies": policies,
@@ -154,16 +159,18 @@ def build_trainer(run_configuration):
     register_env("ai-economist-external", lambda _: AieExternalMultiAgentEnv(dummy_env))
 
     ppo_trainer = PPOTrainer(
-        env="ai-economist-external", config=trainer_config, logger_creator=logger_creator
+        env="ai-economist-external",
+        config=trainer_config,
+        logger_creator=logger_creator,
     )
 
     return ppo_trainer
+
 
 if __name__ == "__main__":
     run_dir, run_config = process_args()
     trainer = build_trainer(run_config)
 
-    
     dense_log_frequency = run_config["env"].get("dense_log_frequency", 0)
     ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
     num_parallel_episodes_done = 0
@@ -178,8 +185,6 @@ if __name__ == "__main__":
         num_parallel_episodes_done = result["episodes_total"]
         global_step = result["timesteps_total"]
         curr_iter = result["training_iteration"]
-
-        
 
         if curr_iter == 1 or result["episodes_this_iter"] > 0:
             logger.info(pretty_print(result))

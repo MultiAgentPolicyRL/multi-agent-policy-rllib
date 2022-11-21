@@ -18,7 +18,6 @@ import numpy as np
 from ai_economist import foundation
 from gym import spaces
 from gym.utils import seeding
-from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
 _BIG_NUMBER = 1e20
 
@@ -47,9 +46,8 @@ def pretty_print(dictionary):
     print("\n")
 
 
-class RLlibEnvWrapper(MultiAgentEnv):
+class EnvWrapper:
     """
-    Environment wrapper for RLlib. It sub-classes MultiAgentEnv.
     This wrapper adds the action and observation space to the environment,
     and adapts the reset and step functions to run with RLlib.
     """

@@ -29,7 +29,10 @@ def process_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--run-dir", type=str, help="Path to the directory for this run.", default="/home/ettore/MultiAgentPolicyRL/DT-multi-agent-policy-rllib/trainer/experiments/_original_phases/phase1"
+        "--run-dir",
+        type=str,
+        help="Path to the directory for this run.",
+        default="/home/ettore/MultiAgentPolicyRL/DT-multi-agent-policy-rllib/trainer/experiments/_original_phases/phase1",
     )
 
     args = parser.parse_args()
@@ -43,6 +46,8 @@ def process_args():
         run_configuration = yaml.safe_load(f)
 
     return run_directory, run_configuration
+
+
 def build_trainer(run_configuration):
     """Finalize the trainer config by combining the sub-configs."""
     trainer_config = run_configuration.get("trainer")
@@ -62,7 +67,7 @@ def build_trainer(run_configuration):
     else:
         start_seed = int(trainer_config["seed"])
 
-    final_seed = int(start_seed % (2 ** 16)) * 1000
+    final_seed = int(start_seed % (2**16)) * 1000
     logger.info("seed (final): %s", final_seed)
 
     # === Multiagent Policies ===
@@ -236,7 +241,9 @@ def maybe_store_dense_log(
             logger.info(">> Wrote dense logs to: %s", log_dir)
 
 
-def maybe_save(trainer_obj, result_dict, ckpt_freq, ckpt_directory, trainer_step_last_ckpt):
+def maybe_save(
+    trainer_obj, result_dict, ckpt_freq, ckpt_directory, trainer_step_last_ckpt
+):
     global_step = result_dict["timesteps_total"]
 
     # Check if saving this iteration

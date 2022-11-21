@@ -14,6 +14,7 @@ from ray.rllib.utils import try_import_tf
 from tensorflow import keras
 
 from pkg_resources import get_distribution
+
 # For ray[rllib]==0.8.3
 from ray.rllib.models.tf.recurrent_tf_modelv2 import (
     RecurrentTFModelV2 as RecurrentNetwork,
@@ -336,7 +337,7 @@ class KerasLinear(TFModelV2):
         mask_input = tf.keras.layers.Input(shape=mask.shape, name=self.MASK_NAME)
 
         custom_options = model_config["custom_options"]
-        if custom_options.get('fully_connected_value', False):
+        if custom_options.get("fully_connected_value", False):
             self.fc_dim = int(custom_options["fc_dim"])
             self.num_fc = int(custom_options["num_fc"])
         else:
@@ -355,14 +356,16 @@ class KerasLinear(TFModelV2):
         )(self.inputs[0])
         logits = apply_logit_mask(logits, mask_input)
 
-        if custom_options.get('fully_connected_value', False):
+        if custom_options.get("fully_connected_value", False):
             # Value function is fully connected
-            fc_layers_val = keras.Sequential(name='fc_layers_val')
+            fc_layers_val = keras.Sequential(name="fc_layers_val")
             for i in range(self.num_fc):
                 fc_layers_val.add(
-                    keras.layers.Dense(self.fc_dim,
-                                       activation=tf.nn.relu,
-                                       name="fc_layers_val-{}".format(i))
+                    keras.layers.Dense(
+                        self.fc_dim,
+                        activation=tf.nn.relu,
+                        name="fc_layers_val-{}".format(i),
+                    )
                 )
             h_val = fc_layers_val(self.inputs[0])
             values = tf.keras.layers.Dense(
@@ -395,6 +398,7 @@ class RandomAction(TFModelV2):
     A "random" model to sample actions from an action space at random.
     This is used when not training an agent.
     """
+
     custom_name = "random"
 
     def __init__(self, obs_space, action_space, num_outputs, model_config, name):

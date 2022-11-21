@@ -19,19 +19,59 @@ time_ = False
 
 def program(input_, step):
     # Insert program here
-    if 0.401 * (input_[0] )+-0.104 * (input_[1] )+0.495 * (input_[2] )+-0.055 * (input_[3] )+-0.69 * (input_[4] )+-0.845 * (input_[5] )+-0.2 * (input_[6] )+-0.597 * (input_[7] ) < 0:
-        if 0.448 * (input_[0] )+-0.366 * (input_[1] )+0.431 * (input_[2] )+-0.462 * (input_[3] )+-0.693 * (input_[4] )+-0.821 * (input_[5] )+0.461 * (input_[6] )+-0.132 * (input_[7] ) < 0:
-            out=3
+    if (
+        0.401 * (input_[0])
+        + -0.104 * (input_[1])
+        + 0.495 * (input_[2])
+        + -0.055 * (input_[3])
+        + -0.69 * (input_[4])
+        + -0.845 * (input_[5])
+        + -0.2 * (input_[6])
+        + -0.597 * (input_[7])
+        < 0
+    ):
+        if (
+            0.448 * (input_[0])
+            + -0.366 * (input_[1])
+            + 0.431 * (input_[2])
+            + -0.462 * (input_[3])
+            + -0.693 * (input_[4])
+            + -0.821 * (input_[5])
+            + 0.461 * (input_[6])
+            + -0.132 * (input_[7])
+            < 0
+        ):
+            out = 3
         else:
-            if -0.101 * (input_[0] )+0.133 * (input_[1] )+-0.791 * (input_[2] )+0.653 * (input_[3] )+-0.207 * (input_[4] )+0.731 * (input_[5] )+0.068 * (input_[6] )+0.525 * (input_[7] ) < 0:
-                out=2
+            if (
+                -0.101 * (input_[0])
+                + 0.133 * (input_[1])
+                + -0.791 * (input_[2])
+                + 0.653 * (input_[3])
+                + -0.207 * (input_[4])
+                + 0.731 * (input_[5])
+                + 0.068 * (input_[6])
+                + 0.525 * (input_[7])
+                < 0
+            ):
+                out = 2
             else:
-                if 0.12 * (input_[0] )+-0.044 * (input_[1] )+-0.772 * (input_[2] )+-0.136 * (input_[3] )+-0.169 * (input_[4] )+0.821 * (input_[5] )+-0.573 * (input_[6] )+-0.251 * (input_[7] ) < 0:
-                    out=0
+                if (
+                    0.12 * (input_[0])
+                    + -0.044 * (input_[1])
+                    + -0.772 * (input_[2])
+                    + -0.136 * (input_[3])
+                    + -0.169 * (input_[4])
+                    + 0.821 * (input_[5])
+                    + -0.573 * (input_[6])
+                    + -0.251 * (input_[7])
+                    < 0
+                ):
+                    out = 0
                 else:
-                    out=2
+                    out = 2
     else:
-        out=1
+        out = 1
     # End program
     return out
 
@@ -73,7 +113,7 @@ def evaluate(program, seed):
     env.close()
 
     cv2.destroyAllWindows()
-    print("Evaluation took {}s".format(time()-t))
+    print("Evaluation took {}s".format(time() - t))
     print("Score: {}".format(score))
     return score
 

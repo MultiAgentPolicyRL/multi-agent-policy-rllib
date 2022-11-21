@@ -115,7 +115,7 @@ def save_tf_model_weights(trainer, ckpt_dir, global_step, suffix=""):
         # model_w_array = pol._sess.run(pol.model.variables())
     else:
         raise NotImplementedError
-    
+
     fn = os.path.join(
         ckpt_dir, "{}.tf.weights.global-step-{}".format(suffix, global_step)
     )

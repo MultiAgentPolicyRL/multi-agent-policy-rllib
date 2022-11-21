@@ -5,6 +5,7 @@ import re
 import numpy as np
 import deap
 from deap import base, creator, tools
+
 # from deap.algorithms import varAnd
 from deap.tools import mutShuffleIndexes, mutUniformInt
 from joblib import Parallel, delayed
@@ -16,14 +17,12 @@ TAB = " " * 4
 
 @dataclass
 class ListWithParents(list):
-
     def __init__(self, *iterable):
         super(ListWithParents, self).__init__(*iterable)
         self.parents = []
 
 
 class GrammaticalEvolutionTranslator:
-
     def __init__(self, grammar):
         """
         Initializes a new instance of the Grammatical Evolution
@@ -46,9 +45,9 @@ class GrammaticalEvolutionTranslator:
         FIXME: description
 
         Args:
-            candidate: str: 
+            candidate: str:
             gene:
-        
+
         Returns:
 
         """
@@ -61,7 +60,7 @@ class GrammaticalEvolutionTranslator:
         Changes indentation for better readability.
 
         Args:
-            string: 
+            string:
 
         Returns:
             FIXME: check returned type!
@@ -82,8 +81,9 @@ class GrammaticalEvolutionTranslator:
         # Fix lines
         for line in lines:
             if len(line) > 0:
-                fixed_lines.append(TAB * n_tabs +
-                                   line.replace("{", "").replace("}", ""))
+                fixed_lines.append(
+                    TAB * n_tabs + line.replace("{", "").replace("}", "")
+                )
 
                 if line[-1] == "{":
                     n_tabs += 1
@@ -96,7 +96,7 @@ class GrammaticalEvolutionTranslator:
         return "\n".join(fixed_lines)
 
     def genotype_to_str(self, genotype):
-        """ 
+        """
         This method translates a genotype into an executable program (python)
         FIXME
         Args:
@@ -144,17 +144,17 @@ def varAnd(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb):
         toolbox: A `deap.base.Toolbox` that contains the evolution operators
         cxpb: The probability of mating two individuals
         mutpb: The probability of mutating an individual
-    
+
     Returns:
         A list of varied individuals that are independent of their parents
 
     The variation goes as follow \n
-    1. Parental population `P_\mathrm{p}` is duplicated using `toolbox.clone` and 
+    1. Parental population `P_\mathrm{p}` is duplicated using `toolbox.clone` and
     the result is put into the offspring population `P_\mathrm{o}`
     2. A first loop over `P_\mathrm{o}` is executed to mate pairs of consecutive individuals.
-    According to the crossover probability `cxpb`, the individuals `\mathbf{x}_i` and 
+    According to the crossover probability `cxpb`, the individuals `\mathbf{x}_i` and
     `\mathbf{x}_{i+1}` are mated using the `toolbox.mate` method. The resulting children
-    `\mathbf{y}_i` and `\mathbf{y}_{i+1}` replace their respective parents in `P_\mathrm{o}`. 
+    `\mathbf{y}_i` and `\mathbf{y}_{i+1}` replace their respective parents in `P_\mathrm{o}`.
     3. A second loop over the resulting `P_\mathrm{o}` is executed to mutate every individual with a
     probability `mutpb`. When an individual is mutated it replaces its not mutated version in `P_\mathrm{o}`.
      The resulting `P_\mathrm{o}` is returned.
@@ -176,7 +176,8 @@ def varAnd(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb):
     for i in range(1, len(offspring), 2):
         if random.random() < cxpb:
             offspring[i - 1], offspring[i] = toolbox.mate(
-                offspring[i - 1], offspring[i])
+                offspring[i - 1], offspring[i]
+            )
             offspring[i - 1].parents.append(i)
             offspring[i].parents.append(i - 1)
             del offspring[i - 1].fitness.values, offspring[i].fitness.values
@@ -184,22 +185,24 @@ def varAnd(population: list, toolbox: deap.base.Toolbox, cxpb, mutpb):
     # Step 3
     for i in range(len(offspring)):
         if random.random() < mutpb:
-            offspring[i], = toolbox.mutate(offspring[i])
+            (offspring[i],) = toolbox.mutate(offspring[i])
             del offspring[i].fitness.values
 
     return offspring
 
 
-def eaSimple(population: list,
-             toolbox: deap.base.Toolbox,
-             cxpb,
-             mutpb,
-             ngen,
-             stats: deap.tools.Statistics = None,
-             halloffame: deap.tools.HallOfFame = None,
-             verbose=__debug__,
-             logfile=None,
-             var=varAnd):
+def eaSimple(
+    population: list,
+    toolbox: deap.base.Toolbox,
+    cxpb,
+    mutpb,
+    ngen,
+    stats: deap.tools.Statistics = None,
+    halloffame: deap.tools.HallOfFame = None,
+    verbose=__debug__,
+    logfile=None,
+    var=varAnd,
+):
     """This algorithm reproduce the simplest evolutionary algorithm as
     presented in chapter 7 of [Back2000]_.
 
@@ -214,8 +217,8 @@ def eaSimple(population: list,
         verbose: Whether or not to log the statistics.
         logfile: TODO
         var: FIXME
-    
-    Returns: 
+
+    Returns:
         The final population
         A class:`deap.tools.Logbook` with the statistics of the evolution
         Best leaves
@@ -224,19 +227,19 @@ def eaSimple(population: list,
     `varAnd` method. It returns the optimized population and a `deap.tools.Logbook`
     with the statistics of the evolution. The logbook will contain the generation
     number, the number of evaluations for each generation and the statistics if
-    a `deap.tools.Statistics` is given as argument. The *cxpb* and *mutpb* 
-    arguments are passed to the `varAnd` function. 
-    
+    a `deap.tools.Statistics` is given as argument. The *cxpb* and *mutpb*
+    arguments are passed to the `varAnd` function.
+
     .. The pseudocode goes as follow :
 
-        
-        evaluate(population)   
-        for g in range(ngen):   
-            population = select(population, len(population))   
-            offspring = varAnd(population, toolbox, cxpb, mutpb)   
-            evaluate(offspring)   
-            population = offspring   
-        
+
+        evaluate(population)
+        for g in range(ngen):
+            population = select(population, len(population))
+            offspring = varAnd(population, toolbox, cxpb, mutpb)
+            evaluate(offspring)
+            population = offspring
+
     The algorithm goes as follow:
     1. It evaluates the individuals with an invalid fitness
     2. It enters the generational loop where the selection procedure is applied to entirely
@@ -244,9 +247,9 @@ def eaSimple(population: list,
     algorithm **requires** the selection procedure to be stochastic and to
     select multiple times the same individual, for example: `deap.tools.selTournament` and `deap.tools.selRoulette`.
     3. It applies the `varAnd` function to produce the next
-    generation population. 
-    4. It evaluates the new individuals and compute the statistics on this population. 
-    5. When `ngen` generations are done, the algorithm returns a tuple with the final 
+    generation population.
+    4. It evaluates the new individuals and compute the statistics on this population.
+    5. When `ngen` generations are done, the algorithm returns a tuple with the final
     population, a `deap.tools.Logbook` of the evolution and `best_leaves` FIXME type of best_leaves
 
     .. note::
@@ -254,14 +257,14 @@ def eaSimple(population: list,
         Using a non-stochastic selection method will result in no selection as
         the operator selects *n* individuals from a pool of *n*.
 
-    This function expects the `toolbox.mate`, `toolbox.mutate`, `toolbox.select` 
+    This function expects the `toolbox.mate`, `toolbox.mutate`, `toolbox.select`
     and `toolbox.evaluate` aliases to be registered in the toolbox.
 
     .. [Back2000] Back, Fogel and Michalewicz, "Evolutionary Computation 1 :
        Basic Algorithms and Operators", 2000.
     """
     logbook = tools.Logbook()
-    logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
+    logbook.header = ["gen", "nevals"] + (stats.fields if stats else [])
     best = None
     best_leaves = None
 
@@ -278,7 +281,9 @@ def eaSimple(population: list,
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{}] New best at generation 0 with fitness {}\n".format(
-                        datetime.datetime.now(), fit))
+                        datetime.datetime.now(), fit
+                    )
+                )
                 log_.write(str(ind) + "\n")
                 log_.write("Leaves\n")
                 log_.write(str(leaves[i]) + "\n")
@@ -313,8 +318,10 @@ def eaSimple(population: list,
                 best_leaves = leaves[i]
                 with open(logfile, "a") as log_:
                     log_.write(
-                        "[{}] New best at generation {} with fitness {}\n".
-                        format(datetime.datetime.now(), gen, fit))
+                        "[{}] New best at generation {} with fitness {}\n".format(
+                            datetime.datetime.now(), gen, fit
+                        )
+                    )
                     log_.write(str(ind) + "\n")
                     log_.write("Leaves\n")
                     log_.write(str(leaves[i]) + "\n")
@@ -326,10 +333,10 @@ def eaSimple(population: list,
         # Replace the current population by the offspring
         for o in offspring:
             argmin = np.argmin(
-                map(lambda x: population[x].fitness.values[0], o.parents))
+                map(lambda x: population[x].fitness.values[0], o.parents)
+            )
 
-            if o.fitness.values[0] > population[
-                    o.parents[argmin]].fitness.values[0]:
+            if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
                 population[o.parents[argmin]] = o
 
         # Append the current generation statistics to the logbook
@@ -359,7 +366,7 @@ def mutate(individual, attribute, mut_rate, max_value):
 def ge_mate(ind1, ind2, individual):
     """
         FIXME:
-    
+
     Args:
         ind1: index1 (?)
         ind2:
@@ -373,8 +380,9 @@ def ge_mate(ind1, ind2, individual):
     if random.random() < 0.5:
         new_offspring = []
         for idx, ind in enumerate([ind1, ind2]):
-            _, used = GrammaticalEvolutionTranslator(1, [object],
-                                                     [0]).genotype_to_str(ind)
+            _, used = GrammaticalEvolutionTranslator(1, [object], [0]).genotype_to_str(
+                ind
+            )
             if used > len(ind):
                 used = len(ind)
             new_offspring.append(individual(offspring[idx][:used]))
@@ -403,36 +411,32 @@ def ge_mutate(ind, attribute):
         ind[random_int] = attribute()
     else:
         ind.extend(np.random.choice(ind, size=random_int))
-    return ind,
+    return (ind,)
 
 
-def grammatical_evolution(fitness_function,
-                          inputs,
-                          leaf,
-                          individuals,
-                          generations,
-                          cx_prob,
-                          m_prob,
-                          initial_len=100,
-                          selection={'function': "tools.selBest"},
-                          mutation={
-                              'function': "ge_mutate",
-                              'attribute': None
-                          },
-                          crossover={
-                              'function': "ge_mate",
-                              'individual': None
-                          },
-                          seed=0,
-                          logfile=None,
-                          timeout=10 * 60):
+def grammatical_evolution(
+    fitness_function,
+    inputs,
+    leaf,
+    individuals,
+    generations,
+    cx_prob,
+    m_prob,
+    initial_len=100,
+    selection={"function": "tools.selBest"},
+    mutation={"function": "ge_mutate", "attribute": None},
+    crossover={"function": "ge_mate", "individual": None},
+    seed=0,
+    logfile=None,
+    timeout=10 * 60,
+):
     """
     FIXME: add description
 
     Args:
         fitness_function: fit_fcn(x) >> evaluate_fitness(fitness, x) >> fitness(x: PythonDT, episodes=args.episodes)
         inputs: input space size
-        leaf: leaf class 
+        leaf: leaf class
         individuals: population size
         generations: Number of generations
         cx_prob: Crossover probability
@@ -454,11 +458,10 @@ def grammatical_evolution(fitness_function,
 
     _max_value = 40000
 
-    creator.create("FitnessMax", base.Fitness, weights=(1.0, ))
-    creator.create("Individual",
-                   ListWithParents,
-                   typecode='d',
-                   fitness=creator.FitnessMax)
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    creator.create(
+        "Individual", ListWithParents, typecode="d", fitness=creator.FitnessMax
+    )
 
     toolbox = base.Toolbox()
 
@@ -469,28 +472,39 @@ def grammatical_evolution(fitness_function,
     # FIXME how to distribute on ray?
     # if jobs > 1:
     #     toolbox.register("map", get_map(jobs, timeout))
-    
-    toolbox.register("individual", tools.initRepeat, creator.Individual,
-                     toolbox.attr_bool, initial_len)
+
+    toolbox.register(
+        "individual",
+        tools.initRepeat,
+        creator.Individual,
+        toolbox.attr_bool,
+        initial_len,
+    )
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
     toolbox.register("evaluate", fitness_function)
 
     for d in [mutation, crossover]:
         if "attribute" in d:
-            d['attribute'] = toolbox.attr_bool
+            d["attribute"] = toolbox.attr_bool
         if "individual" in d:
-            d['individual'] = creator.Individual
+            d["individual"] = creator.Individual
 
-    toolbox.register("mate", eval(crossover['function']),
-                     **{k: v
-                        for k, v in crossover.items() if k != "function"})
-    toolbox.register("mutate", eval(mutation['function']),
-                     **{k: v
-                        for k, v in mutation.items() if k != "function"})
-    toolbox.register("select", eval(selection['function']),
-                     **{k: v
-                        for k, v in selection.items() if k != "function"})
+    toolbox.register(
+        "mate",
+        eval(crossover["function"]),
+        **{k: v for k, v in crossover.items() if k != "function"}
+    )
+    toolbox.register(
+        "mutate",
+        eval(mutation["function"]),
+        **{k: v for k, v in mutation.items() if k != "function"}
+    )
+    toolbox.register(
+        "select",
+        eval(selection["function"]),
+        **{k: v for k, v in selection.items() if k != "function"}
+    )
 
     pop = toolbox.population(n=individuals)
     hof = tools.HallOfFame(1)
@@ -500,15 +514,17 @@ def grammatical_evolution(fitness_function,
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    pop, log, best_leaves = eaSimple(pop,
-                                     toolbox,
-                                     cxpb=cx_prob,
-                                     mutpb=m_prob,
-                                     ngen=generations,
-                                     stats=stats,
-                                     halloffame=hof,
-                                     verbose=True,
-                                     logfile=logfile)
+    pop, log, best_leaves = eaSimple(
+        pop,
+        toolbox,
+        cxpb=cx_prob,
+        mutpb=m_prob,
+        ngen=generations,
+        stats=stats,
+        halloffame=hof,
+        verbose=True,
+        logfile=logfile,
+    )
 
     return pop, log, hof, best_leaves
 
@@ -516,7 +532,7 @@ def grammatical_evolution(fitness_function,
 def varDE(population, toolbox, cxpb, mutpb):
     """
         FIXME:
-    
+
     Args:
         population:
         toolbox:
@@ -528,14 +544,15 @@ def varDE(population, toolbox, cxpb, mutpb):
     for i, o in enumerate(offspring):
         o.parents = [i]
 
-    b = sorted(range(len(offspring)),
-               key=lambda x: offspring[x].fitness,
-               reverse=True)[0]
+    b = sorted(range(len(offspring)), key=lambda x: offspring[x].fitness, reverse=True)[
+        0
+    ]
 
     # Apply crossover and mutation on the offspring
     for i in range(len(offspring)):
         j, k, l = np.random.choice(
-            [a for a in range(len(offspring)) if a != i], 3, False)
+            [a for a in range(len(offspring)) if a != i], 3, False
+        )
         if random.uniform(0, 1) > 1:
             j = b
         # j, k, l = np.random.choice([a for a in range(len(offspring)) if a != i], 3, False)
@@ -545,8 +562,9 @@ def varDE(population, toolbox, cxpb, mutpb):
         elif offspring[l].fitness > offspring[j].fitness:
             j, l = l, j
         """
-        offspring[i] = toolbox.mate(offspring[j], offspring[k], offspring[l],
-                                    offspring[i])
+        offspring[i] = toolbox.mate(
+            offspring[j], offspring[k], offspring[l], offspring[i]
+        )
         offspring[i].parents.append(i)
         del offspring[i].fitness.values
 

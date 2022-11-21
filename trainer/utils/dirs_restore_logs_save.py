@@ -74,8 +74,7 @@ def set_up_dirs_and_maybe_restore(
         )
         if starting_weights_path_agents:
             logger.info("Restoring agents TF weights...")
-            saving.load_tf_model_weights(
-                trainerAgent, starting_weights_path_agents)
+            saving.load_tf_model_weights(trainerAgent, starting_weights_path_agents)
         else:
             logger.info("Starting with fresh agent TF weights.")
 
@@ -85,8 +84,7 @@ def set_up_dirs_and_maybe_restore(
         )
         if starting_weights_path_planner:
             logger.info("Restoring planner TF weights...")
-            saving.load_tf_model_weights(
-                trainerPlanner, starting_weights_path_planner)
+            saving.load_tf_model_weights(trainerPlanner, starting_weights_path_planner)
         else:
             logger.info("Starting with fresh planner TF weights.")
 
@@ -147,8 +145,7 @@ def maybe_save(
 
         if ckpt_freq > 0:
             if global_step - trainer_step_last_ckpt >= ckpt_freq:
-                saving.save_snapshot(
-                    agent_trainer, ckpt_directory, suffix="agent")
+                saving.save_snapshot(agent_trainer, ckpt_directory, suffix="agent")
                 saving.save_tf_model_weights(
                     agent_trainer, ckpt_directory, global_step, suffix="agent"
                 )

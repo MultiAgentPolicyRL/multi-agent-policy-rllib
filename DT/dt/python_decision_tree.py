@@ -21,12 +21,14 @@ class PythonDT(DecisionTree):
             leaf_name = "leaf_{}".format(n_leaves)
             self.leaves[leaf_name] = new_leaf
 
-            self.program = self.program.replace("_leaf", "'{}.get_action()'".format(leaf_name), 1)
+            self.program = self.program.replace(
+                "_leaf", "'{}.get_action()'".format(leaf_name), 1
+            )
             self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
 
             n_leaves += 1
         self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
-    
+
     def get_action(self, input):
         if len(self.program) == 0:
             return None
@@ -41,10 +43,10 @@ class PythonDT(DecisionTree):
         current_q_value = max(current_leaf.q)
         if self.last_leaf is not None:
             self.last_leaf.update(self.current_reward, current_q_value)
-        self.last_leaf = current_leaf 
-        
+        self.last_leaf = current_leaf
+
         return current_leaf.get_action()
-    
+
     def __call__(self, x):
         return self.get_action(x)
 

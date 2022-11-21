@@ -101,8 +101,8 @@ class Actor_Model:
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, prediction_picks, actions = (
             y_true[:, :1],
-            y_true[:, 1: 1 + self.action_space],
-            y_true[:, 1 + self.action_space:],
+            y_true[:, 1 : 1 + self.action_space],
+            y_true[:, 1 + self.action_space :],
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
@@ -431,6 +431,7 @@ class PPOAgent:
                 # Retrieve new state, reward, and whether the state is terminal
                 next_state, reward, done, _ = self.env.step(action)
                 # Memorize (state, action, reward) for training
+
                 states.append(state)
                 next_states.append(np.reshape(next_state, [1, self.state_size[0]]))
                 actions.append(action_onehot)
