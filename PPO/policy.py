@@ -8,6 +8,7 @@ import numpy as np
 from tensorflow.python.framework.ops import enable_eager_execution
 from model import ActorModel, CriticModel
 from deprecated import deprecated
+import tensorflow as tf
 
 # from algorithm import BatchMemory
 enable_eager_execution()
@@ -106,6 +107,11 @@ class PPOAgent:
         """
         Train Policy networks
         """
+        # states = np.vstack(states)
+        # next_states = np.vstack(next_states)
+        # actions = np.vstack(actions)
+        # predictions = np.vstack(predictions)
+
         # Get Critic network predictions
         values = self.Critic.batch_predict(states)
         next_values = self.Critic.batch_predict(next_states)
@@ -121,9 +127,27 @@ class PPOAgent:
         # in custom PPO loss function we unpack it
         y_true = np.hstack([advantages, predictions, actions])
 
+        # ['world-map', 'world-idx_map', 'time', 'flat', 'action_mask'])
+        # tf.convert_to_tensor(
+        #     value, dtype=None, dtype_hint=None, name=None
+        # )
+
+        world_map = [] 
+        flat = []
+        for s in states:
+            world_map.append(tf.convert_to_tensor(s['world-map'],))
+            flat.append(tf.convert_to_tensor(s['flat'],))
+
+        world_map = tf.convert_to_tensor(world_map)
+        flat = tf.convert_to_tensor(flat)
+
+
+
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
-            states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
+            # states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
+            [world_map, flat], y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
+
         )
 
         c_loss = self.Critic.critic.fit(
@@ -198,11 +222,3 @@ class PPOAgent:
         """
         data.batch
         self.learn()
-
-
-if __name__ == "__main__":
-    from main_test import get_environment
-
-    env = get_environment()
-    ppo_policy = PPOAgent("abla")
-    ppo_policy.train_one_step_batching(env)
