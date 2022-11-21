@@ -101,8 +101,8 @@ class Actor_Model:
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, prediction_picks, actions = (
             y_true[:, :1],
-            y_true[:, 1 : 1 + self.action_space],
-            y_true[:, 1 + self.action_space :],
+            y_true[:, 1: 1 + self.action_space],
+            y_true[:, 1 + self.action_space:],
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001

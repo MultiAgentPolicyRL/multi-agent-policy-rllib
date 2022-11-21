@@ -13,6 +13,7 @@ from tensorflow.python.framework.ops import enable_eager_execution
 
 enable_eager_execution()
 
+
 def dict_to_tensor_dict(a_dict: dict):
     """
     pass a single agent obs, returns it's tensor_dict
@@ -54,7 +55,7 @@ class ActorModel(object):
             action_space, name="Out_probs_actions", activation="sigmoid"
         )(self.lstm)
 
-        self.actor : k.Model = k.Model(
+        self.actor: k.Model = k.Model(
             inputs=[self.cnn_in, self.info_input], outputs=self.action_probs
         )
 
@@ -69,8 +70,8 @@ class ActorModel(object):
         """
         advantages, prediction_picks, actions = (
             y_true[:, :1],
-            y_true[:, 1 : 1 + self.action_space],
-            y_true[:, 1 + self.action_space :],
+            y_true[:, 1: 1 + self.action_space],
+            y_true[:, 1 + self.action_space:],
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
@@ -138,7 +139,7 @@ class CriticModel(object):
             1, name="Out_value_function", activation="softmax"
         )(lstm)
 
-        self.critic : k.Model = k.Model(
+        self.critic: k.Model = k.Model(
             inputs=[cnn_in, info_input, old_values], outputs=value_pred
         )
 
@@ -180,14 +181,15 @@ class CriticModel(object):
         # from the guy's code
         # return self.critic.predict([obs, np.zeros((obs.shape[0], 1))])
         # return self.critic.predict([obs_predict["world-map"], obs_predict["flat"], np.zeros((7, 136))], verbose=False)
-        return self.critic.predict([k.backend.expand_dims(obs_predict["world-map"], 0),k.backend.expand_dims(obs_predict["flat"], 0),k.backend.expand_dims(np.zeros((136, 1)), 0),])
+        return self.critic.predict([k.backend.expand_dims(obs_predict["world-map"], 0), k.backend.expand_dims(obs_predict["flat"], 0), k.backend.expand_dims(np.zeros((136, 1)), 0), ])
+
 
 class PPOAgent:
     """
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, env_name ):
+    def __init__(self, env_name):
         # Initialization
         # Environment and PPO parameters
         self.env_name = env_name
@@ -200,7 +202,7 @@ class PPOAgent:
         # self.lr = 0.00025
         self.epochs = 10  # training epochs
         self.shuffle = False
-        self.mini_batching_steps = 10 # mini-batching
+        self.mini_batching_steps = 10  # mini-batching
         # self.optimizer = RMSprop
         # self.optimizer = Adam
 
@@ -270,11 +272,17 @@ class PPOAgent:
 
         return np.vstack(gaes), np.vstack(target)
 
-    def _replay(
-        self, observations: dict, actions: dict, rewards: dict, predictions: dict, dones: dict, next_observations: dict
-    ):
+    def _learn(
+            self, observations: list, actions: list, rewards: list, predictions: list, next_observations: list):
         """
-        Train Critic network
+        Train Policy networks
+
+        Abbiamo modo di preparare i dati:
+        - super lista di {} di ogni agente (quindi 0,1,2,3) seguiti da quelli del Timestep successivo
+        - quindi si danno in pasto come lista lunghissima
+        - i predict si fanno con un ciclo e si crea la lista di azioni per agente (0,1,2,3) al T timestep
+        
+        -> cosi dovrebbe funzionare
 
         FIXME: Arrived here, need to understand this func better.
         """
@@ -285,8 +293,8 @@ class PPOAgent:
                 if self._policy_mapping_fun(key) == 'a':
                     print("pasta")
                     observations = obs_time[key]
-                    next_observations= next_obs_time[key]
-                    rewards= rew_time[key]
+                    next_observations = next_obs_time[key]
+                    rewards = rew_time[key]
                     predictions = pred_time[key]
                     actions = act_time[key]
                     # observations, actions, rewards, predictions, dones, next_observations = observations1, actions1, rewards1, predictions1, dones1, next_observations1
@@ -297,7 +305,6 @@ class PPOAgent:
                     # actions = np.vstack(actions)
                     # predictions = np.vstack(predictions)
 
-                    
                     # Get Critic network predictions
                     values = self.Critic.predict(observations)
                     next_values = self.Critic.predict(next_observations)
@@ -361,7 +368,7 @@ class PPOAgent:
 
         Arguments:
             obs: environment observations
-        
+
         Returns:
             A dictionary containing an action for each agent
         """
@@ -373,49 +380,56 @@ class PPOAgent:
             if self._policy_mapping_fun(key) == 'a':
                 actions[key], actions_oneshot[key], predictions[key] = self.act(obs[key])
             elif self._policy_mapping_fun(key) == 'p':
-                actions['p'] = [0,0,0,0,0,0,0]
+                actions['p'] = [0, 0, 0, 0, 0, 0, 0]
             else:
                 IndexError(f"this actor is not managed by the environment, key: {key}")
 
         return actions, actions_oneshot, predictions
 
-
-    def train_one_step_batching(self, env):  # train every self.Training_batch episodes
+    def train_one_step_batching(self, env):
         """
         Train agents for one step using mini_batching
+        TODO: okay, e' a posto. Non modificare piu.!
+        FIXME: docs
         """
-        
+
         state = env.reset()
         done, score = False, 0
 
-        # Instantiate or reset games memory
-        states, next_states, actions, rewards, predictions, dones = ({},{},{},{},{},{})
-        for t in range(self.mini_batching_steps):
+        # Instantiate or reset memory
+        states, next_states, actions, rewards, predictions, dones = ([], [], [], [], [], [])
+        step = 0
+
+        # Create batch
+        while step < self.mini_batching_steps:
             # Actor picks an action
-            # action, action_onehot, prediction = self.act(state)
             action, action_onehot, prediction = self.build_action_dict(state)
 
             # Retrieve new state, reward, and whether the state is terminal
-            # print(action)
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, _, _ = env.step(action)
+
             # Memorize (state, action, reward) for training
-            states[t]=state
-            next_states[t]=next_state
-            actions[t]=action_onehot
-            rewards[t]=reward
-            dones[t] = done
-            predictions[t]=prediction
-            
+            states.append(state)
+            next_states.append(next_state)
+            actions.append(action_onehot)
+            rewards.append(reward)
+            predictions.append(prediction)
+
+            """
+            states, next_states, actions, rewards, predictions are list of dict
+            """
+
             # print(f"reward during batching: {reward}")
 
             # Update current state
             state = next_state
-            
-        self._replay(states, actions, rewards, predictions, dones, next_states)
+            step += 1
+
+        self._learn(states, actions, rewards, predictions, next_states)
+
 
 if __name__ == "__main__":
     from main_test import get_environment
     env = get_environment()
     ppo_policy = PPOAgent("abla")
     ppo_policy.train_one_step_batching(env)
-    
