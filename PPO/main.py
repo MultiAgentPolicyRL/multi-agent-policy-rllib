@@ -2,6 +2,9 @@ import sys
 from ai_economist import foundation
 from algorithm import PpoAlgorithm
 from env_wrapper import EnvWrapper
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 env_config = {
     "env_config_dict": {
@@ -83,7 +86,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 1
+    EPOCHS = 5
 
     env = get_environment()
     obs = env.reset()
@@ -94,16 +97,16 @@ if __name__ == "__main__":
     # dummy_env.action_space,
 
     policy_config = {
-        'a': {
-            'action_space' : 50, # Discete(50)
-            'observation_space' : env.observation_space
+        "a": {
+            "action_space": 50,  # Discete(50)
+            "observation_space": env.observation_space,
         },
         # 'p': {
         #     'action_space' : env.action_space_pl,
         #     'observation_space' : env.observation_space_pl
         # }
     }
-    
+
     # TODO: make this list automatic
     available_agent_groups = ["a", "p"]
 
@@ -113,11 +116,11 @@ if __name__ == "__main__":
     )
 
     # actions = algorithm.get_actions(obs)
-    obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
-    algorithm.train_one_step(env)
+    # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
+    # algorithm.train_one_step(env)
+    logging.debug("Training")
+    for i in range(EPOCHS):
+        obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
+        algorithm.train_one_step(env)
 
-    # for i in range(EPOCHS):
-    #     # obs, rew, done, info = env.step(PpoAlgorithm.act(obs))
-    #     # PpoAlgorithm.train(env)
-
-    #     # print(f"Reward step {EPOCHS}: {rew}")
+        logging.info(f"Reward step {i}: {rew}")

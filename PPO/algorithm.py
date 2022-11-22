@@ -2,10 +2,12 @@
 PPO's top level algorithm.
 Manages batching and multi-agent training.
 """
+import logging
 import copy
 import sys
 from policy import PPOAgent
 from memory import BatchMemory
+
 
 class PpoAlgorithm(object):
     """
@@ -27,6 +29,7 @@ class PpoAlgorithm(object):
             'p' : config or None,
         }
         """
+        self.minibatch_size = 100
         if policy_mapping_fun:
             self.policy_mapping_fun = policy_mapping_fun
         else:
@@ -39,10 +42,12 @@ class PpoAlgorithm(object):
         for key in policy_config:
             # config injection
             if policy_config[key] is not None:
-                self.training_policies[key]: PPOAgent = PPOAgent(policy_config=policy_config[key])
+                self.training_policies[key]: PPOAgent = PPOAgent(
+                    policy_config=policy_config[key], batch_size=self.minibatch_size
+                )
             else:
                 # USING THIS RN
-                self.training_policies[key]: PPOAgent = PPOAgent()
+                self.training_policies[key]: PPOAgent = PPOAgent(batch_size=self.minibatch_size)
 
         # Setup batch memory
         # FIXME: doesn't work with `self.policy_mapping_fun` reference
@@ -62,7 +67,7 @@ class PpoAlgorithm(object):
             return "a"
         return "p"
 
-    def train_one_step(self, env, minibatch_size: int = 10):
+    def train_one_step(self, env):
         """
         Train all Policys
         Here PPO's Minibatch is generated and splitted to each policy, following
@@ -76,7 +81,8 @@ class PpoAlgorithm(object):
         state = env.reset()
 
         # Collecting data for batching
-        while steps < minibatch_size:
+        logging.debug("Batching")
+        while steps < self.minibatch_size:
             # Actor picks an action
             action, action_onehot, prediction = self.get_actions(state)
 
@@ -87,11 +93,14 @@ class PpoAlgorithm(object):
             self.memory.update_memory(
                 state, next_state, action_onehot, reward, prediction
             )
+            if steps % 10 == 0:
+                logging.debug(f"step: {steps}")
 
             steps += 1
 
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
+            logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(
                 self.memory.batch[key]["states"],
                 self.memory.batch[key]["actions"],

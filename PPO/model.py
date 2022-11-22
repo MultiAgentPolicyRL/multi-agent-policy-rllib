@@ -52,7 +52,9 @@ class ActorModel(object):
         )
 
         # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
-        self.actor.compile(optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss)
+        self.actor.compile(
+            optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss
+        )
 
     def ppo_loss(self, y_true, y_pred):
         """
@@ -97,7 +99,8 @@ class ActorModel(object):
         """
         obs = dict_to_tensor_dict(obs)
         prediction = np.reshape(
-            self.actor.predict([obs["world-map"], obs["flat"]], verbose=False, steps=1), [-1]
+            self.actor.predict([obs["world-map"], obs["flat"]], verbose=False, steps=1),
+            [-1],
         )
 
         # return self.actor.predict(state)
@@ -111,7 +114,7 @@ class CriticModel(object):
 
     def __init__(self) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
-        
+
         cnn_in = k.Input(shape=(7, 11, 11))
         old_values = k.Input(shape=(1,))
         map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
@@ -165,7 +168,7 @@ class CriticModel(object):
 
         return loss
 
-    def predict(self, obs_predict : dict):
+    def predict(self, obs_predict: dict):
         """
         a
         """
@@ -178,11 +181,14 @@ class CriticModel(object):
                 k.backend.expand_dims(obs_predict["world-map"], 0),
                 k.backend.expand_dims(obs_predict["flat"], 0),
                 k.backend.expand_dims(np.zeros((1,)), 0),
-            ], verbose = False, use_multiprocessing=True, steps=1
+            ],
+            verbose=False,
+            use_multiprocessing=True,
+            steps=1,
         )
-    
-    def batch_predict(self, obs : list):
+
+    def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs
         """
-        return [np.reshape(self.predict(i),-1)[0] for i in obs]
+        return [np.reshape(self.predict(i), -1)[0] for i in obs]

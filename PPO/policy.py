@@ -2,10 +2,14 @@
 docs about this file
 """
 import copy
+import logging
 import random
 import sys
 import numpy as np
-from tensorflow.python.framework.ops import disable_eager_execution, enable_eager_execution
+from tensorflow.python.framework.ops import (
+    disable_eager_execution,
+    enable_eager_execution,
+)
 from model import ActorModel, CriticModel
 from deprecated import deprecated
 import tensorflow as tf
@@ -14,28 +18,26 @@ import tensorflow as tf
 disable_eager_execution()
 tf.compat.v1.experimental.output_all_intermediates(True)
 
+
 class PPOAgent:
     """
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, env_name="default", policy_config=None):
+    def __init__(self, batch_size: int, env_name="default", policy_config=None, ):
         # Initialization
         # Environment and PPO parameters
         self.env_name = env_name
         self.action_space = 6  # self.env.action_space.n
         # self.state_size = self.env.observation_space.shape
-        self.EPISODES = 10000  # total episodes to train through all environments
-        self.episode = 0  # used to track the episodes total count of episodes played through all thread environments
         self.max_average = 0  # when average score is above 0 model will be saved
-        self.epochs = 10  # training epochs
+        self.batch_size = batch_size  # training epochs
         self.shuffle = False
-        self.mini_batching_steps = 10  # mini-batching
 
         if policy_config is not None:
             # NotImplementedError("Policy config injection has not been implemented yet.")
-            self.action_space = policy_config['action_space']
-            self.observation_space = policy_config['observation_space']
+            self.action_space = policy_config["action_space"]
+            self.observation_space = policy_config["observation_space"]
 
         # Instantiate plot memory
         self.scores_, self.episodes_, self.average_ = (
@@ -64,7 +66,7 @@ class PPOAgent:
         # Use the network to predict the next action to take, using the model
         prediction = self.Actor.predict(state)
 
-        action = int(random.choices(state['action_mask'], weights=prediction)[0])
+        action = int(random.choices(state["action_mask"], weights=prediction)[0])
         # action = np.random.choice(self.action_size, p=prediction)
         action_onehot = np.zeros([self.action_space])
         action_onehot[action] = 1
@@ -108,11 +110,6 @@ class PPOAgent:
         """
         Train Policy networks
         """
-        # states = np.vstack(states)
-        # next_states = np.vstack(next_states)
-        # actions = np.vstack(actions)
-        # predictions = np.vstack(predictions)
-
         # Get Critic network predictions
         values = self.Critic.batch_predict(states)
         next_values = self.Critic.batch_predict(next_states)
@@ -128,44 +125,50 @@ class PPOAgent:
         # in custom PPO loss function we unpack it
         y_true = np.hstack([advantages, predictions, actions])
 
-        # ['world-map', 'world-idx_map', 'time', 'flat', 'action_mask'])
-        # tf.convert_to_tensor(
-        #     value, dtype=None, dtype_hint=None, name=None
-        # )
-
-        world_map = [] 
+        world_map = []
         flat = []
         for s in states:
-            world_map.append(tf.convert_to_tensor(s['world-map'],))
-            flat.append(tf.convert_to_tensor(s['flat'],))
+            world_map.append(
+                tf.convert_to_tensor(
+                    s["world-map"],
+                )
+            )
+            flat.append(
+                tf.convert_to_tensor(
+                    s["flat"],
+                )
+            )
 
         world_map = tf.convert_to_tensor(world_map)
         flat = tf.convert_to_tensor(flat)
 
-        #ipt = np.array([world_map, flat])
-
+        logging.debug("Fit Actor Network")
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
-            # states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
-            [world_map, flat], y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle, steps_per_epoch=1
-
+            [world_map, flat],
+            y_true,
+            epochs=self.batch_size,
+            verbose=False,
+            shuffle=self.shuffle,
+            steps_per_epoch=1,
+            use_multiprocessing=8
         )
-        print(f"Actor loss: {a_loss.history['loss'][-1]}")
+        logging.info(f"Actor loss: {a_loss.history['loss'][-1]}")
 
         values = tf.convert_to_tensor(values)
-
+        logging.debug("Fit Critic Network")
         c_loss = self.Critic.critic.fit(
             [world_map, flat, values],
             target,
-            epochs=self.epochs,
-            verbose=0,
+            epochs=self.batch_size,
+            verbose=True,
             shuffle=self.shuffle,
-            steps_per_epoch=1
+            steps_per_epoch=1,
+            use_multiprocessing=8
         )
 
-        print(f"Critic loss: {c_loss.history['loss'][-1]}")
 
-        input("Press Enter to continue...")
+        logging.info(f"Critic loss: {c_loss.history['loss'][-1]}")
 
     def _load(self) -> None:
         """

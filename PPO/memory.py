@@ -73,11 +73,18 @@ class BatchMemory:
             policy = self.policy_mapping_function(key)
             # print(f"Appending to {policy} element of: {key}")
 
-            self.batch[policy]["states"].append({'world-map': state[key]['world-map'], 'flat': state[key]['flat']})
+            self.batch[policy]["states"].append(
+                {"world-map": state[key]["world-map"], "flat": state[key]["flat"]}
+            )
             self.batch[policy]["actions"].append(action_onehot[key])
             self.batch[policy]["rewards"].append(reward[key])
             self.batch[policy]["predictions"].append(prediction[key])
-            self.batch[policy]["next_states"].append({'world-map': next_state[key]['world-map'], 'flat': next_state[key]['flat']})
+            self.batch[policy]["next_states"].append(
+                {
+                    "world-map": next_state[key]["world-map"],
+                    "flat": next_state[key]["flat"],
+                }
+            )
 
     # DEP
     def get_batch_policy(self, key: str):

@@ -1,4 +1,4 @@
-obs = ['a','b','c']
+obs = ["a", "b", "c"]
 
 for i in obs:
     print(i)
