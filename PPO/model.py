@@ -96,8 +96,8 @@ class ActorModel(object):
         If you remove the reshape good luck finding that softmax sum != 1.
         """
         obs = dict_to_tensor_dict(obs)
-        prediction = tf.reshape(
-            self.actor.predict([obs["world-map"], obs["flat"]], verbose=False), [-1]
+        prediction = np.reshape(
+            self.actor.predict([obs["world-map"], obs["flat"]], verbose=False, steps=1), [-1]
         )
 
         # return self.actor.predict(state)
@@ -178,11 +178,11 @@ class CriticModel(object):
                 k.backend.expand_dims(obs_predict["world-map"], 0),
                 k.backend.expand_dims(obs_predict["flat"], 0),
                 k.backend.expand_dims(np.zeros((1,)), 0),
-            ], verbose = False, use_multiprocessing=True
+            ], verbose = False, use_multiprocessing=True, steps=1
         )
     
     def batch_predict(self, obs : list):
         """
         Calculates a batch of prediction for n_obs
         """
-        return [self.predict(i) for i in obs]
+        return [np.reshape(self.predict(i),-1)[0] for i in obs]

@@ -5,14 +5,14 @@ import copy
 import random
 import sys
 import numpy as np
-from tensorflow.python.framework.ops import enable_eager_execution
+from tensorflow.python.framework.ops import disable_eager_execution, enable_eager_execution
 from model import ActorModel, CriticModel
 from deprecated import deprecated
 import tensorflow as tf
 
 # from algorithm import BatchMemory
-enable_eager_execution()
-
+disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
 
 class PPOAgent:
     """
@@ -63,6 +63,7 @@ class PPOAgent:
         """
         # Use the network to predict the next action to take, using the model
         prediction = self.Actor.predict(state)
+
         action = int(random.choices(state['action_mask'], weights=prediction)[0])
         # action = np.random.choice(self.action_size, p=prediction)
         action_onehot = np.zeros([self.action_space])
@@ -94,7 +95,7 @@ class PPOAgent:
         if normalize:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
 
-        return np.vstack(gaes), np.vstack(target)
+        return np.vstack(gaes), tf.convert_to_tensor(np.vstack(target))
 
     def learn(
         self,
@@ -141,22 +142,30 @@ class PPOAgent:
         world_map = tf.convert_to_tensor(world_map)
         flat = tf.convert_to_tensor(flat)
 
-
+        #ipt = np.array([world_map, flat])
 
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
             # states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
-            [world_map, flat], y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
+            [world_map, flat], y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle, steps_per_epoch=1
 
         )
+        print(f"Actor loss: {a_loss.history['loss'][-1]}")
+
+        values = tf.convert_to_tensor(values)
 
         c_loss = self.Critic.critic.fit(
-            [states, values],
+            [world_map, flat, values],
             target,
             epochs=self.epochs,
             verbose=0,
             shuffle=self.shuffle,
+            steps_per_epoch=1
         )
+
+        print(f"Critic loss: {c_loss.history['loss'][-1]}")
+
+        input("Press Enter to continue...")
 
     def _load(self) -> None:
         """
