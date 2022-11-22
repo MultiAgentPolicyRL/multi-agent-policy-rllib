@@ -4,6 +4,7 @@ tf.kears actor-critic model
 import keras as k
 import tensorflow as tf
 import numpy as np
+import gym.spaces
 
 
 def dict_to_tensor_dict(a_dict: dict):
@@ -23,7 +24,7 @@ class ActorModel(object):
     a
     """
 
-    def __init__(self, action_space: int = 6) -> k.Model:
+    def __init__(self, observation_space : gym.spaces, action_space) -> k.Model:
         """
         Builds the model. Takes in input the parameters that were not specified in the paper.
         """

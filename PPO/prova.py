@@ -83,33 +83,33 @@ if __name__ == '__main__':
     env.seed(1)
     obs = env.reset()
    
-    # print(env.action_space_pl)
+    print(env.action_space.__len__)
     # env.save_game_object(".")
 
-    i = 0
+    # i = 0
 
-    stats = {
-        '0': 0,
-        '1': 0,
-        '2': 0,
-        '3': 0
-    }
+    # stats = {
+        # '0': 0,
+        # '1': 0,
+        # '2': 0,
+        # '3': 0
+    # }
 
-    while i < 300.0:
-        obs, rew, _, _ = env.step({
-            '0': np.random.uniform(0,50),
-            '1': np.random.randint(50,size=1),
-            '2': np.random.randint(6,size=1),
-            '3': np.random.random(size=1),
-            # 'p': [0,0,0,0,0,0,0]
-            'p': [np.random.randint(22,size=1) for i in range(7)]
-        })
+    # while i < 300.0:
+        # obs, rew, _, _ = env.step({
+            # '0': np.random.uniform(0,50),
+            # '1': np.random.randint(50,size=1),
+            # '2': np.random.randint(6,size=1),
+            # '3': np.random.random(size=1),
+            # # 'p': [0,0,0,0,0,0,0]
+            # 'p': [np.random.randint(22,size=1) for i in range(7)]
+        # })
         
-        for key in rew.keys():
-            if (key != 'p' and rew[key]>0.0):
-                print(f"key: {key} rew: {rew[key]}")
+        # for key in rew.keys():
+            # if (key != 'p' and rew[key]>0.0):
+                # print(f"key: {key} rew: {rew[key]}")
 
-                stats[key]+=1
-        i+=1
+                # stats[key]+=1
+        # i+=1
     
-        print(f"Results: '0': {stats['0']} , '1': {stats['1']}, '2': {stats['2']},'3': {stats['3']}")
+        # print(f"Results: '0': {stats['0']} , '1': {stats['1']}, '2': {stats['2']},'3': {stats['3']}")

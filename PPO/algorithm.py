@@ -29,11 +29,15 @@ class PpoAlgorithm(object):
             'p' : config or None,
         }
         """
-        self.minibatch_size = 100
+        ##############
+        # TMP STUFF HERE
+        # all this needs to be auto
+        self.minibatch_size = 50
         self.n_actors = {
             'a': 4,
             'p': 1
         }
+        ###############
 
         if policy_mapping_fun:
             self.policy_mapping_fun = policy_mapping_fun
@@ -72,7 +76,7 @@ class PpoAlgorithm(object):
             return "a"
         return "p"
 
-    def train_one_step(self, env):
+    def train_one_step(self, env, obs = None):
         """
         Train all Policys
         Here PPO's Minibatch is generated and splitted to each policy, following
@@ -82,8 +86,9 @@ class PpoAlgorithm(object):
         self.memory.reset_memory()
 
         steps = 0
-        env = copy.deepcopy(env)
-        state = env.reset()
+        # env = copy.deepcopy(env)
+        # state = env.reset()
+        state = obs
 
         # Collecting data for batching
         logging.debug("Batching")
@@ -98,7 +103,7 @@ class PpoAlgorithm(object):
             self.memory.update_memory(
                 state, next_state, action_onehot, reward, prediction
             )
-            if steps % 10 == 0:
+            if steps % 1 == 0:
                 logging.debug(f"step: {steps}")
 
             steps += 1
@@ -113,6 +118,8 @@ class PpoAlgorithm(object):
                 self.memory.batch[key]["predictions"],
                 self.memory.batch[key]["next_states"],
             )
+
+        return env
 
     def get_actions(self, obs: dict) -> dict:
         """

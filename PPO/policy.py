@@ -6,6 +6,7 @@ import logging
 import random
 import sys
 import numpy as np
+import gym.spaces
 from tensorflow.python.framework.ops import (
     disable_eager_execution,
     enable_eager_execution,
@@ -35,9 +36,8 @@ class PPOAgent:
         self.shuffle = False
 
         if policy_config is not None:
-            # NotImplementedError("Policy config injection has not been implemented yet.")
             self.action_space = policy_config["action_space"]
-            self.observation_space = policy_config["observation_space"]
+            self.observation_space:  gym.spaces = policy_config["observation_space"]
 
         # Instantiate plot memory
         self.scores_, self.episodes_, self.average_ = (
@@ -47,7 +47,7 @@ class PPOAgent:
         )  # used in matplotlib plots
 
         # Create Actor-Critic network models
-        self.Actor = ActorModel(self.action_space)
+        self.Actor = ActorModel(observation_space=self.observation_space, action_space=self.action_space)
         self.Critic = CriticModel()
 
         self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
@@ -147,31 +147,31 @@ class PPOAgent:
         a_loss = self.Actor.actor.fit(
             [world_map, flat],
             y_true,
-            #epochs=self.batch_size,
-            epochs = 1,
-            steps_per_epoch = self.batch_size,
-            verbose=1,
+            # epochs=self.batch_size,
+            epochs=1,
+            steps_per_epoch=self.batch_size,
+            verbose=0,
             shuffle=self.shuffle,
-            workers = 8,
+            workers=8,
             use_multiprocessing=True
         )
-        logging.info(f"Actor loss: {a_loss.history['loss'][-1]}")
+        logging.debug(f"Actor loss: {a_loss.history['loss'][-1]}")
 
         values = tf.convert_to_tensor(values)
         logging.debug("Fit Critic Network")
+        
         c_loss = self.Critic.critic.fit(
             [world_map, flat, values],
             target,
             epochs=1,
             steps_per_epoch=self.batch_size,
-            verbose=1,
+            verbose=0,
             shuffle=self.shuffle,
             workers=8,
             use_multiprocessing=True
         )
 
-
-        logging.info(f"Critic loss: {c_loss.history['loss'][-1]}")
+        logging.debug(f"Critic loss: {c_loss.history['loss'][-1]}")
 
     def _load(self) -> None:
         """
