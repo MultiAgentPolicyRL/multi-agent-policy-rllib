@@ -1,6 +1,8 @@
 """
 tf.kears actor-critic model
 """
+import logging
+import sys
 import keras as k
 import tensorflow as tf
 import numpy as np
@@ -56,6 +58,8 @@ class ActorModel(object):
         self.actor.compile(
             optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss
         )
+        
+        logging.critical(self.actor.summary())
 
     def ppo_loss(self, y_true, y_pred):
         """
@@ -110,7 +114,7 @@ class ActorModel(object):
                                steps=1, workers=8, use_multiprocessing=True),
             [-1],
         )
-
+        # logging.debug(prediction)
         # return self.actor.predict(state)
         return prediction / np.sum(prediction)
 
@@ -162,17 +166,17 @@ class CriticModel(object):
             PPO's loss function, can be with mean or clipped
             """
             # standard PPO loss
-            # value_loss = k.backend.mean((y_true - y_pred) ** 2)
+            value_loss = k.backend.mean((y_true - y_pred) ** 2)
 
             # L_CLIP
-            LOSS_CLIPPING = 0.2
-            clipped_value_loss = values + k.backend.clip(
-                y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
-            )
-            v_loss1 = (y_true - clipped_value_loss) ** 2
-            v_loss2 = (y_true - y_pred) ** 2
-            value_loss = 0.5 * \
-                k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
+            # LOSS_CLIPPING = 0.2
+            # clipped_value_loss = values + k.backend.clip(
+            #     y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
+            # )
+            # v_loss1 = (y_true - clipped_value_loss) ** 2
+            # v_loss2 = (y_true - y_pred) ** 2
+            # value_loss = 0.5 * \
+            #     k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
             return value_loss
 
         return loss
@@ -185,7 +189,7 @@ class CriticModel(object):
         # from the guy's code
         # return self.critic.predict([obs, np.zeros((obs.shape[0], 1))])
         # return self.critic.predict([obs_predict["world-map"], obs_predict["flat"], np.zeros((7, 136))], verbose=False)
-        return self.critic.predict(
+        action = self.critic.predict(
             [
                 k.backend.expand_dims(obs_predict["world-map"], 0),
                 k.backend.expand_dims(obs_predict["flat"], 0),
@@ -195,6 +199,9 @@ class CriticModel(object):
             use_multiprocessing=True,
             steps=1,
         )
+        
+        # logging.debug(f"action")
+        return action
 
     def batch_predict(self, obs: list):
         """

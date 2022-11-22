@@ -32,7 +32,7 @@ class PpoAlgorithm(object):
         ##############
         # TMP STUFF HERE
         # all this needs to be auto
-        self.minibatch_size = 50
+        self.minibatch_size = 20
         self.n_actors = {
             'a': 4,
             'p': 1
@@ -86,9 +86,9 @@ class PpoAlgorithm(object):
         self.memory.reset_memory()
 
         steps = 0
-        # env = copy.deepcopy(env)
-        # state = env.reset()
-        state = obs
+        env = copy.deepcopy(env)
+        state = env.reset()
+        # state = obs
 
         # Collecting data for batching
         logging.debug("Batching")
@@ -119,7 +119,7 @@ class PpoAlgorithm(object):
                 self.memory.batch[key]["next_states"],
             )
 
-        return env
+        
 
     def get_actions(self, obs: dict) -> dict:
         """
@@ -160,5 +160,5 @@ class PpoAlgorithm(object):
                     0,
                     0,
                 )
-
+        # logging.debug(actions)
         return actions, actions_onehot, predictions

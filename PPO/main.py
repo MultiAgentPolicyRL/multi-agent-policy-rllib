@@ -87,7 +87,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 5
+    EPOCHS = 100
     env = get_environment()
     obs = env.reset()
 
@@ -121,9 +121,9 @@ if __name__ == "__main__":
     logging.debug("Training")
     for i in range(EPOCHS):
         actions=algorithm.get_actions(obs)[0]
-        logging.debug(f"Actions: {actions}")
         
         obs, rew, done, info = env.step(actions)
-        env = algorithm.train_one_step(env, obs)
-
+        logging.debug(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
+        algorithm.train_one_step(env)
+        

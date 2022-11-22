@@ -7,17 +7,17 @@ import random
 import sys
 import numpy as np
 import gym.spaces
-from tensorflow.python.framework.ops import (
-    disable_eager_execution,
-    enable_eager_execution,
-)
+
 from model import ActorModel, CriticModel
 from deprecated import deprecated
 import tensorflow as tf
+# from tensorflow.python.framework.ops import (
+#     disable_eager_execution,
+#     enable_eager_execution,
+# )
 
-# from algorithm import BatchMemory
-disable_eager_execution()
-tf.compat.v1.experimental.output_all_intermediates(True)
+# disable_eager_execution()
+# tf.compat.v1.experimental.output_all_intermediates(True)
 
 
 class PPOAgent:
@@ -65,11 +65,13 @@ class PPOAgent:
         """
         # Use the network to predict the next action to take, using the model
         prediction = self.Actor.predict(state)
-
-        action = int(random.choices(state["action_mask"], weights=prediction)[0])
+        # logging.debug(f"ACTING AAAAA {prediction}")
+        # action = int(random.choices(state["action_mask"], weights=prediction)[0])
+        action = int(random.choices(np.arange(50), weights=prediction)[0])
         # action = np.random.choice(self.action_size, p=prediction)
         action_onehot = np.zeros([self.action_space])
         action_onehot[action] = 1
+
         return action, action_onehot, prediction
 
     def _get_gaes(
@@ -124,7 +126,11 @@ class PPOAgent:
         # pack all advantages, predictions and actions to y_true and when they are received
         # in custom PPO loss function we unpack it
         y_true = np.hstack([advantages, predictions, actions])
-
+        # print(y_true.shape)                       (n_agents*steps, 101) -> 101 = 1+50+50
+        # print(advantages.shape)                   (n_agents*steps, 1)
+        # print(np.array(predictions).shape)        (n_agents*steps, 50)
+        # print(np.array(actions).shape)            (n_agents*steps, 50)
+        # sys.exit()
         world_map = []
         flat = []
         for s in states:
@@ -133,12 +139,13 @@ class PPOAgent:
                     s["world-map"],
                 )
             )
+
             flat.append(
                 tf.convert_to_tensor(
                     s["flat"],
                 )
             )
-
+        y_true = tf.convert_to_tensor(y_true)
         world_map = tf.convert_to_tensor(world_map)
         flat = tf.convert_to_tensor(flat)
 
@@ -159,7 +166,7 @@ class PPOAgent:
 
         values = tf.convert_to_tensor(values)
         logging.debug("Fit Critic Network")
-        
+
         c_loss = self.Critic.critic.fit(
             [world_map, flat, values],
             target,
@@ -167,8 +174,8 @@ class PPOAgent:
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            workers=8,
-            use_multiprocessing=True
+            # workers=8,
+            # use_multiprocessing=True
         )
 
         logging.debug(f"Critic loss: {c_loss.history['loss'][-1]}")
