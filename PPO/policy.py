@@ -147,11 +147,13 @@ class PPOAgent:
         a_loss = self.Actor.actor.fit(
             [world_map, flat],
             y_true,
-            epochs=self.batch_size,
-            verbose=False,
+            #epochs=self.batch_size,
+            epochs = 1,
+            steps_per_epoch = self.batch_size,
+            verbose=1,
             shuffle=self.shuffle,
-            steps_per_epoch=1,
-            use_multiprocessing=8
+            workers = 8,
+            use_multiprocessing=True
         )
         logging.info(f"Actor loss: {a_loss.history['loss'][-1]}")
 
@@ -160,11 +162,12 @@ class PPOAgent:
         c_loss = self.Critic.critic.fit(
             [world_map, flat, values],
             target,
-            epochs=self.batch_size,
-            verbose=True,
+            epochs=1,
+            steps_per_epoch=self.batch_size,
+            verbose=1,
             shuffle=self.shuffle,
-            steps_per_epoch=1,
-            use_multiprocessing=8
+            workers=8,
+            use_multiprocessing=True
         )
 
 

@@ -62,8 +62,8 @@ class ActorModel(object):
         """
         advantages, prediction_picks, actions = (
             y_true[:, :1],
-            y_true[:, 1 : 1 + self.action_space],
-            y_true[:, 1 + self.action_space :],
+            y_true[:, 1: 1 + self.action_space],
+            y_true[:, 1 + self.action_space:],
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
@@ -97,9 +97,16 @@ class ActorModel(object):
         """
         If you remove the reshape good luck finding that softmax sum != 1.
         """
+        """
+        
+        (x: Any, batch_size: Any | None = None, verbose: str = "auto", 
+        steps: Any | None = None, callbacks: Any | None = None, 
+        max_queue_size: int = 10, workers: int = 1, use_multiprocessing: bool = False
+        """
         obs = dict_to_tensor_dict(obs)
         prediction = np.reshape(
-            self.actor.predict([obs["world-map"], obs["flat"]], verbose=False, steps=1),
+            self.actor.predict([obs["world-map"], obs["flat"]], verbose=0,
+                               steps=1, workers=8, use_multiprocessing=True),
             [-1],
         )
 
@@ -163,7 +170,8 @@ class CriticModel(object):
             )
             v_loss1 = (y_true - clipped_value_loss) ** 2
             v_loss2 = (y_true - y_pred) ** 2
-            value_loss = 0.5 * k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
+            value_loss = 0.5 * \
+                k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
             return value_loss
 
         return loss

@@ -3,6 +3,7 @@ from ai_economist import foundation
 from algorithm import PpoAlgorithm
 from env_wrapper import EnvWrapper
 import logging
+import tensorflow as tf
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
@@ -87,7 +88,6 @@ def get_environment():
 
 if __name__ == "__main__":
     EPOCHS = 5
-
     env = get_environment()
     obs = env.reset()
 

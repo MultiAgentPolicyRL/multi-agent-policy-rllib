@@ -30,6 +30,11 @@ class PpoAlgorithm(object):
         }
         """
         self.minibatch_size = 100
+        self.n_actors = {
+            'a': 4,
+            'p': 1
+        }
+
         if policy_mapping_fun:
             self.policy_mapping_fun = policy_mapping_fun
         else:
@@ -43,7 +48,7 @@ class PpoAlgorithm(object):
             # config injection
             if policy_config[key] is not None:
                 self.training_policies[key]: PPOAgent = PPOAgent(
-                    policy_config=policy_config[key], batch_size=self.minibatch_size
+                    policy_config=policy_config[key], batch_size=self.minibatch_size # //self.n_actors[key]
                 )
             else:
                 # USING THIS RN
@@ -82,7 +87,7 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         logging.debug("Batching")
-        while steps < self.minibatch_size:
+        while steps < self.minibatch_size//4:
             # Actor picks an action
             action, action_onehot, prediction = self.get_actions(state)
 
