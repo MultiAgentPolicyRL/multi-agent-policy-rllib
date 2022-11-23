@@ -3,11 +3,13 @@ tf.kears actor-critic model
 """
 import logging
 import sys
+
+# from gym.spaces import MultiDiscrete
 import keras as k
-import tensorflow as tf
 import numpy as np
-import gym.spaces
+import tensorflow as tf
 from model.model_config import ModelConfig
+
 
 def dict_to_tensor_dict(a_dict: dict):
     """
@@ -31,6 +33,7 @@ class ActorModel(object):
         Builds the model. Takes in input the parameters that were not specified in the paper.
         """
         self.action_space = model_config.action_space
+
         with tf.device('/CPU:0'):
             self.cnn_in = k.Input(shape=(7, 11, 11))
             self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)

@@ -1,10 +1,10 @@
-import sys
-# from ai_economist import foundation
-from algorithm.algorithm import PpoAlgorithm
-from env_wrapper import EnvWrapper
 import logging
+import sys
+
 import tensorflow as tf
+from algorithm.algorithm import PpoAlgorithm
 from algorithm.algorithm_config import AlgorithmConfig
+from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
@@ -94,11 +94,11 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policy_config = {
-        'a': PolicyConfig(action_space = 50, observation_space=env.observation_space)
+        'a': PolicyConfig(action_space = 50, observation_space=env.observation_space),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
-    algorithm_config = AlgorithmConfig(minibatch_size=50, policies_configs=policy_config, env=env)
+    algorithm_config = AlgorithmConfig(minibatch_size=100, policies_configs=policy_config, env=env)
     algorithm : PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
     # actions = algorithm.get_actions(obs)

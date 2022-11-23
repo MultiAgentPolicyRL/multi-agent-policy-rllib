@@ -2,12 +2,14 @@
 PPO's top level algorithm.
 Manages batching and multi-agent training.
 """
-import logging
 import copy
+import logging
 import sys
-from policy.policy import PPOAgent
-from memory import BatchMemory
+
 from algorithm.algorithm_config import AlgorithmConfig
+from memory import BatchMemory
+from policy.policy import PPOAgent
+
 
 class PpoAlgorithm(object):
     """
@@ -31,15 +33,6 @@ class PpoAlgorithm(object):
             'p' : config or None,
         }
         """
-        ##############
-        # TMP STUFF HERE
-        # all this needs to be auto
-        self.minibatch_size = 50
-        self.n_actors = {
-            'a': 4,
-            'p': 1
-        }
-        ###############
         self.algorithm_config = algorithm_config
 
 
@@ -75,7 +68,7 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         logging.debug("Batching")
-        while steps < self.minibatch_size//4:
+        while steps < self.algorithm_config.batch_size:
             # Actor picks an action
             action, action_onehot, prediction = self.get_actions(state)
 
@@ -90,14 +83,6 @@ class PpoAlgorithm(object):
             #     logging.debug(f"step: {steps}")
             print(f"Steps: {steps+1}")
             steps += 1
-
-        print(len(self.memory.batch['a']["states"]))
-        print(len(self.memory.batch['a']["actions"]))
-        print(len(self.memory.batch['a']["rewards"]))
-        print(len(self.memory.batch['a']["predictions"]))
-        print(len(self.memory.batch['a']["next_states"]))
-
-        # sys.exit()
 
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:

@@ -6,12 +6,12 @@ import logging
 import random
 import sys
 
-import gym.spaces
 import numpy as np
 import tensorflow as tf
 from deprecated import deprecated
 from model.model import ActorModel, CriticModel
 from policy.policy_config import PolicyConfig
+
 # from tensorflow.python.framework.ops import (
 #     disable_eager_execution,
 #     enable_eager_execution,
@@ -132,7 +132,7 @@ class PPOAgent:
         # print(advantages.shape)                   (n_agents*steps, 1)
         # print(np.array(predictions).shape)        (n_agents*steps, 50)
         # print(np.array(actions).shape)            (n_agents*steps, 50)
-        # sys.exit()
+        
         world_map = []
         flat = []
         for s in states:
