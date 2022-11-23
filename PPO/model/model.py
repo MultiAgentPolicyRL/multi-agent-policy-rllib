@@ -7,7 +7,7 @@ import keras as k
 import tensorflow as tf
 import numpy as np
 import gym.spaces
-
+from model.model_config import ModelConfig
 
 def dict_to_tensor_dict(a_dict: dict):
     """
@@ -26,39 +26,39 @@ class ActorModel(object):
     a
     """
 
-    def __init__(self, observation_space : gym.spaces, action_space) -> k.Model:
+    def __init__(self, model_config : ModelConfig) -> k.Model:
         """
         Builds the model. Takes in input the parameters that were not specified in the paper.
         """
-        self.action_space = action_space
+        self.action_space = model_config.action_space
+        with tf.device('/CPU:0'):
+            self.cnn_in = k.Input(shape=(7, 11, 11))
+            self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
+            self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
+            self.map_cnn = k.layers.Flatten()(self.map_cnn)
 
-        self.cnn_in = k.Input(shape=(7, 11, 11))
-        self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
-        self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
-        self.map_cnn = k.layers.Flatten()(self.map_cnn)
+            self.info_input = k.Input(shape=(136))
+            self.mlp1 = k.layers.Concatenate()([self.map_cnn, self.info_input])
+            self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
+            self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
+            self.mlp1 = k.layers.Reshape([1, -1])(self.mlp1)
 
-        self.info_input = k.Input(shape=(136))
-        self.mlp1 = k.layers.Concatenate()([self.map_cnn, self.info_input])
-        self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
-        self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
-        self.mlp1 = k.layers.Reshape([1, -1])(self.mlp1)
+            self.lstm = k.layers.LSTM(128)(self.mlp1)
 
-        self.lstm = k.layers.LSTM(128)(self.mlp1)
+            # Policy pi - needs to be a probabiliy value
+            self.action_probs = k.layers.Dense(
+                self.action_space, name="Out_probs_actions", activation="sigmoid"
+            )(self.lstm)
 
-        # Policy pi - needs to be a probabiliy value
-        self.action_probs = k.layers.Dense(
-            action_space, name="Out_probs_actions", activation="sigmoid"
-        )(self.lstm)
+            self.actor: k.Model = k.Model(
+                inputs=[self.cnn_in, self.info_input], outputs=self.action_probs
+            )
 
-        self.actor: k.Model = k.Model(
-            inputs=[self.cnn_in, self.info_input], outputs=self.action_probs
-        )
+            # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
+            self.actor.compile(
+                optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss
+            )
 
-        # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
-        self.actor.compile(
-            optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss
-        )
-        
         logging.critical(self.actor.summary())
 
     def ppo_loss(self, y_true, y_pred):
@@ -124,37 +124,38 @@ class CriticModel(object):
     a
     """
 
-    def __init__(self) -> k.Model:
+    def __init__(self, model_config : ModelConfig) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
-        cnn_in = k.Input(shape=(7, 11, 11))
-        old_values = k.Input(shape=(1,))
-        map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
-        map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
-        map_cnn = k.layers.Flatten()(map_cnn)
+        with tf.device('/CPU:0'):
+            cnn_in = k.Input(shape=(7, 11, 11))
+            old_values = k.Input(shape=(1,))
+            map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
+            map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
+            map_cnn = k.layers.Flatten()(map_cnn)
 
-        info_input = k.Input(shape=(136))
-        mlp1 = k.layers.Concatenate()([map_cnn, info_input])
-        mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
-        mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
-        mlp1 = k.layers.Reshape([1, -1])(mlp1)
+            info_input = k.Input(shape=(136))
+            mlp1 = k.layers.Concatenate()([map_cnn, info_input])
+            mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
+            mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
+            mlp1 = k.layers.Reshape([1, -1])(mlp1)
 
-        lstm = k.layers.LSTM(128)(mlp1)
+            lstm = k.layers.LSTM(128)(mlp1)
 
-        value_pred = k.layers.Dense(1, name="Out_value_function", activation="softmax")(
-            lstm
-        )
+            value_pred = k.layers.Dense(1, name="Out_value_function", activation="softmax")(
+                lstm
+            )
 
-        self.critic: k.Model = k.Model(
-            inputs=[cnn_in, info_input, old_values], outputs=value_pred
-        )
+            self.critic: k.Model = k.Model(
+                inputs=[cnn_in, info_input, old_values], outputs=value_pred
+            )
 
-        # reason of Adam optimizer https://github.com/ray-project/ray/issues/8091
-        # 0.0003
-        self.critic.compile(
-            optimizer=k.optimizers.Adam(learning_rate=0.0003),
-            loss=self.critic_ppo2_loss(old_values),
-        )
+            # reason of Adam optimizer https://github.com/ray-project/ray/issues/8091
+            # 0.0003
+            self.critic.compile(
+                optimizer=k.optimizers.Adam(learning_rate=0.0003),
+                loss=self.critic_ppo2_loss(old_values),
+            )
 
     def critic_ppo2_loss(self, values):
         """
@@ -202,7 +203,7 @@ class CriticModel(object):
         
         # logging.debug(f"action")
         return action
-
+    
     def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs

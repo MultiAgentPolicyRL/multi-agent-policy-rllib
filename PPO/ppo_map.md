@@ -56,3 +56,15 @@ TODO: in english
       - fa una copia dell'env che gli viene passato e ci fa batching
     - act
       - restituisce il dizionario delle azioni
+
+# FIXES
+0. create config injection classes to have a safe default behaviour and data type check
+1. fix batch size given to .fit
+2. fix critic loss google it
+3. understand that 101
+4. optimization
+   1. tf.data model? 
+   2. gpu
+   3. make that data from and to the environment is automatically converted to/from tensors from numpy.array
+   4. rewrite np functions to tf
+   5.  

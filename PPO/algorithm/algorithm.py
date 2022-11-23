@@ -5,9 +5,9 @@ Manages batching and multi-agent training.
 import logging
 import copy
 import sys
-from policy import PPOAgent
+from policy.policy import PPOAgent
 from memory import BatchMemory
-
+from algorithm.algorithm_config import AlgorithmConfig
 
 class PpoAlgorithm(object):
     """
@@ -17,11 +17,13 @@ class PpoAlgorithm(object):
 
     def __init__(
         self,
-        policy_config: dict,
-        available_agent_groups,
-        policy_mapping_fun=None,
+        algorithm_config : AlgorithmConfig
     ):
         """
+        policy_config: dict,
+        available_agent_groups,
+        policy_mapping_fun=None
+
         policy config can be like:
 
         policy_config: {
@@ -32,49 +34,30 @@ class PpoAlgorithm(object):
         ##############
         # TMP STUFF HERE
         # all this needs to be auto
-        self.minibatch_size = 20
+        self.minibatch_size = 50
         self.n_actors = {
             'a': 4,
             'p': 1
         }
         ###############
+        self.algorithm_config = algorithm_config
 
-        if policy_mapping_fun:
-            self.policy_mapping_fun = policy_mapping_fun
-        else:
-            self.policy_mapping_fun = (self.policy_mapping_function,)
 
-        self.available_agent_groups = available_agent_groups
-
+        ###
+        # Build dictionary for each policy (key) in `policy_config`
+        ###
         self.training_policies = {}
-
-        for key in policy_config:
+        for key in self.algorithm_config.policies_configs:
             # config injection
-            if policy_config[key] is not None:
-                self.training_policies[key]: PPOAgent = PPOAgent(
-                    policy_config=policy_config[key], batch_size=self.minibatch_size # //self.n_actors[key]
-                )
-            else:
-                # USING THIS RN
-                self.training_policies[key]: PPOAgent = PPOAgent(batch_size=self.minibatch_size)
+            
+            self.training_policies[key]: PPOAgent = PPOAgent(self.algorithm_config.policies_configs[key])
+            
 
         # Setup batch memory
-        # FIXME: doesn't work with `self.policy_mapping_fun` reference
+        # FIXME: doesn't work with `self.algorithm_config.policy_mapping_fun` reference
         self.memory = BatchMemory(
-            self.policy_mapping_function, policy_config, available_agent_groups
+            self.algorithm_config.policy_mapping_function, self.algorithm_config.policies_configs, self.algorithm_config.agents_name
         )
-
-    def policy_mapping_function(self, key: str) -> str:
-        """
-        Use it by passing keys of a dictionary to differentiate between agents
-
-        default for ai-economist environment:
-        returns a if `key` is a number -> if the key of the dictionary is a number,
-        returns p if `key` is a string -> social planner
-        """
-        if str(key).isdigit() or key == "a":
-            return "a"
-        return "p"
 
     def train_one_step(self, env, obs = None):
         """
@@ -103,10 +86,18 @@ class PpoAlgorithm(object):
             self.memory.update_memory(
                 state, next_state, action_onehot, reward, prediction
             )
-            if steps % 1 == 0:
-                logging.debug(f"step: {steps}")
-
+            # if steps % 1 == 0:
+            #     logging.debug(f"step: {steps}")
+            print(f"Steps: {steps+1}")
             steps += 1
+
+        print(len(self.memory.batch['a']["states"]))
+        print(len(self.memory.batch['a']["actions"]))
+        print(len(self.memory.batch['a']["rewards"]))
+        print(len(self.memory.batch['a']["predictions"]))
+        print(len(self.memory.batch['a']["next_states"]))
+
+        # sys.exit()
 
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
@@ -150,7 +141,7 @@ class PpoAlgorithm(object):
                     actions[key],
                     actions_onehot[key],
                     predictions[key],
-                ) = self.training_policies[self.policy_mapping_function(key)].act(
+                ) = self.training_policies[self.algorithm_config.policy_mapping_function(key)].act(
                     obs[key]
                 )
             else:

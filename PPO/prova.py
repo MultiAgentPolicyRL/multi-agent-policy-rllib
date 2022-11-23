@@ -79,11 +79,19 @@ def get_environment():
     return EnvWrapper(env_config)
 
 if __name__ == '__main__':
-    env = get_environment()
-    env.seed(1)
-    obs = env.reset()
+    # env = get_environment()
+    # env.seed(1)
+    # obs = env.reset()
    
-    print(env.action_space.__len__)
+    # print(env.n_agents)
+
+    ablka = {
+        '1': 20,
+        'p': 'a'
+    }
+    print('a' in ablka)
+
+    # print(env.action_space.__len__)
     # env.save_game_object(".")
 
     # i = 0

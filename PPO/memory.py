@@ -85,16 +85,3 @@ class BatchMemory:
                     "flat": next_state[key]["flat"],
                 }
             )
-
-    # DEP
-    def get_batch_policy(self, key: str):
-        """
-        returns `states, actions, rewards, predictions, next_states` for the specified policy
-        """
-        return (
-            self.batch[key]["states"],
-            self.batch[key]["actions"],
-            self.batch[key]["rewards"],
-            self.batch[key]["predictions"],
-            self.batch[key]["next_states"],
-        )

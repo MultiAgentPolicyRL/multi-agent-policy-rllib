@@ -1,9 +1,11 @@
 import sys
-from ai_economist import foundation
-from algorithm import PpoAlgorithm
+# from ai_economist import foundation
+from algorithm.algorithm import PpoAlgorithm
 from env_wrapper import EnvWrapper
 import logging
 import tensorflow as tf
+from algorithm.algorithm_config import AlgorithmConfig
+from policy.policy_config import PolicyConfig
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
 
@@ -91,33 +93,18 @@ if __name__ == "__main__":
     env = get_environment()
     obs = env.reset()
 
-    # dummy_env.observation_space_pl,
-    # dummy_env.action_space_pl,
-    # dummy_env.observation_space,
-    # dummy_env.action_space,
-
     policy_config = {
-        "a": {
-            "observation_space": env.observation_space,
-            "action_space": 50, # env.action_space.shape is () for some reason, while env.action_space is Discrete(50)
-        },
-        # 'p': {
-        #     'observation_space' : env.observation_space_pl
-        #     'action_space' : env.action_space_pl,
-        # }
+        'a': PolicyConfig(action_space = 50, observation_space=env.observation_space)
+        # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
-    # TODO: make this list automatic
-    available_agent_groups = ["a", "p"]
-
-    # Here we can setup a constructor passing a configuration, not done now
-    algorithm: PpoAlgorithm = PpoAlgorithm(
-        policy_config=policy_config, available_agent_groups=available_agent_groups
-    )
+    algorithm_config = AlgorithmConfig(minibatch_size=50, policies_configs=policy_config, env=env)
+    algorithm : PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
     # actions = algorithm.get_actions(obs)
     # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
     # algorithm.train_one_step(env)
+    
     logging.debug("Training")
     for i in range(EPOCHS):
         actions=algorithm.get_actions(obs)[0]

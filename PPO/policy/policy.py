@@ -5,12 +5,13 @@ import copy
 import logging
 import random
 import sys
-import numpy as np
-import gym.spaces
 
-from model import ActorModel, CriticModel
-from deprecated import deprecated
+import gym.spaces
+import numpy as np
 import tensorflow as tf
+from deprecated import deprecated
+from model.model import ActorModel, CriticModel
+from policy.policy_config import PolicyConfig
 # from tensorflow.python.framework.ops import (
 #     disable_eager_execution,
 #     enable_eager_execution,
@@ -25,19 +26,18 @@ class PPOAgent:
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, batch_size: int, env_name="default", policy_config=None, ):
+    def __init__(self, policy_config : PolicyConfig):
         # Initialization
         # Environment and PPO parameters
-        self.env_name = env_name
-        self.action_space = 6  # self.env.action_space.n
-        # self.state_size = self.env.observation_space.shape
+        self.policy_config = policy_config
+        self.action_space =  self.policy_config.action_space # self.env.action_space.n
         self.max_average = 0  # when average score is above 0 model will be saved
-        self.batch_size = batch_size  # training epochs
+        self.batch_size = self.policy_config.batch_size  # training epochs
         self.shuffle = False
 
-        if policy_config is not None:
-            self.action_space = policy_config["action_space"]
-            self.observation_space:  gym.spaces = policy_config["observation_space"]
+        # if policy_config is not None:
+        #     self.action_space = policy_config["action_space"]
+        #     self.observation_space:  gym.spaces = policy_config["observation_space"]
 
         # Instantiate plot memory
         self.scores_, self.episodes_, self.average_ = (
@@ -47,11 +47,11 @@ class PPOAgent:
         )  # used in matplotlib plots
 
         # Create Actor-Critic network models
-        self.Actor = ActorModel(observation_space=self.observation_space, action_space=self.action_space)
-        self.Critic = CriticModel()
+        self.Actor = ActorModel(policy_config.model_config)
+        self.Critic = CriticModel(policy_config.model_config)
 
-        self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
-        self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
+        # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
+        # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
 
     def act(self, state):
         """
@@ -74,6 +74,7 @@ class PPOAgent:
 
         return action, action_onehot, prediction
 
+    # @tf.function
     def _get_gaes(
         self,
         rewards,
@@ -101,6 +102,7 @@ class PPOAgent:
 
         return np.vstack(gaes), tf.convert_to_tensor(np.vstack(target))
 
+    
     def learn(
         self,
         states: list,
@@ -159,8 +161,8 @@ class PPOAgent:
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            workers=8,
-            use_multiprocessing=True
+            # workers=8,
+            # use_multiprocessing=True
         )
         logging.debug(f"Actor loss: {a_loss.history['loss'][-1]}")
 
