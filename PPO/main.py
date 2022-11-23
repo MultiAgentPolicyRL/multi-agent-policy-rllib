@@ -7,7 +7,7 @@ from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
 
 env_config = {
     "env_config_dict": {
@@ -94,23 +94,24 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policy_config = {
-        'a': PolicyConfig(action_space = 50, observation_space=env.observation_space),
+        "a": PolicyConfig(action_space=50, observation_space=env.observation_space),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
-    algorithm_config = AlgorithmConfig(minibatch_size=20, policies_configs=policy_config, env=env)
-    algorithm : PpoAlgorithm = PpoAlgorithm(algorithm_config)
+    algorithm_config = AlgorithmConfig(
+        minibatch_size=10, policies_configs=policy_config, env=env
+    )
+    algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
     # actions = algorithm.get_actions(obs)
     # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
     # algorithm.train_one_step(env)
-    
+
     logging.debug("Training")
     for i in range(EPOCHS):
-        actions=algorithm.get_actions(obs)[0]
-        
+        actions = algorithm.get_actions(obs)[0]
+
         obs, rew, done, info = env.step(actions)
         logging.debug(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
         algorithm.train_one_step(env)
-        

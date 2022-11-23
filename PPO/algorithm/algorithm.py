@@ -17,10 +17,7 @@ class PpoAlgorithm(object):
     Manages batching and multi-agent training.
     """
 
-    def __init__(
-        self,
-        algorithm_config : AlgorithmConfig
-    ):
+    def __init__(self, algorithm_config: AlgorithmConfig):
         """
         policy_config: dict,
         available_agent_groups,
@@ -35,24 +32,26 @@ class PpoAlgorithm(object):
         """
         self.algorithm_config = algorithm_config
 
-
         ###
         # Build dictionary for each policy (key) in `policy_config`
         ###
         self.training_policies = {}
         for key in self.algorithm_config.policies_configs:
             # config injection
-            
-            self.training_policies[key]: PPOAgent = PPOAgent(self.algorithm_config.policies_configs[key])
-            
+
+            self.training_policies[key]: PPOAgent = PPOAgent(
+                self.algorithm_config.policies_configs[key]
+            )
 
         # Setup batch memory
         # FIXME: doesn't work with `self.algorithm_config.policy_mapping_fun` reference
         self.memory = BatchMemory(
-            self.algorithm_config.policy_mapping_function, self.algorithm_config.policies_configs, self.algorithm_config.agents_name
+            self.algorithm_config.policy_mapping_function,
+            self.algorithm_config.policies_configs,
+            self.algorithm_config.agents_name,
         )
 
-    def train_one_step(self, env, obs = None):
+    def train_one_step(self, env, obs=None):
         """
         Train all Policys
         Here PPO's Minibatch is generated and splitted to each policy, following
@@ -79,23 +78,14 @@ class PpoAlgorithm(object):
             self.memory.update_memory(
                 state, next_state, action_onehot, reward, prediction
             )
-            # if steps % 1 == 0:
-            #     logging.debug(f"step: {steps}")
-            print(f"Steps: {steps+1}")
+            if steps % 10 == 0:
+                logging.critical(f"step: {steps}")
             steps += 1
 
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
             logging.debug(f"Training policy {key}")
-            self.training_policies[key].learn(
-                self.memory.batch[key]["states"],
-                self.memory.batch[key]["actions"],
-                self.memory.batch[key]["rewards"],
-                self.memory.batch[key]["predictions"],
-                self.memory.batch[key]["next_states"],
-            )
-
-        
+            self.training_policies[key].learn(*self.memory.get_memory(key))
 
     def get_actions(self, obs: dict) -> dict:
         """
@@ -126,7 +116,9 @@ class PpoAlgorithm(object):
                     actions[key],
                     actions_onehot[key],
                     predictions[key],
-                ) = self.training_policies[self.algorithm_config.policy_mapping_function(key)].act(
+                ) = self.training_policies[
+                    self.algorithm_config.policy_mapping_function(key)
+                ].act(
                     obs[key]
                 )
             else:

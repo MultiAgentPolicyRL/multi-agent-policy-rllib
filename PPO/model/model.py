@@ -28,13 +28,13 @@ class ActorModel(object):
     Network's Actor model
     """
 
-    def __init__(self, model_config : ModelConfig) -> k.Model:
+    def __init__(self, model_config: ModelConfig) -> k.Model:
         """
         Builds the model.
         """
         self.action_space = model_config.action_space
 
-        with tf.device('/CPU:0'):
+        with tf.device("/CPU:0"):
             self.cnn_in = k.Input(shape=(7, 11, 11))
             self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
             self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
@@ -70,8 +70,8 @@ class ActorModel(object):
         """
         advantages, prediction_picks, actions = (
             y_true[:, :1],
-            y_true[:, 1: 1 + self.action_space],
-            y_true[:, 1 + self.action_space:],
+            y_true[:, 1 : 1 + self.action_space],
+            y_true[:, 1 + self.action_space :],
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
@@ -113,8 +113,13 @@ class ActorModel(object):
         """
         obs = dict_to_tensor_dict(obs)
         prediction = np.reshape(
-            self.actor.predict([obs["world-map"], obs["flat"]], verbose=0,
-                               steps=1, workers=8, use_multiprocessing=True),
+            self.actor.predict(
+                [obs["world-map"], obs["flat"]],
+                verbose=0,
+                steps=1,
+                workers=8,
+                use_multiprocessing=True,
+            ),
             [-1],
         )
         # logging.debug(prediction)
@@ -127,12 +132,11 @@ class CriticModel(object):
     Network's Critic model
     """
 
-    def __init__(self, model_config : ModelConfig) -> k.Model:
+    def __init__(self, model_config: ModelConfig) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
-        with tf.device('/CPU:0'):
+        with tf.device("/CPU:0"):
             cnn_in = k.Input(shape=(7, 11, 11))
-            old_values = k.Input(shape=(1,))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
             map_cnn = k.layers.Flatten()(map_cnn)
@@ -145,43 +149,48 @@ class CriticModel(object):
 
             lstm = k.layers.LSTM(128)(mlp1)
             # None or tanh, DO NOT USE SOFTMAX!
-            value_pred = k.layers.Dense(1, name="Out_value_function", activation=None)(lstm)
+            value_pred = k.layers.Dense(1, name="Out_value_function", activation=None)(
+                lstm
+            )
 
             self.critic: k.Model = k.Model(
-                inputs=[cnn_in, info_input, old_values], outputs=value_pred
+                inputs=[cnn_in, info_input], outputs=value_pred
             )
 
             # reason of Adam optimizer https://github.com/ray-project/ray/issues/8091
             # 0.0003
             self.critic.compile(
                 optimizer=k.optimizers.Adam(learning_rate=0.0003),
-                loss=self.critic_ppo2_loss(old_values),
+                loss=self.loss,
             )
 
-    def critic_ppo2_loss(self, values):
+    # def critic_ppo2_loss(self, values):
+    #     """
+    #     returns loss function
+    #     """
+
+    def loss(self, y_true, y_pred):
         """
-        returns loss function
+        PPO's loss function, can be with mean or clipped
         """
+        # separate y_pred and values:
+        values = y_pred[1]
+        y_pred = y_pred[0]
 
-        def loss(y_true, y_pred):
-            """
-            PPO's loss function, can be with mean or clipped
-            """
-            # standard PPO loss
-            value_loss = k.backend.mean((y_true - y_pred) ** 2)
+        # standard PPO loss
+        value_loss = k.backend.mean((y_true - y_pred) ** 2)
 
-            # L_CLIP
-            LOSS_CLIPPING = 0.2
-            clipped_value_loss = values + k.backend.clip(
-                y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
-            )
-            v_loss1 = (y_true - clipped_value_loss) ** 2
-            v_loss2 = (y_true - y_pred) ** 2
-            value_loss = 0.5 * \
-                k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
-            return value_loss
+        # L_CLIP
+        LOSS_CLIPPING = 0.2
+        clipped_value_loss = values + k.backend.clip(
+            y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
+        )
+        v_loss1 = (y_true - clipped_value_loss) ** 2
+        v_loss2 = (y_true - y_pred) ** 2
+        value_loss = 0.5 * k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
+        return value_loss
 
-        return loss
+        # return loss
 
     def predict(self, obs_predict: dict):
         """
@@ -195,16 +204,16 @@ class CriticModel(object):
             [
                 k.backend.expand_dims(obs_predict["world-map"], 0),
                 k.backend.expand_dims(obs_predict["flat"], 0),
-                k.backend.expand_dims(np.zeros((1,)), 0),
+                # k.backend.expand_dims(np.zeros((1,)), 0),
             ],
             verbose=False,
             use_multiprocessing=True,
             steps=1,
         )
-        
+
         # logging.debug(f"action")
         return action
-    
+
     def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs

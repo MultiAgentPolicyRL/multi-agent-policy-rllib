@@ -14,16 +14,17 @@ from policy.policy_config import PolicyConfig
 
 # @tf.function(jit_compile=True)
 
+
 class PPOAgent:
     """
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, policy_config : PolicyConfig):
+    def __init__(self, policy_config: PolicyConfig):
         # Initialization
         # Environment and PPO parameters
         self.policy_config = policy_config
-        self.action_space =  self.policy_config.action_space # self.env.action_space.n
+        self.action_space = self.policy_config.action_space  # self.env.action_space.n
         self.max_average = 0  # when average score is above 0 model will be saved
         self.batch_size = self.policy_config.batch_size  # training epochs
         self.shuffle = False
@@ -95,7 +96,6 @@ class PPOAgent:
 
         return np.vstack(gaes), tf.convert_to_tensor(np.vstack(target))
 
-    
     def learn(
         self,
         states: list,
@@ -113,6 +113,7 @@ class PPOAgent:
 
         # Compute discounted rewards and advantages
         # GAE
+        logging.critical("Calculating gaes")
         advantages, target = self._get_gaes(
             rewards, np.squeeze(values), np.squeeze(next_values)
         )
@@ -125,7 +126,7 @@ class PPOAgent:
         # print(advantages.shape)                   (n_agents*steps, 1)
         # print(np.array(predictions).shape)        (n_agents*steps, 50)
         # print(np.array(actions).shape)            (n_agents*steps, 50)
-        
+
         world_map = []
         flat = []
         for s in states:
@@ -140,40 +141,47 @@ class PPOAgent:
                     s["flat"],
                 )
             )
+
         y_true = tf.convert_to_tensor(y_true)
         world_map = tf.convert_to_tensor(world_map)
         flat = tf.convert_to_tensor(flat)
 
-        logging.debug("Fit Actor Network")
+        logging.critical("Fit Actor Network")
+
+        # logging.debug(f"Epochs: {self.policy_config.agents_per_possible_policy}")
+        # logging.debug(f"batch_size: {self.batch_size}")
+        # logging.debug(f"worldmap size, flat size: {world_map.shape},{flat.shape}")
+
+        # sys.exit()
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
             [world_map, flat],
             y_true,
-            batch_size=self.batch_size,
-            epochs=1,
+            # batch_size=self.batch_size,
+            epochs=self.policy_config.agents_per_possible_policy,
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
             workers=8,
-            use_multiprocessing=True
+            use_multiprocessing=True,
         )
         logging.debug(f"Actor loss: {a_loss.history['loss'][-1]}")
 
         values = tf.convert_to_tensor(values)
-        logging.debug("Fit Critic Network")
+        logging.critical("Fit Critic Network")
 
-        # target = [target, values]
+        target = [target, values]
 
         c_loss = self.Critic.critic.fit(
-            [world_map, flat, values],
+            [world_map, flat],
             target,
-            batch_size=self.batch_size,
+            # batch_size=self.batch_size,
             epochs=1,
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
             workers=8,
-            use_multiprocessing=True
+            use_multiprocessing=True,
         )
 
         logging.debug(f"Critic loss: {c_loss.history['loss'][-1]}")

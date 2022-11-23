@@ -85,12 +85,13 @@ if __name__ == '__main__':
    
     # print(env.n_agents)
 
-    ablka = {
-        '1': 20,
-        'p': 'a'
-    }
-    print('a' in ablka)
+    # ablka = {
+    #     '1': 20,
+    #     'p': 'a'
+    # }
+    # print('a' in ablka)
 
+    
     # print(env.action_space.__len__)
     # env.save_game_object(".")
 
