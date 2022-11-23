@@ -12,14 +12,7 @@ from deprecated import deprecated
 from model.model import ActorModel, CriticModel
 from policy.policy_config import PolicyConfig
 
-# from tensorflow.python.framework.ops import (
-#     disable_eager_execution,
-#     enable_eager_execution,
-# )
-
-# disable_eager_execution()
-# tf.compat.v1.experimental.output_all_intermediates(True)
-
+# @tf.function(jit_compile=True)
 
 class PPOAgent:
     """
@@ -156,28 +149,31 @@ class PPOAgent:
         a_loss = self.Actor.actor.fit(
             [world_map, flat],
             y_true,
-            # epochs=self.batch_size,
+            batch_size=self.batch_size,
             epochs=1,
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            # workers=8,
-            # use_multiprocessing=True
+            workers=8,
+            use_multiprocessing=True
         )
         logging.debug(f"Actor loss: {a_loss.history['loss'][-1]}")
 
         values = tf.convert_to_tensor(values)
         logging.debug("Fit Critic Network")
 
+        # target = [target, values]
+
         c_loss = self.Critic.critic.fit(
             [world_map, flat, values],
             target,
+            batch_size=self.batch_size,
             epochs=1,
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            # workers=8,
-            # use_multiprocessing=True
+            workers=8,
+            use_multiprocessing=True
         )
 
         logging.debug(f"Critic loss: {c_loss.history['loss'][-1]}")

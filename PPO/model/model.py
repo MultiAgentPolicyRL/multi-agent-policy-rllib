@@ -25,12 +25,12 @@ def dict_to_tensor_dict(a_dict: dict):
 
 class ActorModel(object):
     """
-    a
+    Network's Actor model
     """
 
     def __init__(self, model_config : ModelConfig) -> k.Model:
         """
-        Builds the model. Takes in input the parameters that were not specified in the paper.
+        Builds the model.
         """
         self.action_space = model_config.action_space
 
@@ -124,7 +124,7 @@ class ActorModel(object):
 
 class CriticModel(object):
     """
-    a
+    Network's Critic model
     """
 
     def __init__(self, model_config : ModelConfig) -> k.Model:
@@ -144,10 +144,8 @@ class CriticModel(object):
             mlp1 = k.layers.Reshape([1, -1])(mlp1)
 
             lstm = k.layers.LSTM(128)(mlp1)
-
-            value_pred = k.layers.Dense(1, name="Out_value_function", activation="softmax")(
-                lstm
-            )
+            # None or tanh, DO NOT USE SOFTMAX!
+            value_pred = k.layers.Dense(1, name="Out_value_function", activation=None)(lstm)
 
             self.critic: k.Model = k.Model(
                 inputs=[cnn_in, info_input, old_values], outputs=value_pred
@@ -173,14 +171,14 @@ class CriticModel(object):
             value_loss = k.backend.mean((y_true - y_pred) ** 2)
 
             # L_CLIP
-            # LOSS_CLIPPING = 0.2
-            # clipped_value_loss = values + k.backend.clip(
-            #     y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
-            # )
-            # v_loss1 = (y_true - clipped_value_loss) ** 2
-            # v_loss2 = (y_true - y_pred) ** 2
-            # value_loss = 0.5 * \
-            #     k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
+            LOSS_CLIPPING = 0.2
+            clipped_value_loss = values + k.backend.clip(
+                y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
+            )
+            v_loss1 = (y_true - clipped_value_loss) ** 2
+            v_loss2 = (y_true - y_pred) ** 2
+            value_loss = 0.5 * \
+                k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
             return value_loss
 
         return loss

@@ -98,7 +98,7 @@ if __name__ == "__main__":
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
-    algorithm_config = AlgorithmConfig(minibatch_size=100, policies_configs=policy_config, env=env)
+    algorithm_config = AlgorithmConfig(minibatch_size=20, policies_configs=policy_config, env=env)
     algorithm : PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
     # actions = algorithm.get_actions(obs)
