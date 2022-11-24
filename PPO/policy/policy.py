@@ -2,6 +2,7 @@
 docs about this file
 """
 import copy
+from functools import wraps
 import logging
 import random
 import sys
@@ -11,7 +12,19 @@ import tensorflow as tf
 from deprecated import deprecated
 from model.model import ActorModel, CriticModel
 from policy.policy_config import PolicyConfig
+import time
 
+
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
 # @tf.function(jit_compile=True)
 
 
@@ -47,6 +60,7 @@ class PPOAgent:
         # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
         # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
 
+    # @timeit
     def act(self, state):
         """
         No idea why with numpy isnt working.
@@ -58,16 +72,23 @@ class PPOAgent:
         result>>> 1, because it have the highest probability to be taken
         """
         # Use the network to predict the next action to take, using the model
+        # start_time = time.perf_counter()
         prediction = self.Actor.predict(state)
+        # print(f"    PREDICTION TIME: {time.perf_counter()-start_time}")
         # logging.debug(f"ACTING AAAAA {prediction}")
         # action = int(random.choices(state["action_mask"], weights=prediction)[0])
+        # start_time = time.perf_counter()
         action = int(random.choices(np.arange(50), weights=prediction)[0])
+        # print(f"    RANDOM CHOICES TIME: {time.perf_counter()-start_time}")
         # action = np.random.choice(self.action_size, p=prediction)
+        # start_time = time.perf_counter()
         action_onehot = np.zeros([self.action_space])
+        # print(f"    NP ZEROS TIME: {time.perf_counter()-start_time}")
         action_onehot[action] = 1
 
         return action, action_onehot, prediction
 
+    # @timeit
     # @tf.function
     def _get_gaes(
         self,
@@ -108,12 +129,12 @@ class PPOAgent:
         Train Policy networks
         """
         # Get Critic network predictions
-        values = self.Critic.batch_predict(states)
+        values = self.Critic.batch_predict(np.array(states))
         next_values = self.Critic.batch_predict(next_states)
 
         # Compute discounted rewards and advantages
         # GAE
-        logging.critical("Calculating gaes")
+        logging.debug("     Calculating gaes")
         advantages, target = self._get_gaes(
             rewards, np.squeeze(values), np.squeeze(next_values)
         )
@@ -146,7 +167,7 @@ class PPOAgent:
         world_map = tf.convert_to_tensor(world_map)
         flat = tf.convert_to_tensor(flat)
 
-        logging.critical("Fit Actor Network")
+        logging.debug("     Fit Actor Network")
 
         # logging.debug(f"Epochs: {self.policy_config.agents_per_possible_policy}")
         # logging.debug(f"batch_size: {self.batch_size}")
@@ -162,13 +183,13 @@ class PPOAgent:
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            workers=8,
-            use_multiprocessing=True,
+            # workers=8,
+            # use_multiprocessing=True,
         )
-        logging.debug(f"Actor loss: {a_loss.history['loss'][-1]}")
+        logging.debug(f"        Actor loss: {a_loss.history['loss'][-1]}")
 
         values = tf.convert_to_tensor(values)
-        logging.critical("Fit Critic Network")
+        logging.debug("     Fit Critic Network")
 
         target = [target, values]
 
@@ -180,11 +201,11 @@ class PPOAgent:
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            workers=8,
-            use_multiprocessing=True,
+            # workers=8,
+            # use_multiprocessing=True,
         )
 
-        logging.debug(f"Critic loss: {c_loss.history['loss'][-1]}")
+        logging.debug(f"        Critic loss: {c_loss.history['loss'][-1]}")
 
     def _load(self) -> None:
         """

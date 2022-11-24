@@ -9,7 +9,20 @@ import keras as k
 import numpy as np
 import tensorflow as tf
 from model.model_config import ModelConfig
+from functools import wraps
+import time
 
+
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
 
 def dict_to_tensor_dict(a_dict: dict):
     """
@@ -34,7 +47,7 @@ class ActorModel(object):
         """
         self.action_space = model_config.action_space
 
-        with tf.device("/CPU:0"):
+        with tf.device("/GPU:0"):
             self.cnn_in = k.Input(shape=(7, 11, 11))
             self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
             self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
@@ -111,21 +124,46 @@ class ActorModel(object):
         steps: Any | None = None, callbacks: Any | None = None, 
         max_queue_size: int = 10, workers: int = 1, use_multiprocessing: bool = False
         """
-        obs = dict_to_tensor_dict(obs)
-        prediction = np.reshape(
-            self.actor.predict(
-                [obs["world-map"], obs["flat"]],
-                verbose=0,
-                steps=1,
-                workers=8,
-                use_multiprocessing=True,
-            ),
-            [-1],
+        # obs = dict_to_tensor_dict(obs)
+        # print(type(obs))
+        # print(type(obs['world-map']))
+        # sys.exit()
+        # prediction = np.reshape(
+        #     self.actor.predict(
+        #         [obs["world-map"], obs["flat"]],
+        #         verbose=0,
+        #         steps=1,
+        #         workers=8,
+        #         use_multiprocessing=True,
+        #     ),
+        #     [-1],
+        # )
+
+        action = self.actor.predict(
+            [
+                k.backend.expand_dims(obs["world-map"], 0),
+                k.backend.expand_dims(obs["flat"], 0),
+            ],
+            verbose=False,
+            use_multiprocessing=True,
+            steps=1,
         )
+        # print(action)
         # logging.debug(prediction)
         # return self.actor.predict(state)
-        return prediction / np.sum(prediction)
+        return action[0] / np.sum(action)
 
+    # @timeit
+    def batch_predict(self, obs: list):
+        """
+        Calculates a batch of prediction for n_obs
+        """
+        world_map = []
+        flat = []
+        for element in obs:
+            world_map.append(element['world-map'])
+            flat.append(element['flat'])
+        return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
 
 class CriticModel(object):
     """
@@ -135,7 +173,7 @@ class CriticModel(object):
     def __init__(self, model_config: ModelConfig) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
-        with tf.device("/CPU:0"):
+        with tf.device("/GPU:0"):
             cnn_in = k.Input(shape=(7, 11, 11))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
@@ -178,7 +216,7 @@ class CriticModel(object):
         y_pred = y_pred[0]
 
         # standard PPO loss
-        value_loss = k.backend.mean((y_true - y_pred) ** 2)
+        # value_loss = k.backend.mean((y_true - y_pred) ** 2)
 
         # L_CLIP
         LOSS_CLIPPING = 0.2
@@ -196,10 +234,6 @@ class CriticModel(object):
         """
         a
         """
-        # obs_predict = dict_to_tensor_dict(obs_predict)
-        # from the guy's code
-        # return self.critic.predict([obs, np.zeros((obs.shape[0], 1))])
-        # return self.critic.predict([obs_predict["world-map"], obs_predict["flat"], np.zeros((7, 136))], verbose=False)
         action = self.critic.predict(
             [
                 k.backend.expand_dims(obs_predict["world-map"], 0),
@@ -211,11 +245,19 @@ class CriticModel(object):
             steps=1,
         )
 
+        
+
         # logging.debug(f"action")
         return action
 
+    # @timeit
     def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs
         """
-        return [np.reshape(self.predict(i), -1)[0] for i in obs]
+        world_map = []
+        flat = []
+        for element in obs:
+            world_map.append(element['world-map'])
+            flat.append(element['flat'])
+        return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])

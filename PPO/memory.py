@@ -1,3 +1,20 @@
+from dataclasses import dataclass
+from functools import wraps
+import time
+
+
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
+
+@dataclass
 class BatchMemory:
     def __init__(
         self, policy_mapping_function, policy_config: dict, available_agent_id: list
@@ -18,7 +35,7 @@ class BatchMemory:
         # Initialize empty memory
         # for key in available_agent_groups:
         #     self.batch[key] = {e: [] for e in keys}
-
+    # @timeit
     def reset_memory(self):
         """
         Method.
@@ -30,16 +47,7 @@ class BatchMemory:
         self.rewards.clear()
         self.predictions.clear()
 
-        # for key in self.batch.keys():
-        #     policy = self.policy_mapping_function(key)
-        #     # print(f"Appending to {policy} element of: {key}")
-
-        #     self.batch[policy]["states"].clear()
-        #     self.batch[policy]["next_states"].clear()
-        #     self.batch[policy]["actions"].clear()
-        #     self.batch[policy]["rewards"].clear()
-        #     self.batch[policy]["predictions"].clear()
-
+    # @timeit
     def update_memory(
         self,
         state: dict,
@@ -54,7 +62,8 @@ class BatchMemory:
         self.actions.append(action_onehot)
         self.rewards.append(reward)
         self.predictions.append(prediction)
-
+        
+    # @timeit
     def get_memory(self, key):
         data_structure = {}
         # keys = ['0','1','2','3','p']

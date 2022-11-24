@@ -1,3 +1,4 @@
+from ai_economist import foundation
 from env_wrapper import EnvWrapper
 import numpy as np
 env_config = {
@@ -79,10 +80,17 @@ def get_environment():
     return EnvWrapper(env_config)
 
 if __name__ == '__main__':
-    # env = get_environment()
+    env = get_environment()
     # env.seed(1)
-    # obs = env.reset()
-   
+    # env.env.save_game_object(".")
+    obs = env.reset()
+    
+    # print(env.observation_space)
+    # print(env.observation_space_pl)
+    # help(env.env)
+    # env.env.previous_episode_replay_log
+    
+    foundation.utils.save_episode_log(env.env, "./dioawnsdo")
     # print(env.n_agents)
 
     # ablka = {

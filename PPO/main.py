@@ -6,6 +6,8 @@ from algorithm.algorithm import PpoAlgorithm
 from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
+from ai_economist import foundation
+
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
 
@@ -89,7 +91,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 100
+    EPOCHS = 10
     env = get_environment()
     obs = env.reset()
 
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=10, policies_configs=policy_config, env=env
+        minibatch_size=300, policies_configs=policy_config, env=env
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
@@ -115,3 +117,5 @@ if __name__ == "__main__":
         logging.debug(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
         algorithm.train_one_step(env)
+
+    # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")

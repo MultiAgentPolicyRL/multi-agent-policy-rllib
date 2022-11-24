@@ -9,7 +9,20 @@ import sys
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
 from policy.policy import PPOAgent
+from functools import wraps
+import time
 
+
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
 
 class PpoAlgorithm(object):
     """
@@ -51,23 +64,13 @@ class PpoAlgorithm(object):
             self.algorithm_config.agents_name,
         )
 
-    def train_one_step(self, env, obs=None):
-        """
-        Train all Policys
-        Here PPO's Minibatch is generated and splitted to each policy, following
-        `policy_mapping_fun` rules
-        """
-        # Resetting memory
-        self.memory.reset_memory()
-
-        steps = 0
-        env = copy.deepcopy(env)
-        state = env.reset()
-        # state = obs
-
-        # Collecting data for batching
+    @timeit
+    def batch(self, env, state):
         logging.debug("Batching")
+        steps = 0
         while steps < self.algorithm_config.batch_size:
+            if steps % 20 == 0:
+                logging.debug(f"    step: {steps}")
             # Actor picks an action
             action, action_onehot, prediction = self.get_actions(state)
 
@@ -78,15 +81,32 @@ class PpoAlgorithm(object):
             self.memory.update_memory(
                 state, next_state, action_onehot, reward, prediction
             )
-            if steps % 10 == 0:
-                logging.critical(f"step: {steps}")
+            
             steps += 1
 
+    def train_one_step(self, env, obs=None):
+        """
+        Train all Policys
+        Here PPO's Minibatch is generated and splitted to each policy, following
+        `policy_mapping_fun` rules
+        """
+        # Resetting memory
+        self.memory.reset_memory()
+
+        env = copy.deepcopy(env)
+        state = env.reset()
+        # state = obs
+
+        # Collecting data for batching
+        self.batch(env, state)
+
+        # sys.exit()
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
             logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(*self.memory.get_memory(key))
-
+    
+    # @timeit
     def get_actions(self, obs: dict) -> dict:
         """
         Build action dictionary from env observations. Output has thi structure:
@@ -100,6 +120,7 @@ class PpoAlgorithm(object):
                 }
 
         FIXME: Planner
+        FIXME: TOO SLOW!!!!!
 
         Arguments:
             obs: observation dictionary of the environment, it contains all observations for each agent
@@ -107,7 +128,7 @@ class PpoAlgorithm(object):
         Returns:
             actions dict: actions for each agent
         """
-
+        
         actions, actions_onehot, predictions = {}, {}, {}
         for key in obs.keys():
             if key != "p":
