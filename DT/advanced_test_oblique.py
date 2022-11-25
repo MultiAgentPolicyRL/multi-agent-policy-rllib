@@ -280,7 +280,7 @@ with open(logfile, "a") as f:
 
 
 def evaluate_fitness(fitness_function, leaf, genotype, episodes=args.episodes):
-    repeatable_random_seed = sum(genotype) % (2**31)
+    repeatable_random_seed = sum(genotype) % (2 ** 31)
     random.seed(args.seed + repeatable_random_seed)
     np.random.seed(args.seed + repeatable_random_seed)
     phenotype, _ = GrammaticalEvolutionTranslator(grammar).genotype_to_str(genotype)

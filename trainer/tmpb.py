@@ -105,7 +105,7 @@ def build_trainer(run_configuration):
     else:
         start_seed = int(trainer_config["seed"])
 
-    final_seed = int(start_seed % (2**16)) * 1000
+    final_seed = int(start_seed % (2 ** 16)) * 1000
     logger.info("seed (final): %s", final_seed)
 
     # === Multiagent Policies ===

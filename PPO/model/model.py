@@ -20,9 +20,11 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
+
     return timeit_wrapper
+
 
 def dict_to_tensor_dict(a_dict: dict):
     """
@@ -161,9 +163,10 @@ class ActorModel(object):
         world_map = []
         flat = []
         for element in obs:
-            world_map.append(element['world-map'])
-            flat.append(element['flat'])
+            world_map.append(element["world-map"])
+            flat.append(element["flat"])
         return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
+
 
 class CriticModel(object):
     """
@@ -245,8 +248,6 @@ class CriticModel(object):
             steps=1,
         )
 
-        
-
         # logging.debug(f"action")
         return action
 
@@ -258,6 +259,6 @@ class CriticModel(object):
         world_map = []
         flat = []
         for element in obs:
-            world_map.append(element['world-map'])
-            flat.append(element['flat'])
+            world_map.append(element["world-map"])
+            flat.append(element["flat"])
         return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])

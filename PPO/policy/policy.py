@@ -22,9 +22,12 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
+
     return timeit_wrapper
+
+
 # @tf.function(jit_compile=True)
 
 
@@ -179,8 +182,8 @@ class PPOAgent:
             [world_map, flat],
             y_true,
             # batch_size=self.batch_size,
-            epochs=self.policy_config.agents_per_possible_policy,
-            steps_per_epoch=self.batch_size,
+            epochs=self.policy_config.agents_per_possible_policy*self.policy_config.num_workers,
+            steps_per_epoch=self.batch_size//self.policy_config.num_workers,
             verbose=0,
             shuffle=self.shuffle,
             # workers=8,

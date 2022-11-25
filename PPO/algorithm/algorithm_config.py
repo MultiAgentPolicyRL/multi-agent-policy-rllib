@@ -3,6 +3,7 @@ Set up and data check of algo's config
 """
 import copy
 
+
 class AlgorithmConfig:
     """
     a
@@ -13,7 +14,10 @@ class AlgorithmConfig:
         minibatch_size: int,
         policies_configs: dict,
         env,
+        seed: int,
         policy_mapping_fun=None,
+        multiprocessing: bool = False,
+        num_workers: int = 0,
     ):
         """
         Builds the config and validates data
@@ -21,7 +25,8 @@ class AlgorithmConfig:
         Arguments:
             minibatch_size: size of the minibatch # ADD logic
             n_actors: TODO automatic, dictionary with `mapping_fun_output`: n_elements_in_that_map
-
+            multiprocessing: if you want multiprocessing
+            num_workers: works only with `multiprocessing` active
         """
 
         """
@@ -31,7 +36,9 @@ class AlgorithmConfig:
             'p': policy_config(stuff)
         }
         """
-
+        self.num_workers = num_workers
+        self.multiprocessing = multiprocessing
+        self.seed = seed
         if policy_mapping_fun is None:
             self.policy_mapping_fun = self.policy_mapping_function
         else:
@@ -40,7 +47,7 @@ class AlgorithmConfig:
         self.minibatch_size = minibatch_size
         self.policies_configs = policies_configs
 
-        env = copy.deepcopy(env)
+        self.env = copy.deepcopy(env)
         obs: dict = env.reset()
 
         # dict containing `key` from `policy_mapping_fun`
@@ -55,26 +62,22 @@ class AlgorithmConfig:
             self.agents_per_possible_policy[self.policy_mapping_fun(key)] += 1
             self.agents_name.append(key)
 
-        # self.agents_name = list(set(agents_name))
-
-        # # Calculate batch_size for each trained or untrained policy (follows policy_mapping_fun output)
-        # batch_size_per_policy = {}
-        # for key in agents_per_possible_policy:
-        #     batch_size_per_policy[key] = minibatch_size//agents_per_possible_policy[key]
-
-        # batch_size = []
-        # # Calculate max batch size for trained policies:
-        # for key in batch_size_per_policy:
-        #     if key in self.policies_configs:
-        #         batch_size.append(batch_size_per_policy[key])
-
-        # Maximum steps the environment actually has to do for batching
-        # Each policy will get `batch_size` steps and will train it's model with `batch_size_per_policy[key]` elements
-        # self.batch_size = max(batch_size)
         self.batch_size = self.minibatch_size
 
         for key in self.policies_configs.keys():
-              self.policies_configs[key].set_batch_size_and_agents_per_possible_policy(self.batch_size, self.agents_per_possible_policy[key])
+            self.policies_configs[key].set_batch_size_and_agents_per_possible_policy(
+                self.batch_size, self.agents_per_possible_policy[key], self.num_workers
+            )
+        
+        # Checks if multiprocessing and num_workers makes no sense
+        if (self.multiprocessing and self.num_workers != 0) or (
+            self.multiprocessing is False and self.num_workers != 0
+        ):
+            if self.num_workers < 0:
+                ValueError("`num_workers` must be > 0!")
+            AttributeError(
+                "Multiprocessing and num_workers work together, put correct values. Ex: True, 4"
+            )
 
     def policy_mapping_function(self, key: str) -> str:
         """

@@ -10,9 +10,11 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
+
     return timeit_wrapper
+
 
 @dataclass
 class BatchMemory:
@@ -35,6 +37,15 @@ class BatchMemory:
         # Initialize empty memory
         # for key in available_agent_groups:
         #     self.batch[key] = {e: [] for e in keys}
+    # @timeit
+    def __add__(self, other):
+        self.states += other.states
+        self.next_states += other.next_states
+        self.actions += other.actions
+        self.rewards += other.rewards
+        self.predictions += other.predictions
+        return self
+
     # @timeit
     def reset_memory(self):
         """
@@ -62,7 +73,7 @@ class BatchMemory:
         self.actions.append(action_onehot)
         self.rewards.append(reward)
         self.predictions.append(prediction)
-        
+
     # @timeit
     def get_memory(self, key):
         data_structure = {}

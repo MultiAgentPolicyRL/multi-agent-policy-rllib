@@ -91,8 +91,11 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 10
+    EPOCHS = 5
+    SEED = 1
+
     env = get_environment()
+    env.seed(SEED)
     obs = env.reset()
 
     policy_config = {
@@ -101,7 +104,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=300, policies_configs=policy_config, env=env
+        minibatch_size=300, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=True, num_workers=12
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
@@ -118,4 +121,6 @@ if __name__ == "__main__":
         logging.info(f"Reward step {i}: {rew}")
         algorithm.train_one_step(env)
 
+    # Kill multi-processes
+    algorithm.kill_processes()
     # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")
