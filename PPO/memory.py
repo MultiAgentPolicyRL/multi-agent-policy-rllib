@@ -58,7 +58,7 @@ class BatchMemory:
         self.rewards.clear()
         self.predictions.clear()
 
-    # @timeit
+    #@timeit
     def update_memory(
         self,
         state: dict,

@@ -196,7 +196,7 @@ class PpoAlgorithm(object):
             next_state, reward, _, _ = env.step(action)
             # print(f"            REWARD BATCH {reward}" )
             # Memorize (state, action, reward) for trainig
-            self.memory.update(
+            self.memory.update_memory(
                 state, next_state, action_onehot, reward, prediction
             )
 
@@ -230,7 +230,7 @@ class PpoAlgorithm(object):
             logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(*self.memory.get_memory(key))
 
-    # @timeit
+    #@timeit
     def get_actions(self, obs: dict) -> dict:
         """
         Build action dictionary from env observations. Output has thi structure:

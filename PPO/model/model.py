@@ -61,7 +61,7 @@ class ActorModel(object):
             self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
             self.mlp1 = k.layers.Reshape([1, -1])(self.mlp1)
 
-            self.lstm = k.layers.LSTM(128)(self.mlp1)
+            self.lstm = k.layers.LSTM(128, unroll=True)(self.mlp1)
 
             # Policy pi - needs to be a probabiliy value
             self.action_probs = k.layers.Dense(
@@ -74,7 +74,7 @@ class ActorModel(object):
 
             # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
             self.actor.compile(
-                optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss
+                optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss, run_eagerly=True,
             )
 
         logging.critical(self.actor.summary())
@@ -140,6 +140,13 @@ class ActorModel(object):
         #     ),
         #     [-1],
         # )
+        if self.actor.run_eagerly:
+            return np.squeeze(
+                self.actor([
+                k.backend.expand_dims(obs["world-map"], 0),
+                k.backend.expand_dims(obs["flat"], 0),
+                ])
+            )
 
         action = self.actor.predict(
             [
@@ -188,7 +195,7 @@ class CriticModel(object):
             mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
             mlp1 = k.layers.Reshape([1, -1])(mlp1)
 
-            lstm = k.layers.LSTM(128)(mlp1)
+            lstm = k.layers.LSTM(128, unroll=True)(mlp1)
             # None or tanh, DO NOT USE SOFTMAX!
             value_pred = k.layers.Dense(1, name="Out_value_function", activation=None)(
                 lstm
@@ -203,6 +210,7 @@ class CriticModel(object):
             self.critic.compile(
                 optimizer=k.optimizers.Adam(learning_rate=0.0003),
                 loss=self.loss,
+                run_eagerly=True,
             )
 
     # def critic_ppo2_loss(self, values):
@@ -237,6 +245,13 @@ class CriticModel(object):
         """
         a
         """
+        if self.critic.run_eagerly:
+            return self.critic(
+                [
+                    k.backend.expand_dims(obs_predict["world-map"], 0),
+                    k.backend.expand_dims(obs_predict["flat"], 0),
+                ]
+            )
         action = self.critic.predict(
             [
                 k.backend.expand_dims(obs_predict["world-map"], 0),
@@ -261,4 +276,5 @@ class CriticModel(object):
         for element in obs:
             world_map.append(element["world-map"])
             flat.append(element["flat"])
+        
         return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])

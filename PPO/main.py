@@ -104,7 +104,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=300, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=True, num_workers=12
+        minibatch_size=1500, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 

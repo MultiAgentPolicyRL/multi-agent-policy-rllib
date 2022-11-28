@@ -132,9 +132,12 @@ class PPOAgent:
         Train Policy networks
         """
         # Get Critic network predictions
-        values = self.Critic.batch_predict(np.array(states))
-        next_values = self.Critic.batch_predict(next_states)
-
+        #values = self.Critic.batch_predict(np.array(states))
+        #next_values = self.Critic.batch_predict(next_states)
+        
+        values = [self.Critic.predict(state) for state in states]
+        next_values = [self.Critic.predict(state) for state in next_states]
+        
         # Compute discounted rewards and advantages
         # GAE
         logging.debug("     Calculating gaes")
