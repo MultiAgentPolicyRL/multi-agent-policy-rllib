@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 import tensorflow as tf
@@ -7,9 +8,11 @@ from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
 from ai_economist import foundation
+import time
+from tqdm import tqdm
 
-
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
+logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
+# logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
 
 env_config = {
     "env_config_dict": {
@@ -91,7 +94,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 5
+    EPOCHS = 20
     SEED = 1
 
     env = get_environment()
@@ -104,7 +107,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=1500, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
+        minibatch_size=250, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
@@ -112,8 +115,9 @@ if __name__ == "__main__":
     # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
     # algorithm.train_one_step(env)
 
-    logging.debug("Training")
-    for i in range(EPOCHS):
+    for i in tqdm(range(EPOCHS)):
+        logging.debug(f"Training epoch {i}")
+
         actions = algorithm.get_actions(obs)[0]
 
         obs, rew, done, info = env.step(actions)
@@ -122,5 +126,5 @@ if __name__ == "__main__":
         algorithm.train_one_step(env)
 
     # Kill multi-processes
-    algorithm.kill_processes()
+    # algorithm.kill_processes()
     # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")

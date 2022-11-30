@@ -56,7 +56,7 @@ env_config = {
         # kwargs that are used by every Scenario class (i.e. defined in BaseEnvironment)
         "n_agents": 4,  # Number of non-planner agents (must be > 1)
         "world_size": [25, 25],  # [Height, Width] of the env world
-        "episode_length": 1000,  # Number of timesteps per episode
+        "episode_length": 2000,  # Number of timesteps per episode
         # In multi-action-mode, the policy selects an action for each action subspace (defined in component code).
         # Otherwise, the policy selects only 1 action.
         "multi_action_mode_agents": False,
@@ -81,19 +81,8 @@ def get_environment():
     """
     # return foundation.make_env_instance(**env_config["env_config_dict"])
     return EnvWrapper(env_config)
-class bologna():
-    def __init__(self):
-        self.x = []
-        self.y = [1,2,3]
-    def __add__(self, other):
-        self.x += other.y
-        return self
 
 if __name__ == "__main__":
-    # b1 = bologna()
-    # b2 = bologna()
-    # print((b1+b2).x)
-
     env = get_environment()
     # env.seed(1)
     # env.env.save_game_object(".")
@@ -128,10 +117,10 @@ if __name__ == "__main__":
     while i < 1500:
         start = time.time()
         obs, rew, _, _ = env.step({
-            '0': np.random.randint(50,size=1),
-            '1': np.random.randint(50,size=1),
-            '2': np.random.randint(50,size=1),
-            '3': np.random.randint(50,size=1),
+            '0': np.random.randint(0,49,size=1),
+            '1': np.random.randint(0,49,size=1),
+            '2': np.random.randint(0,49,size=1),
+            '3': np.random.randint(0,49,size=1),
             'p': [np.random.randint(22,size=1) for _ in range(7)]
         })
 

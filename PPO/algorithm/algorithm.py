@@ -21,7 +21,7 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
 
     return timeit_wrapper
@@ -183,12 +183,12 @@ class PpoAlgorithm(object):
 
     @timeit
     def batch(self, env):
-        logging.debug("Batching")
+        # logging.debug("Batching")
         state = env.reset()
         steps = 0
         while steps < self.algorithm_config.batch_size:
-            if steps % 20 == 0:
-                logging.debug(f"    step: {steps}")
+            # if steps % 100 == 0:
+            #     logging.debug(f"    step: {steps}")
             # Actor picks an action
             action, action_onehot, prediction = self.get_actions(state)
 
@@ -227,7 +227,7 @@ class PpoAlgorithm(object):
         # sys.exit()
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
-            logging.debug(f"Training policy {key}")
+            # logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(*self.memory.get_memory(key))
 
     #@timeit

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from functools import wraps
 import time
+import logging
 
 
 def timeit(func):
@@ -10,7 +11,7 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
 
     return timeit_wrapper
@@ -46,7 +47,7 @@ class BatchMemory:
         self.predictions += other.predictions
         return self
 
-    # @timeit
+    @timeit
     def reset_memory(self):
         """
         Method.
@@ -74,7 +75,7 @@ class BatchMemory:
         self.rewards.append(reward)
         self.predictions.append(prediction)
 
-    # @timeit
+    @timeit
     def get_memory(self, key):
         data_structure = {}
         # keys = ['0','1','2','3','p']

@@ -22,7 +22,7 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
 
     return timeit_wrapper
@@ -134,17 +134,23 @@ class PPOAgent:
         # Get Critic network predictions
         #values = self.Critic.batch_predict(np.array(states))
         #next_values = self.Critic.batch_predict(next_states)
-        
-        values = [self.Critic.predict(state) for state in states]
-        next_values = [self.Critic.predict(state) for state in next_states]
-        
+        tempo = time.time()
+        # values = [self.Critic.predict(state) for state in states]
+        # next_values = [self.Critic.predict(state) for state in next_states]
+        values = self.Critic.batch_predict(states)
+        next_values = self.Critic.batch_predict(next_states)
+        logging.debug(f"     Values and next_values required {time.time()-tempo}s")
+
         # Compute discounted rewards and advantages
         # GAE
-        logging.debug("     Calculating gaes")
+        tempo = time.time()
         advantages, target = self._get_gaes(
             rewards, np.squeeze(values), np.squeeze(next_values)
         )
+        logging.debug(f"     Gaes required {time.time()-tempo}s")
 
+        
+        tempo = time.time()
         # stack everything to numpy array
         # pack all advantages, predictions and actions to y_true and when they are received
         # in custom PPO loss function we unpack it
@@ -172,14 +178,12 @@ class PPOAgent:
         y_true = tf.convert_to_tensor(y_true)
         world_map = tf.convert_to_tensor(world_map)
         flat = tf.convert_to_tensor(flat)
+        logging.debug(f"     Data prep required: {time.time()-tempo}s")
 
-        logging.debug("     Fit Actor Network")
 
-        # logging.debug(f"Epochs: {self.policy_config.agents_per_possible_policy}")
-        # logging.debug(f"batch_size: {self.batch_size}")
-        # logging.debug(f"worldmap size, flat size: {world_map.shape},{flat.shape}")
 
-        # sys.exit()
+        tempo = time.time()
+
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
             [world_map, flat],
@@ -189,16 +193,18 @@ class PPOAgent:
             steps_per_epoch=self.batch_size//self.policy_config.num_workers,
             verbose=0,
             shuffle=self.shuffle,
-            # workers=8,
-            # use_multiprocessing=True,
+            workers=8,
+            use_multiprocessing=True,
         )
+        logging.debug(f"     Fit Actor Network required {time.time()-tempo}s")
         logging.debug(f"        Actor loss: {a_loss.history['loss'][-1]}")
 
+        tempo = time.time()
         values = tf.convert_to_tensor(values)
-        logging.debug("     Fit Critic Network")
-
         target = [target, values]
+        logging.debug(f"    Prep 2 required {time.time()-tempo}")
 
+        tempo = time.time()
         c_loss = self.Critic.critic.fit(
             [world_map, flat],
             target,
@@ -207,9 +213,10 @@ class PPOAgent:
             steps_per_epoch=self.batch_size,
             verbose=0,
             shuffle=self.shuffle,
-            # workers=8,
-            # use_multiprocessing=True,
+            workers=8,
+            use_multiprocessing=True,
         )
+        logging.debug(f"     Fit Critic Network required {time.time()-tempo}s")
 
         logging.debug(f"        Critic loss: {c_loss.history['loss'][-1]}")
 

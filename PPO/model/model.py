@@ -20,7 +20,7 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
 
     return timeit_wrapper
@@ -49,7 +49,7 @@ class ActorModel(object):
         """
         self.action_space = model_config.action_space
 
-        with tf.device("/GPU:0"):
+        with tf.device("/CPU:0"):
             self.cnn_in = k.Input(shape=(7, 11, 11))
             self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
             self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
@@ -183,7 +183,7 @@ class CriticModel(object):
     def __init__(self, model_config: ModelConfig) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
-        with tf.device("/GPU:0"):
+        with tf.device("/CPU:0"):
             cnn_in = k.Input(shape=(7, 11, 11))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
