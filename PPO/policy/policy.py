@@ -63,7 +63,6 @@ class PPOAgent:
         # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
         # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
 
-    # @timeit
     def act(self, state):
         """
         No idea why with numpy isnt working.
@@ -147,7 +146,9 @@ class PPOAgent:
         advantages, target = self._get_gaes(
             rewards, np.squeeze(values), np.squeeze(next_values)
         )
+
         logging.debug(f"     Gaes required {time.time()-tempo}s")
+        # sys.exit()
 
         
         tempo = time.time()

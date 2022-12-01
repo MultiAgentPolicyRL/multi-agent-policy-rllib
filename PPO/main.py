@@ -94,7 +94,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 20
+    EPOCHS = 10
     SEED = 1
 
     env = get_environment()
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=250, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
+        minibatch_size=1000, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
@@ -115,7 +115,9 @@ if __name__ == "__main__":
     # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
     # algorithm.train_one_step(env)
 
-    for i in tqdm(range(EPOCHS)):
+    # for i in tqdm(range(EPOCHS)):
+    for i in range(EPOCHS):
+        start = time.time()
         logging.debug(f"Training epoch {i}")
 
         actions = algorithm.get_actions(obs)[0]
@@ -124,7 +126,8 @@ if __name__ == "__main__":
         logging.debug(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
         algorithm.train_one_step(env)
-
+        logging.debug(f"Trained step {i} in {time.time()-start} seconds")
+        print(f"Trained step {i} in {time.time()-start} seconds")
     # Kill multi-processes
     # algorithm.kill_processes()
     # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")

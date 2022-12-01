@@ -49,7 +49,7 @@ class ActorModel(object):
         """
         self.action_space = model_config.action_space
 
-        with tf.device("/CPU:0"):
+        with tf.device("CPU:0"):
             self.cnn_in = k.Input(shape=(7, 11, 11))
             self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
             self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
@@ -74,7 +74,9 @@ class ActorModel(object):
 
             # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
             self.actor.compile(
-                optimizer=k.optimizers.Adam(learning_rate=0.0003), loss=self.ppo_loss, run_eagerly=True,
+                optimizer=k.optimizers.Adam(learning_rate=0.0003),
+                loss=self.ppo_loss,
+                run_eagerly=False,
             )
 
         logging.critical(self.actor.summary())
@@ -119,60 +121,28 @@ class ActorModel(object):
     def predict(self, obs):
         """
         If you remove the reshape good luck finding that softmax sum != 1.
-        """
-        """
-        
-        (x: Any, batch_size: Any | None = None, verbose: str = "auto", 
-        steps: Any | None = None, callbacks: Any | None = None, 
-        max_queue_size: int = 10, workers: int = 1, use_multiprocessing: bool = False
-        """
-        # obs = dict_to_tensor_dict(obs)
-        # print(type(obs))
-        # print(type(obs['world-map']))
-        # sys.exit()
-        # prediction = np.reshape(
-        #     self.actor.predict(
-        #         [obs["world-map"], obs["flat"]],
-        #         verbose=0,
-        #         steps=1,
-        #         workers=8,
-        #         use_multiprocessing=True,
-        #     ),
-        #     [-1],
-        # )
-        if self.actor.run_eagerly:
-            return np.squeeze(
-                self.actor([
-                k.backend.expand_dims(obs["world-map"], 0),
-                k.backend.expand_dims(obs["flat"], 0),
-                ])
+        """ 
+        action = np.squeeze(
+            self.actor(
+                [
+                    k.backend.expand_dims(obs["world-map"], 0),
+                    k.backend.expand_dims(obs["flat"], 0),
+                ],
             )
-
-        action = self.actor.predict(
-            [
-                k.backend.expand_dims(obs["world-map"], 0),
-                k.backend.expand_dims(obs["flat"], 0),
-            ],
-            verbose=False,
-            use_multiprocessing=True,
-            steps=1,
         )
-        # print(action)
-        # logging.debug(prediction)
-        # return self.actor.predict(state)
-        return action[0] / np.sum(action)
+        return action/np.sum(action)
 
     # @timeit
-    def batch_predict(self, obs: list):
-        """
-        Calculates a batch of prediction for n_obs
-        """
-        world_map = []
-        flat = []
-        for element in obs:
-            world_map.append(element["world-map"])
-            flat.append(element["flat"])
-        return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
+    # def batch_predict(self, obs: list):
+    #     """
+    #     Calculates a batch of prediction for n_obs
+    #     """
+    #     world_map = []
+    #     flat = []
+    #     for element in obs:
+    #         world_map.append(element["world-map"])
+    #         flat.append(element["flat"])
+    #     return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
 
 
 class CriticModel(object):
@@ -183,7 +153,7 @@ class CriticModel(object):
     def __init__(self, model_config: ModelConfig) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
-        with tf.device("/CPU:0"):
+        with tf.device("CPU:0"):
             cnn_in = k.Input(shape=(7, 11, 11))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
@@ -210,13 +180,8 @@ class CriticModel(object):
             self.critic.compile(
                 optimizer=k.optimizers.Adam(learning_rate=0.0003),
                 loss=self.loss,
-                run_eagerly=True,
+                run_eagerly=False,
             )
-
-    # def critic_ppo2_loss(self, values):
-    #     """
-    #     returns loss function
-    #     """
 
     def loss(self, y_true, y_pred):
         """
@@ -241,32 +206,32 @@ class CriticModel(object):
 
         # return loss
 
-    def predict(self, obs_predict: dict):
-        """
-        a
-        """
-        if self.critic.run_eagerly:
-            return self.critic(
-                [
-                    k.backend.expand_dims(obs_predict["world-map"], 0),
-                    k.backend.expand_dims(obs_predict["flat"], 0),
-                ]
-            )
-        action = self.critic.predict(
-            [
-                k.backend.expand_dims(obs_predict["world-map"], 0),
-                k.backend.expand_dims(obs_predict["flat"], 0),
-                # k.backend.expand_dims(np.zeros((1,)), 0),
-            ],
-            verbose=False,
-            use_multiprocessing=True,
-            steps=1,
-        )
+    # def predict(self, obs_predict: dict):
+    #     """
+    #     a
+    #     """
+    #     if self.critic.run_eagerly:
+    #         return self.critic(
+    #             [
+    #                 k.backend.expand_dims(obs_predict["world-map"], 0),
+    #                 k.backend.expand_dims(obs_predict["flat"], 0),
+    #             ]
+    #         )
+    #     action = self.critic.predict(
+    #         [
+    #             k.backend.expand_dims(obs_predict["world-map"], 0),
+    #             k.backend.expand_dims(obs_predict["flat"], 0),
+    #         ],
+    #         verbose=False,
+    #         use_multiprocessing=True,
+    #         steps=1,
+    #     )
 
-        # logging.debug(f"action")
-        return action
+    #     # logging.debug(f"action")
+    #     return action
 
     # @timeit
+    # @tf.function
     def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs
@@ -276,5 +241,6 @@ class CriticModel(object):
         for element in obs:
             world_map.append(element["world-map"])
             flat.append(element["flat"])
-        
+        # print(type(world_map), type(world_map[0]))
+        # print(type(flat), type(flat[0]))
         return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
