@@ -12,7 +12,6 @@ from model.model_config import ModelConfig
 from functools import wraps
 import time
 
-
 def timeit(func):
     @wraps(func)
     def timeit_wrapper(*args, **kwargs):
@@ -20,7 +19,8 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        # logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        logging.debug(f"{total_time}")
         return result
 
     return timeit_wrapper
@@ -118,20 +118,35 @@ class ActorModel(object):
 
         return total_loss
 
+    # @timeit
     def predict(self, obs):
         """
         If you remove the reshape good luck finding that softmax sum != 1.
         """ 
-        action = np.squeeze(
-            self.actor(
+        action = np.squeeze(self.actor(
                 [
-                    k.backend.expand_dims(obs["world-map"], 0),
-                    k.backend.expand_dims(obs["flat"], 0),
+                    
+                    np.expand_dims(obs["world-map"], 0),
+                    np.expand_dims(obs["flat"], 0),
                 ],
-            )
-        )
+            ))
         return action/np.sum(action)
 
+    # @timeit
+    @tf.function
+    def predict(self, obs):
+        """
+        If you remove the reshape good luck finding that softmax sum != 1.
+        """ 
+        action = tf.squeeze(self.actor(
+                [
+                    
+                    tf.expand_dims(obs["world-map"], 0),
+                    tf.expand_dims(obs["flat"], 0),
+                ],
+            ))
+        return tf.divide(action,tf.reduce_sum(action))
+    
     # @timeit
     # def batch_predict(self, obs: list):
     #     """

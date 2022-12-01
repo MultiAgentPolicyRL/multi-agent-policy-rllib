@@ -80,9 +80,10 @@ class PPOAgent:
         # logging.debug(f"ACTING AAAAA {prediction}")
         # action = int(random.choices(state["action_mask"], weights=prediction)[0])
         # start_time = time.perf_counter()
-        action = int(random.choices(np.arange(50), weights=prediction)[0])
+        
+        # action = int(random.choices(np.arange(50), weights=prediction)[0])
         # print(f"    RANDOM CHOICES TIME: {time.perf_counter()-start_time}")
-        # action = np.random.choice(self.action_size, p=prediction)
+        action = np.random.choice(np.arange(50), p=prediction)
         # start_time = time.perf_counter()
         action_onehot = np.zeros([self.action_space])
         # print(f"    NP ZEROS TIME: {time.perf_counter()-start_time}")

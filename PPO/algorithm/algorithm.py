@@ -223,6 +223,7 @@ class PpoAlgorithm(object):
         if not self.algorithm_config.multiprocessing:
             self.batch(env)
         else:
+            NotImplementedError("DONT USE ME")
             self.batch_multi_process()
         # sys.exit()
         # Pass batch to the correct policy to perform training

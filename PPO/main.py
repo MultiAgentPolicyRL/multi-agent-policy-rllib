@@ -11,8 +11,10 @@ from ai_economist import foundation
 import time
 from tqdm import tqdm
 
-logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
-# logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
+# logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
+
+# logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
 
 env_config = {
     "env_config_dict": {
@@ -94,7 +96,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 10
+    EPOCHS = 1
     SEED = 1
 
     env = get_environment()
