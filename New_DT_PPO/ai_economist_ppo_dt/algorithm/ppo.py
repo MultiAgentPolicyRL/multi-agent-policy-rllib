@@ -59,66 +59,66 @@ class PPO():
 
         self.logger.info("PPO initialized.")
 
-    def _generalized_advantage_estimation(values,
-                                     final_value,
-                                     discounts,
-                                     rewards,
-                                     td_lambda=1.0,
-                                     time_major=True):
-        """Computes generalized advantage estimation (GAE).
-        For theory, see
-        "High-Dimensional Continuous Control Using Generalized Advantage Estimation"
-        by John Schulman, Philipp Moritz et al.
-        See https://arxiv.org/abs/1506.02438 for full paper.
-        Define abbreviations:
-            (B) batch size representing number of trajectories
-            (T) number of steps per trajectory
-        Args:
-            values: Tensor with shape `[T, B]` representing value estimates.
-            final_value: Tensor with shape `[B]` representing value estimate at t=T.
-            discounts: Tensor with shape `[T, B]` representing discounts received by
-            following the behavior policy.
-            rewards: Tensor with shape `[T, B]` representing rewards received by
-            following the behavior policy.
-            td_lambda: A float32 scalar between [0, 1]. It's used for variance reduction
-            in temporal difference.
-            time_major: A boolean indicating whether input tensors are time major.
-            False means input tensors have shape `[B, T]`.
-        Returns:
-            A tensor with shape `[T, B]` representing advantages. Shape is `[B, T]` when
-            `not time_major`.
-        """
+    # def _generalized_advantage_estimation(values,
+    #                                  final_value,
+    #                                  discounts,
+    #                                  rewards,
+    #                                  td_lambda=1.0,
+    #                                  time_major=True):
+    #     """Computes generalized advantage estimation (GAE).
+    #     For theory, see
+    #     "High-Dimensional Continuous Control Using Generalized Advantage Estimation"
+    #     by John Schulman, Philipp Moritz et al.
+    #     See https://arxiv.org/abs/1506.02438 for full paper.
+    #     Define abbreviations:
+    #         (B) batch size representing number of trajectories
+    #         (T) number of steps per trajectory
+    #     Args:
+    #         values: Tensor with shape `[T, B]` representing value estimates.
+    #         final_value: Tensor with shape `[B]` representing value estimate at t=T.
+    #         discounts: Tensor with shape `[T, B]` representing discounts received by
+    #         following the behavior policy.
+    #         rewards: Tensor with shape `[T, B]` representing rewards received by
+    #         following the behavior policy.
+    #         td_lambda: A float32 scalar between [0, 1]. It's used for variance reduction
+    #         in temporal difference.
+    #         time_major: A boolean indicating whether input tensors are time major.
+    #         False means input tensors have shape `[B, T]`.
+    #     Returns:
+    #         A tensor with shape `[T, B]` representing advantages. Shape is `[B, T]` when
+    #         `not time_major`.
+    #     """
 
-        if not time_major:
-            with tf.name_scope("to_time_major_tensors"):
-            discounts = tf.transpose(discounts)
-            rewards = tf.transpose(rewards)
-            values = tf.transpose(values)
+    #     if not time_major:
+    #         with tf.name_scope("to_time_major_tensors"):
+    #         discounts = tf.transpose(discounts)
+    #         rewards = tf.transpose(rewards)
+    #         values = tf.transpose(values)
 
-        with tf.name_scope("gae"):
+    #     with tf.name_scope("gae"):
 
-            next_values = tf.concat(
-                [values[1:], tf.expand_dims(final_value, 0)], axis=0)
-            delta = rewards + discounts * next_values - values
-            weighted_discounts = discounts * td_lambda
+    #         next_values = tf.concat(
+    #             [values[1:], tf.expand_dims(final_value, 0)], axis=0)
+    #         delta = rewards + discounts * next_values - values
+    #         weighted_discounts = discounts * td_lambda
 
-            def weighted_cumulative_td_fn(accumulated_td, reversed_weights_td_tuple):
-            weighted_discount, td = reversed_weights_td_tuple
-            return td + weighted_discount * accumulated_td
+    #         def weighted_cumulative_td_fn(accumulated_td, reversed_weights_td_tuple):
+    #         weighted_discount, td = reversed_weights_td_tuple
+    #         return td + weighted_discount * accumulated_td
 
-            advantages = tf.nest.map_structure(
-                tf.stop_gradient,
-                tf.scan(
-                    fn=weighted_cumulative_td_fn,
-                    elems=(weighted_discounts, delta),
-                    initializer=tf.zeros_like(final_value),
-                    reverse=True))
+    #         advantages = tf.nest.map_structure(
+    #             tf.stop_gradient,
+    #             tf.scan(
+    #                 fn=weighted_cumulative_td_fn,
+    #                 elems=(weighted_discounts, delta),
+    #                 initializer=tf.zeros_like(final_value),
+    #                 reverse=True))
 
-        if not time_major:
-            with tf.name_scope("to_batch_major_tensors"):
-            advantages = tf.transpose(advantages)
+    #     if not time_major:
+    #         with tf.name_scope("to_batch_major_tensors"):
+    #         advantages = tf.transpose(advantages)
 
-        return tf.stop_gradient(advantages)
+    #     return tf.stop_gradient(advantages)
 
     def _get_gaes(self, rewards: Union[list, np.ndarray], values: Union[list, np.ndarray], next_values: Union[list, np.ndarray], gamma:int=0.998, lamda=0.98, normalize=True,) -> np.ndarray:
         """
