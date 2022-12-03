@@ -9,7 +9,7 @@ import keras.backend as K
 from typing import Union
 
 ###
-from ai_economist_ppo_dt.models.tensorflow import Actor, Critic
+from ai_economist_ppo_dt.tensorflow import Actor, Critic
 from ai_economist_ppo_dt.utils import get_basic_logger, ms_to_time, time_it
 from ai_economist.foundation.base.base_env import BaseEnvironment
 

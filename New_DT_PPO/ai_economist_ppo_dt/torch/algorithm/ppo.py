@@ -8,7 +8,7 @@ from tqdm import tqdm
 from typing import Union
 
 ###
-from ai_economist_ppo_dt.models.torch_models import Actor, Critic
+from ai_economist_ppo_dt.torch import Actor, Critic
 from ai_economist_ppo_dt.utils import get_basic_logger, ms_to_time, time_it
 from ai_economist.foundation.base.base_env import BaseEnvironment
 
@@ -19,7 +19,7 @@ random = SystemRandom()
 
 #import random
 
-class PPOTorch():
+class PPO():
     def __init__(self, env: BaseEnvironment, action_space: int, seed: int = None, batch_size: int = 32, log_level: int = logging.INFO, log_path: str = None) -> None:
         """
         
@@ -158,7 +158,6 @@ class PPOTorch():
 
         return torch.FloatTensor(gaes).to(self.device), torch.FloatTensor(target).to(self.device)
 
-    #@time_it
     def _act(self, state: np.ndarray) -> np.ndarray:
         """
         Get the one-hot encoded action from Actor network given the state.
@@ -206,7 +205,6 @@ class PPOTorch():
         
         return action, one_hot_action, prediction
 
-    #@time_it
     def get_actions(self, states: np.ndarray) -> np.ndarray:
         """
         Get the one-hot encoded actions from Actor network given the states.
@@ -273,7 +271,9 @@ class PPOTorch():
         losses = {'0': {'actor': [], 'critic': []}, '1': {'actor': [], 'critic': []}, '2': {'actor': [], 'critic': []}, '3': {'actor': [], 'critic': []}}
 
         self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")
+        self.logger.info(f"Training on {self.batch_size} steps.")
         
+        start_timer = time.time()
         for agent in states.keys():
             # Inputs for the Critic network predictions
             input_states = []
@@ -305,8 +305,9 @@ class PPOTorch():
             self.logger.debug(f"GAEs: {[round(float(v), 3) for v in gaes]}")
             self.logger.debug(f"Target values: {[round(float(v), 3) for v in target_values]}")
 
-            for batch in tqdm(range(self.batch_size)):
-                torch.autograd.set_detect_anomaly(True)
+            for batch in range(self.batch_size):
+                if self.logger.level == logging.DEBUG:
+                    torch.autograd.set_detect_anomaly(True)
                 with torch.no_grad():
                     # Get y_true for the Actor network
                     y_true = [gaes[batch], predictions[agent][batch], torch.FloatTensor(actions[agent][batch])]
@@ -361,7 +362,11 @@ class PPOTorch():
                     losses[agent]['actor'].append(actor_loss.item())
                     losses[agent]['critic'].append(critic_loss.item())
 
+                    del actor_output, critic_output, actor_loss, critic_loss, y_true, world_map, flat
+
+            del input_states, input_next_states, values, next_values, gaes, target_values
         # Should make checkpoint here
+        self.logger.info(f"Training took {round(time.time() - start_timer, 2)} seconds.")
         self.checkpoint()
 
         return losses
@@ -373,7 +378,7 @@ class PPOTorch():
         # self.actor.save_weights(os.path.join(self.checkpoint_path, "actor.h5"))
         # self.critic.save_weights(os.path.join(self.checkpoint_path, "critic.h5"))
         self.logger.info("Checkpoint saved.")
-        
+    
     def populate_batch(self, agents: list = ['0', '1', '2', '3']) -> dict:
         """
         Populate a batch.
@@ -429,7 +434,7 @@ class PPOTorch():
         for agent, values in rewards_dict.items():
             r_temp.append(round((np.count_nonzero(values)/len(values))*100,2))
         self.logger.info(f"Rewards neq zero: '0' {r_temp[0]}%, '1' {r_temp[1]}%, '2' {r_temp[2]}%, '3' {r_temp[3]}%")
-        del r_temp
+        del r_temp, actions, predictions, rewards, next_state, state
 
         return states_dict, actions_dict, rewards_dict, predictions_dict, next_states_dict
 

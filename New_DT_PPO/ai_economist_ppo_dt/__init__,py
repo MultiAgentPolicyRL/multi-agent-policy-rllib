@@ -4,21 +4,24 @@ AI-Economist PPO and DT
 
 This is the main file for the AI-Economist project. It contains the main
 """
-__all__ = ["random", "Actor", "Critic", "env_config_wrapper", "PPO", "create_environment", "get_basic_logger"]
+__all__ = ["random", "Actor", "Critic", "env_config", "PPO", "create_environment", "get_basic_logger"]
 
 import random
 
-from .models import Actor, Critic
-from .config import env_config_wrapper
-from .algorithm import PPO
+# from .models import Actor, Critic
+# from .algorithm import PPO
+
+try:
+    from .torch import Actor, Critic, PPO
+except ImportError:
+    try:
+        from .tensorflow import Actor, Critic, PPO
+    except ImportError:
+        raise ImportError("No supported backend found. Please install either tensorflow or pytorch.")
+
+from .configs import env_config
 from .utils import get_basic_logger, create_environment
 
-SEED = 0
-
-if SEED == 0:
-    random = random.SystemRandom()
-else:
-    random.seed(SEED)
 ### DOCSTRING EXAMPLE
 """
 NumPy

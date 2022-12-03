@@ -11,8 +11,8 @@ from ai_economist.foundation.base.base_env import BaseEnvironment
 
 ###
 from ai_economist_ppo_dt.utils import create_environment, get_basic_logger
-from ai_economist_ppo_dt.algorithm import PPO, PPOTorch
-#from ai_economist_ppo_dt import SEED
+from ai_economist_ppo_dt.torch import PPO
+# from ai_economist_ppo_dt.tensorflow import Actor, Critic, PPO
 
 os.environ["CUDA_VISIBLE_DEVICES"]="-1" if not tf.config.list_physical_devices('GPU') else len(tf.config.list_physical_devices('GPU'))
 SEED = random.randrange(min(sys.maxsize, 2**32-1))
@@ -31,14 +31,14 @@ if __name__ == "__main__":
     env.reset()  
     
     # Init PPO
-    #algorithm = PPO(env, 50, batch_size=10, log_level=logging.INFO, log_path=log_path)
-    algorithm = PPOTorch(env, 50, batch_size=1000, log_level=logging.INFO, log_path=log_path)
+    algorithm = PPO(env, 50, batch_size=1000, log_level=logging.INFO, log_path=log_path)
     iterations = 50
 
     logger.warning(f"The 'p' agent is not considered for now! In future it must be fixed.")
     
     for it in range(iterations):
         logger.info(f"Starting iteration {it+1}/{iterations}")
+
         states, actions, rewards, predictions, next_states = algorithm.populate_batch()
 
         for agent in ['0', '1', '2', '3']:
@@ -54,6 +54,8 @@ if __name__ == "__main__":
             critic_loss.append(round(losses[agent]['critic'][-1], 3))
         logger.info(f"Iteration: {it+1}, Agent losses: {actor_loss}")
         logger.info(f"Iteration: {it+1}, Critic losses: {critic_loss}")
+
+        logger.info(f"{'#'*50}")
         
         # Test
         # rewards = algorithm.test()

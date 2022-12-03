@@ -99,13 +99,13 @@ class Actor(nn.Module):
         prob = actions * output
         old_prob = actions * predictions
 
-        prob = torch.clip(prob, 1e-10, 1.0)
-        old_prob = torch.clip(old_prob, 1e-10, 1.0)
+        prob = torch.clamp(prob, 1e-10, 1.0)
+        old_prob = torch.clamp(old_prob, 1e-10, 1.0)
 
         ratio = torch.exp(torch.log(prob) - torch.log(old_prob))
 
         p1 = ratio * advantages
-        p2 = torch.clip(ratio, 1 - clipping, 1 + clipping) * advantages
+        p2 = torch.clamp(ratio, 1 - clipping, 1 + clipping) * advantages
 
         actor_loss = -torch.mean(torch.min(p1, p2))
 

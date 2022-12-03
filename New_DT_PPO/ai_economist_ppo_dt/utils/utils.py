@@ -4,7 +4,7 @@ import logging
 from ai_economist import foundation
 from ai_economist.foundation.base.base_env import BaseEnvironment
 
-from ai_economist_ppo_dt.config import env_config_wrapper
+from ai_economist_ppo_dt.configs import env_config
 
 class CustomFormatter(logging.Formatter):
     grey = "\x1b[38;20m"
@@ -51,7 +51,7 @@ def get_basic_logger(name, level=logging.DEBUG, log_path:str=None) -> logging.Lo
 
     return logger
 
-def create_environment(env_config: dict = env_config_wrapper) -> BaseEnvironment:
+def create_environment(env_config: dict = env_config) -> BaseEnvironment:
     """
     Create an environment from a config dictionary.
     
