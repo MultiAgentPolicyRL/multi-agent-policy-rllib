@@ -21,7 +21,7 @@ class Critic:
 
 
     """
-    def __init__(self, conv_filters: tuple = (16, 32), filter_size: int = 3, log_level: int = logging.INFO,log_path: str = None) -> None:
+    def __init__(self, conv_filters: tuple = (16, 32), filter_size: int = 3, log_level: int = logging.INFO,log_path: str = None,) -> None:
         """
         Critic (Policy) Model.
         -----

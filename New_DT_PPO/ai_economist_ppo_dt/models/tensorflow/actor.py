@@ -142,7 +142,7 @@ class Actor:
                 p2 = K.clip(ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING) * advantages
 
                 actor_loss = -K.mean(K.minimum(p1, p2))
-
+                
                 entropy = -(y_pred * K.log(y_pred + 1e-10))
                 entropy = ENTROPY_LOSS * K.mean(entropy)
                 

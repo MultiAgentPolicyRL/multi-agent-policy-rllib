@@ -1,20 +1,16 @@
 import os
 import copy
 import time
+import torch
 import logging
 import numpy as np
-import tensorflow as tf
-import keras.backend as K
-
+from tqdm import tqdm
 from typing import Union
 
 ###
-from ai_economist_ppo_dt.models.tensorflow import Actor, Critic
+from ai_economist_ppo_dt.models.torch_models import Actor, Critic
 from ai_economist_ppo_dt.utils import get_basic_logger, ms_to_time, time_it
 from ai_economist.foundation.base.base_env import BaseEnvironment
-
-### disable eager execution
-# tf.compat.v1.disable_eager_execution()
 
 
 ### Choose:
@@ -23,7 +19,7 @@ random = SystemRandom()
 
 #import random
 
-class PPO():
+class PPOTorch():
     def __init__(self, env: BaseEnvironment, action_space: int, seed: int = None, batch_size: int = 32, log_level: int = logging.INFO, log_path: str = None) -> None:
         """
         
@@ -54,8 +50,9 @@ class PPO():
             os.makedirs(self.checkpoint_path)
 
         ### Initialize Actor and Critic networks
-        self.actor = Actor(log_level=log_level, log_path=log_path)
-        self.critic = Critic(log_level=log_level, log_path=log_path)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.actor = Actor(log_level=20, log_path=log_path, device=self.device).to(self.device)
+        self.critic = Critic(log_level=20, log_path=log_path, device=self.device).to(self.device)
 
         self.logger.info("PPO initialized.")
 
@@ -154,12 +151,12 @@ class PPO():
         for t in reversed(range(len(deltas) - 1)):
             gaes[t] = gaes[t] + gamma * lamda * gaes[t + 1]
 
-        target = gaes + values
+        target = torch.FloatTensor(gaes) + values
 
         if normalize:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
 
-        return np.expand_dims(gaes, -1), tf.convert_to_tensor(np.vstack(target), dtype=tf.float32)
+        return torch.FloatTensor(gaes).to(self.device), torch.FloatTensor(target).to(self.device)
 
     #@time_it
     def _act(self, state: np.ndarray) -> np.ndarray:
@@ -183,8 +180,8 @@ class PPO():
         #start_time = time.time()
         # Get the input state as a tensor for the input layer (world-map and flat features)
         input_state = [
-            K.expand_dims(state['world-map'], axis=0), 
-            K.expand_dims(state['flat'], axis=0)
+            torch.FloatTensor(state["world-map"]).unsqueeze(0).to(self.device),
+            torch.FloatTensor(state["flat"]).unsqueeze(0).to(self.device),
         ]
         # end = time.time()- start_time
         #print(f"Time to expand dims of input state: {end}")
@@ -192,22 +189,21 @@ class PPO():
         self.logger.debug(f"Input state: {(input_state[0].shape[1:], input_state[1].shape[1:])}")
 
         # Get the prediction from the Actor network
-        prediction = np.squeeze(self.actor.predict(input_state, workers=20, use_multiprocessing=True))
-        # Log
-        self.logger.debug(f"Prediction (rounded): {[round(v, 3) for v in prediction]}")
+        prediction = torch.squeeze(self.actor(input_state))
+        # Log the prediction
+        self.logger.debug(f"Prediction: {[round(float(p), 3) for p in prediction]}")
 
         # Sample an action from the prediction distribution
-        action = random.choices(np.arange(self.action_space), weights=prediction)
+        action = torch.FloatTensor(random.choices(np.arange(self.action_space), weights=prediction.detach().numpy())).to(self.device)
         # Log
         self.logger.debug(f"Action: {action}")
 
         # One-hot encode the action
-        one_hot_action = np.zeros([self.action_space])
-        one_hot_action[action] = 1
+        one_hot_action = torch.zeros([self.action_space]).to(self.device)
+        one_hot_action[int(action.item())] = 1
         # Log
         self.logger.debug(f"One-hot action: {np.where(one_hot_action == 1)[0]}")
-
-        # Return action, one-hot encoded action, and prediction
+        
         return action, one_hot_action, prediction
 
     #@time_it
@@ -246,7 +242,7 @@ class PPO():
                     raise ValueError(f"Action is not a scalar: {action}")
 
                 # Store actions, one-hot encoded actions, and predictions
-                actions[agent] = np.array(action)
+                actions[agent] = action
                 actions_one_hot[agent] = one_hot_action
                 predictions[agent] = prediction
             # else:
@@ -283,14 +279,8 @@ class PPO():
             input_states = []
             input_next_states = []
             for s, ns in zip(states[agent], next_states[agent]):
-                input_states.append([
-                    K.expand_dims(s['world-map'], axis=0), 
-                    K.expand_dims(s['flat'], axis=0)
-                ])
-                input_next_states.append([
-                    K.expand_dims(ns['world-map'], axis=0), 
-                    K.expand_dims(ns['flat'], axis=0)
-                ])
+                input_states.append([torch.FloatTensor(s["world-map"]).unsqueeze(0).to(self.device), torch.FloatTensor(s["flat"]).unsqueeze(0).to(self.device)])
+                input_next_states.append([torch.FloatTensor(ns["world-map"]).unsqueeze(0).to(self.device), torch.FloatTensor(ns["flat"]).unsqueeze(0).to(self.device)])
             
             self.logger.debug(f"Input states: {(input_states[0][0].shape[1:], input_states[0][1].shape[1:])}")
             self.logger.debug(f"Input next states: {(input_next_states[0][0].shape[1:], input_next_states[0][1].shape[1:])}")
@@ -299,80 +289,77 @@ class PPO():
             values = []
             next_values = []
             for i_s, i_ns in zip(input_states, input_next_states):
-                values.append(self.critic.predict(i_s))
-                next_values.append(self.critic.predict(i_ns))
+                values.append(self.critic(i_s))
+                next_values.append(self.critic(i_ns))
             
             # Convert lists to numpy arrays and squeeze (reshape to 1D)
-            values = np.squeeze(np.array(values))
-            next_values = np.squeeze(np.array(next_values))
+            values = torch.FloatTensor([torch.squeeze(v) for v in values]).to(self.device)
+            next_values = torch.FloatTensor([torch.squeeze(v) for v in next_values]).to(self.device)
             # Log
-            self.logger.debug(f"Values: {[round(v, 3) for v in values]}")
-            self.logger.debug(f"Next values: {[round(v, 3) for v in next_values]}")
+            self.logger.debug(f"Values: {[round(float(v), 3) for v in values]}")
+            self.logger.debug(f"Next values: {[round(float(v), 3) for v in next_values]}")
 
             # Calculate GAEs and target values
             gaes, target_values = self._get_gaes(rewards[agent], values, next_values)
             # Log
-            self.logger.debug(f"GAEs: {[round(v[0], 3) for v in gaes]}")
-            self.logger.debug(f"Target values: {[round(v[0], 3) for v in target_values.numpy()]}")
+            self.logger.debug(f"GAEs: {[round(float(v), 3) for v in gaes]}")
+            self.logger.debug(f"Target values: {[round(float(v), 3) for v in target_values]}")
 
-            # Get y_true for the Actor network
-            y_true = tf.convert_to_tensor(np.hstack([gaes, predictions[agent], actions[agent]]))
-            self.logger.debug(f"Actor y_true: {y_true.shape}")
+            for batch in tqdm(range(self.batch_size)):
+                torch.autograd.set_detect_anomaly(True)
+                with torch.no_grad():
+                    # Get y_true for the Actor network
+                    y_true = [gaes[batch], predictions[agent][batch], torch.FloatTensor(actions[agent][batch])]
+                    # y_true = torch.FloatTensor(np.hstack([gaes, predictions[agent], actions[agent]]))
+                    self.logger.debug(f"Actor y_true: {len(y_true)}")
 
-            # Get x values for the Actor&Critic network
-            world_map = []
-            flat = []
-            for s in states[agent]:
-                world_map.append(tf.convert_to_tensor(s['world-map']))
-                flat.append(tf.convert_to_tensor(s['flat']))
+                    # Get x values for the Actor&Critic network and train
+                    world_map = torch.FloatTensor(states[agent][batch]['world-map']).unsqueeze(0).to(self.device)
+                    flat = torch.FloatTensor(states[agent][batch]['flat']).unsqueeze(0).to(self.device)
 
-            world_map = tf.convert_to_tensor(world_map) # Original: tf.convert_to_tensor(world_map)
-            flat = tf.convert_to_tensor(flat) # Original: tf.convert_to_tensor(flat)
-            # Log
-            self.logger.debug(f"Actor&Critic World map: {world_map.shape}")
-            self.logger.debug(f"Actor&Critic Flat: {flat.shape}")
+                    # Log
+                    self.logger.debug(f"Actor&Critic World map: {world_map.shape}")
+                    self.logger.debug(f"Actor&Critic Flat: {flat.shape}")
 
-            # Fit the Actor network
-            actor_loss_history = self.actor.fit(
-                [world_map, flat], 
-                y_true, 
-                epochs=1, 
-                batch_size=2,
-                verbose=False,
-                shuffle=False,
-                workers=20,
-            )
-            # Log
-            self.logger.debug(f"Actor loss history: {actor_loss_history.history}")
+                    # Fit the Actor network
+                    actor_output = self.actor([world_map, flat])
+                    self.logger.debug(f"Actor output: {actor_output.shape}")
 
-            # Get y_true for the Critic network
-            # For custom loss function
-            y_true = tf.convert_to_tensor(np.hstack([target_values, np.expand_dims(values, axis=1)]))
-            # y_true = tf.convert_to_tensor(values)
-            # Log
-            # For custom loss function
-            self.logger.debug(f"Critic y_true: {[(round(y[0], 3), round(y[1], 3)) for y in y_true.numpy()]}")
-            # self.logger.debug(f"Critic y_true: {y_true.shape}")
+                    # Calculate the loss for the Actor network
+                    actor_loss = self.actor.my_loss(actor_output, y_true)
+                    self.logger.debug(f"Actor loss: {actor_loss}")
 
-            # Fit the Critic network
-            critic_loss_history = self.critic.fit(
-                [world_map, flat],
-                y_true,
-                epochs=1,
-                batch_size=2,
-                verbose=False,
-                shuffle=False,
-                workers=20,
-            )
-            # Log
-            self.logger.debug(f"Critic loss history: {critic_loss_history.history}")
+                    # Backpropagate the loss
+                    actor_loss.backward()
 
-            # Log - info
-            self.logger.debug(f"Actor loss: {actor_loss_history.history['loss'][-1]}, Critic loss: {critic_loss_history.history['loss'][-1]}")
+                    # Update the Actor network
+                    self.actor.optimizer.step()
+                    
+                    
+                    # Get y_true for the Critic network
+                    # y_true = values[batch]
+                    y_true = [target_values[batch], values[batch]]
+                    #y_true.requires_grad_(True)
+                    
+                    # Fit the Critic network
+                    critic_output = self.critic([world_map, flat])
+                    self.logger.debug(f"Critic output: {critic_output.shape}")
 
-            # global losses
-            losses[agent]['actor'] = actor_loss_history.history['loss'][-1]
-            losses[agent]['critic'] = critic_loss_history.history['loss'][-1]
+                    # Calculate the loss for the Critic network
+                    #critic_loss = torch.nn.functional.mse_loss(critic_output, y_true)
+                    #critic_loss.requires_grad_(True)
+                    critic_loss = self.critic.my_loss(critic_output, y_true)
+                    self.logger.debug(f"Critic loss: {critic_loss}")
+
+                    # Backpropagate the loss
+                    critic_loss.backward()
+
+                    # Update the Critic network
+                    self.critic.optimizer.step()
+
+                    # Store losses
+                    losses[agent]['actor'].append(actor_loss.item())
+                    losses[agent]['critic'].append(critic_loss.item())
 
         # Should make checkpoint here
         self.checkpoint()
@@ -383,8 +370,8 @@ class PPO():
         """
         Save the weights of the Actor and Critic networks.
         """            
-        self.actor.save_weights(os.path.join(self.checkpoint_path, "actor.h5"))
-        self.critic.save_weights(os.path.join(self.checkpoint_path, "critic.h5"))
+        # self.actor.save_weights(os.path.join(self.checkpoint_path, "actor.h5"))
+        # self.critic.save_weights(os.path.join(self.checkpoint_path, "critic.h5"))
         self.logger.info("Checkpoint saved.")
         
     def populate_batch(self, agents: list = ['0', '1', '2', '3']) -> dict:
