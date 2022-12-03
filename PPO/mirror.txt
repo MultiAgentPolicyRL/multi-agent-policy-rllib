@@ -1,0 +1,40 @@
+None
+Training epoch 0
+Actions: {'0': 36, '1': 42, '2': 21, '3': 5, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 0: {'0': -0.20999999999999996, '1': 0.0, '2': -0.20999999999999996, '3': -0.05250000000000021, 'p': 0.0}
+Function reset_memory Took 0.0000 seconds
+Function batch Took 5.4252 seconds
+Function get_memory Took 0.0067 seconds
+     Values and next_values required 0.37456297874450684s
+     Gaes required 0.030455827713012695s
+     Data prep required: 0.46032261848449707s
+     Fit Actor Network required 12.153300046920776s
+        Actor loss: -0.00101764895953238
+    Prep 2 required 0.0003268718719482422
+     Fit Critic Network required 3.501542329788208s
+        Critic loss: 2.485999584197998
+Trained step 0 in 22.109225749969482 seconds
+Training epoch 1
+Actions: {'0': 28, '1': 32, '2': 24, '3': 39, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 1: {'0': -0.05250000000000021, '1': -0.05250000000000021, '2': -0.05250000000000021, '3': 0.0, 'p': 0.0}
+Function reset_memory Took 0.0109 seconds
+Function batch Took 4.6049 seconds
+Function get_memory Took 0.0052 seconds
+     Values and next_values required 0.2525157928466797s
+     Gaes required 0.030175447463989258s
+     Data prep required: 0.2721865177154541s
+     Fit Actor Network required 12.092423915863037s
+        Actor loss: -0.0010196880903095007
+    Prep 2 required 0.0003273487091064453
+     Fit Critic Network required 3.016920804977417s
+        Critic loss: 6.30852746963501
+Trained step 1 in 20.30554699897766 seconds
+Training epoch 2
+Actions: {'0': 41, '1': 7, '2': 3, '3': 22, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 2: {'0': 0.0, '1': 0.0, '2': -0.05250000000000021, '3': 0.0, 'p': 0.0}
+Function reset_memory Took 0.0147 seconds
+Function batch Took 5.0257 seconds
+Function get_memory Took 0.0049 seconds
+     Values and next_values required 0.24799561500549316s
+     Gaes required 0.02609705924987793s
+     Data prep required: 0.2554152011871338s

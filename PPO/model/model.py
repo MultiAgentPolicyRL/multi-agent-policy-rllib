@@ -5,12 +5,15 @@ import logging
 import sys
 
 # from gym.spaces import MultiDiscrete
+# from tensorflow import keras as k
 import keras as k
 import numpy as np
 import tensorflow as tf
 from model.model_config import ModelConfig
 from functools import wraps
 import time
+
+# mirrored_strategy = tf.distribute.MirroredStrategy()
 
 def timeit(func):
     @wraps(func)
@@ -50,6 +53,7 @@ class ActorModel(object):
         self.action_space = model_config.action_space
 
         with tf.device("CPU:0"):
+        # with mirrored_strategy.scope():    
             self.cnn_in = k.Input(shape=(7, 11, 11))
             self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
             self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
@@ -65,7 +69,7 @@ class ActorModel(object):
 
             # Policy pi - needs to be a probabiliy value
             self.action_probs = k.layers.Dense(
-                self.action_space, name="Out_probs_actions", activation="sigmoid"
+                self.action_space, name="Out_probs_actions", activation="softmax"
             )(self.lstm)
 
             self.actor: k.Model = k.Model(
@@ -80,7 +84,8 @@ class ActorModel(object):
             )
 
         logging.critical(self.actor.summary())
-
+    
+    @tf.function
     def ppo_loss(self, y_true, y_pred):
         """
         Defined in https://arxiv.org/abs/1707.06347
@@ -119,20 +124,6 @@ class ActorModel(object):
         return total_loss
 
     # @timeit
-    def predict(self, obs):
-        """
-        If you remove the reshape good luck finding that softmax sum != 1.
-        """ 
-        action = np.squeeze(self.actor(
-                [
-                    
-                    np.expand_dims(obs["world-map"], 0),
-                    np.expand_dims(obs["flat"], 0),
-                ],
-            ))
-        return action/np.sum(action)
-
-    # @timeit
     @tf.function
     def predict(self, obs):
         """
@@ -145,19 +136,9 @@ class ActorModel(object):
                     tf.expand_dims(obs["flat"], 0),
                 ],
             ))
-        return tf.divide(action,tf.reduce_sum(action))
-    
-    # @timeit
-    # def batch_predict(self, obs: list):
-    #     """
-    #     Calculates a batch of prediction for n_obs
-    #     """
-    #     world_map = []
-    #     flat = []
-    #     for element in obs:
-    #         world_map.append(element["world-map"])
-    #         flat.append(element["flat"])
-    #     return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
+        # return tf.divide(action,tf.reduce_sum(action))
+        return action
+
 
 
 class CriticModel(object):
@@ -169,6 +150,7 @@ class CriticModel(object):
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
         with tf.device("CPU:0"):
+        # with mirrored_strategy.scope():
             cnn_in = k.Input(shape=(7, 11, 11))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
@@ -198,6 +180,7 @@ class CriticModel(object):
                 run_eagerly=False,
             )
 
+    @tf.function
     def loss(self, y_true, y_pred):
         """
         PPO's loss function, can be with mean or clipped
@@ -207,55 +190,54 @@ class CriticModel(object):
         y_pred = y_pred[0]
 
         # standard PPO loss
-        # value_loss = k.backend.mean((y_true - y_pred) ** 2)
+        # mean squared error
+        # TODO: try compiling with mean squared error from tf.
+        value_loss = k.backend.mean((y_true - y_pred) ** 2)
 
         # L_CLIP
-        LOSS_CLIPPING = 0.2
-        clipped_value_loss = values + k.backend.clip(
-            y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
-        )
-        v_loss1 = (y_true - clipped_value_loss) ** 2
-        v_loss2 = (y_true - y_pred) ** 2
-        value_loss = 0.5 * k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
+        # LOSS_CLIPPING = 0.2
+        # clipped_value_loss = values + k.backend.clip(
+        #     y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
+        # )
+        # v_loss1 = (y_true - clipped_value_loss) ** 2
+        # v_loss2 = (y_true - y_pred) ** 2
+        # value_loss = 0.5 * k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
         return value_loss
 
-        # return loss
-
-    # def predict(self, obs_predict: dict):
-    #     """
-    #     a
-    #     """
-    #     if self.critic.run_eagerly:
-    #         return self.critic(
-    #             [
-    #                 k.backend.expand_dims(obs_predict["world-map"], 0),
-    #                 k.backend.expand_dims(obs_predict["flat"], 0),
-    #             ]
-    #         )
-    #     action = self.critic.predict(
-    #         [
-    #             k.backend.expand_dims(obs_predict["world-map"], 0),
-    #             k.backend.expand_dims(obs_predict["flat"], 0),
-    #         ],
-    #         verbose=False,
-    #         use_multiprocessing=True,
-    #         steps=1,
-    #     )
-
-    #     # logging.debug(f"action")
-    #     return action
-
     # @timeit
-    # @tf.function
+    # 
+
+    # w/o tf.function 0.6
+    # w/tf.function 1.83
+    @tf.function
     def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs
         """
-        world_map = []
-        flat = []
-        for element in obs:
-            world_map.append(element["world-map"])
-            flat.append(element["flat"])
-        # print(type(world_map), type(world_map[0]))
-        # print(type(flat), type(flat[0]))
-        return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
+        # world_map = []
+        # flat = []
+        # for element in obs:
+        #     print("a")
+        #     world_map.append((element["world-map"]))
+        #     flat.append((element["flat"]))
+
+        print(len(obs))
+        print(obs)
+
+        sys.exit()
+        return self.critic([tf.convert_to_tensor(world_map), tf.convert_to_tensor(flat)])
+
+
+
+    # 0.5714621543884277
+    # def batch_predict(self, obs: list):
+    #     """
+    #     Calculates a batch of prediction for n_obs
+    #     """
+    #     world_map = []
+    #     flat = []
+    #     for element in obs:
+    #         world_map.append(element["world-map"])
+    #         flat.append(element["flat"])
+
+    #     return self.critic.predict([np.array(world_map), np.array(flat)])

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import wraps
 import time
 import logging
-
+import tensorflow as tf
 
 def timeit(func):
     @wraps(func)
@@ -17,8 +17,8 @@ def timeit(func):
     return timeit_wrapper
 
 
-@dataclass
-class BatchMemory:
+# @dataclass
+class BatchMemory():
     def __init__(
         self, policy_mapping_function, policy_config: dict, available_agent_id: list
     ):
@@ -76,6 +76,7 @@ class BatchMemory:
         self.predictions.append(prediction)
 
     @timeit
+    # @tf.function
     def get_memory(self, key):
         data_structure = {}
         # keys = ['0','1','2','3','p']

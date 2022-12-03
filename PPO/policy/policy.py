@@ -75,18 +75,12 @@ class PPOAgent:
         """
         # Use the network to predict the next action to take, using the model
         # start_time = time.perf_counter()
-        prediction = self.Actor.predict(state)
-        # print(f"    PREDICTION TIME: {time.perf_counter()-start_time}")
-        # logging.debug(f"ACTING AAAAA {prediction}")
-        # action = int(random.choices(state["action_mask"], weights=prediction)[0])
-        # start_time = time.perf_counter()
+        prediction = (self.Actor.predict(state)).numpy()
         
-        # action = int(random.choices(np.arange(50), weights=prediction)[0])
-        # print(f"    RANDOM CHOICES TIME: {time.perf_counter()-start_time}")
+        # print(f"    PREDICTION TIME: {time.perf_counter()-start_time}")
+        
         action = np.random.choice(np.arange(50), p=prediction)
-        # start_time = time.perf_counter()
         action_onehot = np.zeros([self.action_space])
-        # print(f"    NP ZEROS TIME: {time.perf_counter()-start_time}")
         action_onehot[action] = 1
 
         return action, action_onehot, prediction
@@ -132,11 +126,7 @@ class PPOAgent:
         Train Policy networks
         """
         # Get Critic network predictions
-        #values = self.Critic.batch_predict(np.array(states))
-        #next_values = self.Critic.batch_predict(next_states)
         tempo = time.time()
-        # values = [self.Critic.predict(state) for state in states]
-        # next_values = [self.Critic.predict(state) for state in next_states]
         values = self.Critic.batch_predict(states)
         next_values = self.Critic.batch_predict(next_states)
         logging.debug(f"     Values and next_values required {time.time()-tempo}s")
@@ -149,7 +139,6 @@ class PPOAgent:
         )
 
         logging.debug(f"     Gaes required {time.time()-tempo}s")
-        # sys.exit()
 
         
         tempo = time.time()
@@ -177,12 +166,10 @@ class PPOAgent:
                 )
             )
 
-        y_true = tf.convert_to_tensor(y_true)
-        world_map = tf.convert_to_tensor(world_map)
-        flat = tf.convert_to_tensor(flat)
+        world_map = np.array(world_map)
+        flat = np.array(flat)
+        
         logging.debug(f"     Data prep required: {time.time()-tempo}s")
-
-
 
         tempo = time.time()
 
@@ -194,9 +181,9 @@ class PPOAgent:
             epochs=self.policy_config.agents_per_possible_policy*self.policy_config.num_workers,
             steps_per_epoch=self.batch_size//self.policy_config.num_workers,
             verbose=0,
-            shuffle=self.shuffle,
-            workers=8,
-            use_multiprocessing=True,
+            # shuffle=self.shuffle,
+            # workers=8,
+            # use_multiprocessing=True,
         )
         logging.debug(f"     Fit Actor Network required {time.time()-tempo}s")
         logging.debug(f"        Actor loss: {a_loss.history['loss'][-1]}")
@@ -214,9 +201,9 @@ class PPOAgent:
             epochs=1,
             steps_per_epoch=self.batch_size,
             verbose=0,
-            shuffle=self.shuffle,
-            workers=8,
-            use_multiprocessing=True,
+            # shuffle=self.shuffle,
+            # workers=8,
+            # use_multiprocessing=True,
         )
         logging.debug(f"     Fit Critic Network required {time.time()-tempo}s")
 
