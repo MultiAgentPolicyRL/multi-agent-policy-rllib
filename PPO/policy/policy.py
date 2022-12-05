@@ -45,10 +45,6 @@ class PPOAgent:
         self.batch_size = self.policy_config.batch_size  # training epochs
         self.shuffle = False
 
-        # if policy_config is not None:
-        #     self.action_space = policy_config["action_space"]
-        #     self.observation_space:  gym.spaces = policy_config["observation_space"]
-
         # Instantiate plot memory
         self.scores_, self.episodes_, self.average_ = (
             [],
@@ -60,13 +56,9 @@ class PPOAgent:
         self.Actor = ActorModel(policy_config.model_config)
         self.Critic = CriticModel(policy_config.model_config)
 
-        # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
-        # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
-
     def act(self, state):
         """
-        No idea why with numpy isnt working.
-
+        FIXME: if we can use tf instead of np this function can be @tf.function-ed
         example:
         pred = np.array([0.05, 0.85, 0.1])
         action_size = 3
@@ -74,19 +66,14 @@ class PPOAgent:
         result>>> 1, because it have the highest probability to be taken
         """
         # Use the network to predict the next action to take, using the model
-        # start_time = time.perf_counter()
         prediction = (self.Actor.predict(state)).numpy()
-        
-        # print(f"    PREDICTION TIME: {time.perf_counter()-start_time}")
-        
+                
         action = np.random.choice(np.arange(50), p=prediction)
         action_onehot = np.zeros([self.action_space])
         action_onehot[action] = 1
 
         return action, action_onehot, prediction
 
-    # @timeit
-    # @tf.function
     def _get_gaes(
         self,
         rewards,
@@ -97,6 +84,7 @@ class PPOAgent:
         normalize=True,
     ):
         """
+        # FIXME: improve excecution time.
         Gae's calculation
         Removed dones
         """
@@ -112,15 +100,15 @@ class PPOAgent:
         if normalize:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
 
-        return np.vstack(gaes), tf.convert_to_tensor(np.vstack(target))
+        return np.vstack(gaes), np.vstack(target)
 
     def learn(
         self,
-        states: list,
+        states: dict,
         actions: list,
         rewards: list,
         predictions: list,
-        next_states: list,
+        next_states: dict,
     ):
         """
         Train Policy networks
@@ -135,75 +123,45 @@ class PPOAgent:
         # GAE
         tempo = time.time()
         advantages, target = self._get_gaes(
-            rewards, np.squeeze(values), np.squeeze(next_values)
+            np.array(rewards), np.squeeze(values), np.squeeze(next_values)
         )
 
         logging.debug(f"     Gaes required {time.time()-tempo}s")
-
         
         tempo = time.time()
         # stack everything to numpy array
         # pack all advantages, predictions and actions to y_true and when they are received
         # in custom PPO loss function we unpack it
         y_true = np.hstack([advantages, predictions, actions])
-        # print(y_true.shape)                       (n_agents*steps, 101) -> 101 = 1+50+50
-        # print(advantages.shape)                   (n_agents*steps, 1)
-        # print(np.array(predictions).shape)        (n_agents*steps, 50)
-        # print(np.array(actions).shape)            (n_agents*steps, 50)
-
-        world_map = []
-        flat = []
-        for s in states:
-            world_map.append(
-                tf.convert_to_tensor(
-                    s["world-map"],
-                )
-            )
-
-            flat.append(
-                tf.convert_to_tensor(
-                    s["flat"],
-                )
-            )
-
-        world_map = np.array(world_map)
-        flat = np.array(flat)
         
         logging.debug(f"     Data prep required: {time.time()-tempo}s")
-
         tempo = time.time()
 
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
-            [world_map, flat],
-            y_true,
-            # batch_size=self.batch_size,
+            x=[states['world-map'], states['flat']],
+            y=y_true,
             epochs=self.policy_config.agents_per_possible_policy*self.policy_config.num_workers,
             steps_per_epoch=self.batch_size//self.policy_config.num_workers,
             verbose=0,
             # shuffle=self.shuffle,
-            # workers=8,
-            # use_multiprocessing=True,
+            workers=8,
+            use_multiprocessing=True,
         )
+
         logging.debug(f"     Fit Actor Network required {time.time()-tempo}s")
         logging.debug(f"        Actor loss: {a_loss.history['loss'][-1]}")
 
         tempo = time.time()
-        values = tf.convert_to_tensor(values)
-        target = [target, values]
-        logging.debug(f"    Prep 2 required {time.time()-tempo}")
-
-        tempo = time.time()
         c_loss = self.Critic.critic.fit(
-            [world_map, flat],
-            target,
-            # batch_size=self.batch_size,
+            x=[states['world-map'],states['flat']],
+            y=target,
             epochs=1,
             steps_per_epoch=self.batch_size,
             verbose=0,
             # shuffle=self.shuffle,
-            # workers=8,
-            # use_multiprocessing=True,
+            workers=8,
+            use_multiprocessing=True,
         )
         logging.debug(f"     Fit Critic Network required {time.time()-tempo}s")
 

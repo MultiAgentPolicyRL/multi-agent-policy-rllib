@@ -185,13 +185,6 @@ class CriticModel(object):
         """
         PPO's loss function, can be with mean or clipped
         """
-        # separate y_pred and values:
-        values = y_pred[1]
-        y_pred = y_pred[0]
-
-        # standard PPO loss
-        # mean squared error
-        # TODO: try compiling with mean squared error from tf.
         value_loss = k.backend.mean((y_true - y_pred) ** 2)
 
         # L_CLIP
@@ -204,40 +197,9 @@ class CriticModel(object):
         # value_loss = 0.5 * k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
         return value_loss
 
-    # @timeit
-    # 
-
-    # w/o tf.function 0.6
-    # w/tf.function 1.83
     @tf.function
     def batch_predict(self, obs: list):
         """
         Calculates a batch of prediction for n_obs
         """
-        # world_map = []
-        # flat = []
-        # for element in obs:
-        #     print("a")
-        #     world_map.append((element["world-map"]))
-        #     flat.append((element["flat"]))
-
-        print(len(obs))
-        print(obs)
-
-        sys.exit()
-        return self.critic([tf.convert_to_tensor(world_map), tf.convert_to_tensor(flat)])
-
-
-
-    # 0.5714621543884277
-    # def batch_predict(self, obs: list):
-    #     """
-    #     Calculates a batch of prediction for n_obs
-    #     """
-    #     world_map = []
-    #     flat = []
-    #     for element in obs:
-    #         world_map.append(element["world-map"])
-    #         flat.append(element["flat"])
-
-    #     return self.critic.predict([np.array(world_map), np.array(flat)])
+        return self.critic([tf.convert_to_tensor(obs['world-map']), tf.convert_to_tensor(obs['flat'])])
