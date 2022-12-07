@@ -117,9 +117,11 @@ class ActorModel(object):
 
 
         # probabiliy_ratio*advantage_estimation
+        # rt(θ) ∗ ˆAt
         p1 = ratio * advantages
         
         # CLIP: clip(probabiliy_ratio, 1-Epsylon, 1+Epsylon)*advantage_estimation)
+        # clip(rt(θ), 1 − ε, 1 + ε) ∗ ˆAt)
         p2 = (
             tf.keras.backend.clip(
                 ratio, min_value=1 - EPSYLON, max_value=1 + EPSYLON
@@ -128,7 +130,10 @@ class ActorModel(object):
         )
 
         # L_CLIP: min(probabiliy_ratio*advantage_estimation, clip(probabiliy_ratio, 1-Epsylon, 1+Epsylon)*advantage_estimation)
+        # LCLIP (θ) = ˆEt[min(rt(θ) ∗ ˆAt, clip(rt(θ), 1 − ε, 1 + ε) ∗ ˆAt)] 
         actor_loss = -tf.keras.backend.mean(tf.keras.backend.minimum(p1, p2))
+
+        # critic_loss = # TODO
 
         entropy = -(y_pred * tf.keras.backend.log(y_pred + 1e-10))
         entropy = ENTROPY_LOSS * tf.keras.backend.mean(entropy)
