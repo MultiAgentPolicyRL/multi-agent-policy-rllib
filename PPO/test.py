@@ -1,10 +1,7 @@
-import sys
-from ai_economist import foundation
+from actor import Actor
+# from ai_economist_ppo_dt.utils import create_environment
+import random
 from env_wrapper import EnvWrapper
-import numpy as np
-import time
-import tensorflow as tf
-# import tf_agents
 
 env_config = {
     "env_config_dict": {
@@ -86,44 +83,22 @@ def get_environment():
     # return foundation.make_env_instance(**env_config["env_config_dict"])
     return EnvWrapper(env_config)
 
-if __name__ == "__main__":
-    from tf_models import KerasConvLSTM
-    env = get_environment()
-    env.seed(1)
-    obs = env.reset()
+
+env = get_environment()
+env.seed(1)
+state = env.reset()
+model = Actor(state.get('0'), )
+
+# Test
+# make a random action
+prob_action = dict()
+seq_in = 1
+state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v = model.initial_state()
+for agent in ['0', '1', '2', '3',]:
+    #input = state[agent] + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v]
+    a, b, c, d, e, f = model(state[agent], seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v)
+    print(f"Agent: {agent}\nAction: {a}\nValue-Function: {b}")
 
 
-    model = KerasConvLSTM(env.observation_space)
-    # print(env.observation_space.keys())
-    # sys.exit()
-    a,b,c,d= model.get_initial_state()
-
-    """
-    Dict(action_mask:Box(-1e+20, 1e+20, (50,), float32), 
-    flat:Box(-1e+20, 1e+20, (136,), float32), 
-    time:Box(-1e+20, 1e+20, (1,), float64), 
-    world-idx_map:Box(-30178, 30178, (2, 11, 11), int16), 
-    world-map:Box(-1e+20, 1e+20, (7, 11, 11), float32))
-    """
-    
-    # print(obs['0'].keys())
-    # print(obs['0']['action_mask'])
-
-    # sys.exit()
-
-    # input_dict = {
-    #     'obs': {
-    #         'world-map':obs['0']['world-map'],
-    #         'world-map_idx':obs['0']['world-idx_map'],
-    #         'time':obs['0']['time'],
-    #         'flat':obs['0']['flat'],
-    #         'action_mask':obs['0']['action_mask'],
-    #     },
-    #     'action_mask':obs['0']['action_mask']
-    # }
-
-
-
-    aa,bb = model.forward(input_dict={'obs': obs['0']}, state=[a,b,c,d], seq_lens=[1])
-    print(aa)
-    print(bb)
+# get the next state, reward, and done flag
+#print(prob_action['0'])
