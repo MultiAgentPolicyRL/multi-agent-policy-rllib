@@ -95,7 +95,7 @@ def get_environment():
     return EnvWrapper(env_config)
 
 
-if __name__ == "__main__":  
+if __name__ == "__main__":
 
     EPOCHS = 5
     SEED = 1
@@ -110,7 +110,12 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=1000, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
+        minibatch_size=1000,
+        policies_configs=policy_config,
+        env=env,
+        seed=SEED,
+        multiprocessing=False,
+        num_workers=1,
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 

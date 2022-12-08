@@ -85,7 +85,7 @@ class PpoAlgorithm(object):
             self.algorithm_config.policy_mapping_function,
             self.algorithm_config.policies_configs,
             self.algorithm_config.agents_name,
-            self.algorithm_config.env
+            self.algorithm_config.env,
         )
 
         if self.algorithm_config.multiprocessing:
@@ -97,7 +97,7 @@ class PpoAlgorithm(object):
                 work = Environment(
                     env=self.algorithm_config.env,
                     seed=self.algorithm_config.seed + idx,
-                    child_conn=child_conn
+                    child_conn=child_conn,
                 )
                 work.start()
                 self.works.append(work)
@@ -121,6 +121,7 @@ class PpoAlgorithm(object):
             work.terminate()
             print("TERMINATED:", work)
             work.join()
+
     @timeit
     def batch_multi_process(self):
         for idx in range(self.algorithm_config.num_workers):
@@ -162,7 +163,7 @@ class PpoAlgorithm(object):
                     self.batch_memory_dictionary[idx]["next_state"],
                     self.batch_memory_dictionary[idx]["action_onehot"],
                     self.batch_memory_dictionary[idx]["reward"],
-                    self.batch_memory_dictionary[idx]["prediction"]
+                    self.batch_memory_dictionary[idx]["prediction"],
                 )
 
                 self.batch_memory_dictionary[idx][
@@ -170,17 +171,14 @@ class PpoAlgorithm(object):
                 ] = self.batch_memory_dictionary[idx]["next_state"]
 
             step += 1
-        
+
         # Get total memory
         print("getting memory")
         for idx in range(self.algorithm_config.num_workers):
-            self.memory+=self.memory_dictionary[idx]
+            self.memory += self.memory_dictionary[idx]
 
         # self.kill_processes()
         # sys.exit()
-        
-
-            
 
     @timeit
     def batch(self, env):
@@ -203,7 +201,7 @@ class PpoAlgorithm(object):
 
             state = next_state
             steps += 1
-    
+
     def train_one_step(
         self,
         env,
@@ -231,7 +229,7 @@ class PpoAlgorithm(object):
             # logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(*self.memory.get_memory(key))
 
-    #@timeit
+    # @timeit
     def get_actions(self, obs: dict) -> dict:
         """
         Build action dictionary from env observations. Output has thi structure:

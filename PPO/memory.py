@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import tensorflow as tf
 
+
 def timeit(func):
     @wraps(func)
     def timeit_wrapper(*args, **kwargs):
@@ -128,7 +129,17 @@ class BatchMemory:
                 this_state[item] = []
                 this_next_state[item] = []
         elif mapped_key == "p":
-            for item in ["world-map", "world-idx_map", "time", "flat", "p0", "p1", "p2", "p3", "action_mask"]:
+            for item in [
+                "world-map",
+                "world-idx_map",
+                "time",
+                "flat",
+                "p0",
+                "p1",
+                "p2",
+                "p3",
+                "action_mask",
+            ]:
                 this_state[item] = []
                 this_next_state[item] = []
         else:
@@ -145,7 +156,13 @@ class BatchMemory:
                 this_prediction.extend(self.predictions[key])
 
         for key in this_state.keys():
-            this_state[key]=np.array(this_state[key])
-            this_next_state[key]=np.array(this_next_state[key])
+            this_state[key] = np.array(this_state[key])
+            this_next_state[key] = np.array(this_next_state[key])
 
-        return this_state, np.array(this_action), np.array(this_reward), np.array(this_prediction), this_next_state
+        return (
+            this_state,
+            np.array(this_action),
+            np.array(this_reward),
+            np.array(this_prediction),
+            this_next_state,
+        )
