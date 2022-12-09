@@ -3,8 +3,6 @@ import tensorflow as tf
 import keras.backend as K
 from model.new_model_config import ModelConfig
 
-# from ai_economist.foundation.base.base_env import BaseEnvironment
-
 WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
 ACTION_MASK = "action_mask"
@@ -24,6 +22,12 @@ def apply_logit_mask(logits, mask):
 class Model:
     """
     Actor-Critic (Policy and Value Function) Model.
+
+    Input:
+        obs, seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v
+        
+    Output:
+        logits, values, state_h_p, state_c_p, state_h_v, state_c_v
 
     Brief model explanation:
     TODO
@@ -208,6 +212,28 @@ class Model:
     def __call__(
         self, inputs, seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v
     ):
+        """
+        Default model's call (used instead of predict).
+        TODO: Docs
+        Args:
+            (inputs, seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v)
+
+            inputs: environment observation for one action
+            seq_in: 1d tensor of 
+            state_in_h_p: LSTM stuff
+            state_in_c_p: LSTM stuff
+            state_in_h_v: LSTM stuff
+            state_in_c_v: LSTM stuff
+        
+        Returns:
+            [logits, values, state_h_p, state_c_p, state_h_v, state_c_v]
+            logits: action probabilities
+            values: value function predictions
+            state_h_p: LSTM stuff - policy (actor)
+            state_c_p: LSTM stuff - policy (actor)
+            state_h_v: LSTM stuff - value function (critic)
+            state_c_v: LSTM stuff - value function (critic)
+        """
         input = [
             tf.keras.backend.expand_dims(
                 tf.keras.backend.expand_dims(inputs["world-map"], axis=0), axis=0
@@ -235,6 +261,9 @@ class Model:
         return self.model(input)
 
     def initial_state(self):
+        """
+        Get LSTM initial null state
+        """
         return [
             np.zeros((1, self.cell_size), np.float32),
             np.zeros((1, self.cell_size), np.float32),
@@ -244,6 +273,7 @@ class Model:
 
     def ppo_loss(self, y_true, y_pred):
         """
+        FIXME
         Defined in https://arxiv.org/abs/1707.06347
         """
         advantages, prediction_picks, actions = (

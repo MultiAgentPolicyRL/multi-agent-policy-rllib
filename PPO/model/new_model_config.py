@@ -29,17 +29,19 @@ class ModelConfig:
         Builds model config.
 
         Args:
-        observation_space: observation space of the environment (for a single agent)
-        action_space: action space of the agent selected
-        emb_dim:
-        cell_size:
-        input_emb_vocab:
-        num_conv:
-        fc_dim:
-        num_fc:
-        filtering:
-        kernel_size:
-        strides:
+            observation_space: observation space of the environment (for a single agent)
+            action_space: action space of the agent selected
+            emb_dim: output embedding dimension
+            cell_size: size of the LSTM cell
+            input_emb_vocab: input embedding dimension
+            num_conv: number of convolutional layers
+            fc_dim: dimension of the fully-connected layer
+            num_fc: number of fully-connected layers
+            filtering:
+            kernel_size:
+            strides:
+
+        TODO: complete docs
         """
         self.observation_space = observation_space
         self.action_space = action_space
@@ -53,18 +55,3 @@ class ModelConfig:
         self.filter = filtering
         self.kernel_size = kernel_size
         self.strides = strides
-
-        """
-        emb_dim: int = 4,
-        cell_size: int = 128,
-        input_emb_vocab: int = 100,
-        num_conv: int = 2,
-        fc_dim: int = 128,
-        num_fc: int = 2,
-        filter: Tuple[int, int] = (16, 32),
-        kernel_size: Tuple[int, int] = (3, 3),
-        strides: int = 2,
-        output_size: int = 50,
-        log_level: int = logging.INFO,
-        log_path: str = None,
-        """

@@ -7,6 +7,7 @@ import logging
 from multiprocessing import Pipe, Process
 import sys
 
+import numpy as np
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
 from policy.policy import PPOAgent
@@ -88,123 +89,63 @@ class PpoAlgorithm(object):
             self.algorithm_config.env,
         )
 
-        if self.algorithm_config.multiprocessing:
-            self.works, self.parent_conns, self.child_conns = [], [], []
-
-            for idx in range(self.algorithm_config.num_workers):
-                parent_conn, child_conn = Pipe()
-
-                work = Environment(
-                    env=self.algorithm_config.env,
-                    seed=self.algorithm_config.seed + idx,
-                    child_conn=child_conn,
-                )
-                work.start()
-                self.works.append(work)
-                self.parent_conns.append(parent_conn)
-                self.child_conns.append(child_conn)
-
-            self.memory_dictionary = {}  # use to pass it
-            # used for memory's step bf passing it to memory_dict
-            self.batch_memory_dictionary = {}
-            for idx, parent_conn in enumerate(self.parent_conns):
-                self.batch_memory_dictionary[idx] = {"state": parent_conn.recv()}
-
-                self.memory_dictionary[idx] = BatchMemory(
-                    self.algorithm_config.policy_mapping_function,
-                    self.algorithm_config.policies_configs,
-                    self.algorithm_config.agents_name,
-                )
-
-    def kill_processes(self):
-        for work in self.works:
-            work.terminate()
-            print("TERMINATED:", work)
-            work.join()
-
     @timeit
-    def batch_multi_process(self):
-        for idx in range(self.algorithm_config.num_workers):
-            self.memory_dictionary[idx].reset_memory()
-
-        step = 0
-        while (
-            step < self.algorithm_config.batch_size // self.algorithm_config.num_workers
-        ):
-            # logging.debug(f"Batching step: {step}x{self.algorithm_config.num_workers}")
-            for idx in range(self.algorithm_config.num_workers):
-                (
-                    self.batch_memory_dictionary[idx]["action"],
-                    self.batch_memory_dictionary[idx]["action_onehot"],
-                    self.batch_memory_dictionary[idx]["prediction"],
-                ) = self.get_actions(self.batch_memory_dictionary[idx]["state"])
-            for worker_id, parent_conn in enumerate(self.parent_conns):
-                parent_conn.send(self.batch_memory_dictionary[worker_id]["action"])
-            # Retrieve new state, rew
-            for worker_id, parent_conn in enumerate(self.parent_conns):
-                (
-                    self.batch_memory_dictionary[worker_id]["next_state"],
-                    self.batch_memory_dictionary[worker_id]["reward"],
-                ) = parent_conn.recv()
-            # next_state, reward, _, _ = env.step(action)
-
-            # Memorize (state, action, reward) for trainig
-            for idx in range(self.algorithm_config.num_workers):
-                self.memory_dictionary
-            # self.memory.update_memory(
-            #     state, next_state, action_onehot, reward, prediction
-            # )
-
-            # update state for next step
-            for idx in range(self.algorithm_config.num_workers):
-                # state, next_state, action_onehot, reward, prediction
-                self.memory_dictionary[idx].update_memory(
-                    self.batch_memory_dictionary[idx]["state"],
-                    self.batch_memory_dictionary[idx]["next_state"],
-                    self.batch_memory_dictionary[idx]["action_onehot"],
-                    self.batch_memory_dictionary[idx]["reward"],
-                    self.batch_memory_dictionary[idx]["prediction"],
-                )
-
-                self.batch_memory_dictionary[idx][
-                    "state"
-                ] = self.batch_memory_dictionary[idx]["next_state"]
-
-            step += 1
-
-        # Get total memory
-        print("getting memory")
-        for idx in range(self.algorithm_config.num_workers):
-            self.memory += self.memory_dictionary[idx]
-
-        # self.kill_processes()
-        # sys.exit()
-
-    @timeit
-    def batch(self, env):
+    def _batch(self, env, states_h_p, states_c_p, states_h_v, states_c_v):
         # logging.debug("Batching")
         state = env.reset()
         steps = 0
+        vf_prediction_old = {
+            '0': np.array([0.0]),
+            '1': np.array([0.0]),
+            '2': np.array([0.0]),
+            '3': np.array([0.0]),
+            'p': np.array([0.0])
+        }
+        
+
         while steps < self.algorithm_config.batch_size:
             # if steps % 100 == 0:
             #     logging.debug(f"    step: {steps}")
             # Actor picks an action
-            action, action_onehot, prediction = self.get_actions(state)
+            # obs: dict, seq_in: Any, state_in_h_p: dict, state_in_c_p: dict, state_in_h_v: dict, state_in_c_v: dict
+            (
+                policy_actions,
+                policy_actions_onehot,
+                policy_predictions,
+                vf_predictions,
+                states_h_p,
+                states_c_p,
+                states_h_v,
+                states_c_v,
+            ) = self.get_actions(state, 1, states_h_p, states_c_p, states_h_v, states_c_v)
 
             # Retrieve new state, rew
-            next_state, reward, _, _ = env.step(action)
+            next_state, reward, _, _ = env.step(policy_actions)
             # print(f"            REWARD BATCH {reward}" )
             # Memorize (state, action, reward) for trainig
             self.memory.update_memory(
-                state, next_state, action_onehot, reward, prediction
+                # observation, next_observation, policy_action_onehot, vf_prediction, predictions_old, reward,
+                #  values, states_h_p, states_c_p, states_h_v, states_c_v,
+                observation=state,
+                next_observation=next_state,
+                policy_action_onehot=policy_actions_onehot,
+                vf_prediction=vf_predictions,
+                vf_prediction_old=vf_prediction_old,
+                reward=reward,
+                states_h_p=states_h_p, 
+                states_c_p=states_c_p,
+                states_h_v=states_h_v, 
+                states_c_v=states_c_v,
             )
 
             state = next_state
+            vf_prediction_old = vf_predictions
             steps += 1
 
     def train_one_step(
         self,
         env,
+        states_h_p, states_c_p, states_h_v, states_c_v
     ):
         """
         Train all Policys
@@ -215,24 +156,51 @@ class PpoAlgorithm(object):
         self.memory.reset_memory()
         env = copy.deepcopy(env)
 
-        # state = obs
-
         # Collecting data for batching
-        if not self.algorithm_config.multiprocessing:
-            self.batch(env)
-        else:
-            NotImplementedError("DONT USE ME")
-            self.batch_multi_process()
+        self._batch(env,states_h_p, states_c_p, states_h_v, states_c_v)
 
+        # sys.exit("algorithm line 130")
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
             # logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(*self.memory.get_memory(key))
 
     # @timeit
-    def get_actions(self, obs: dict) -> dict:
+    def get_actions(
+        self,
+        obs: dict,
+        seq_in,
+        state_in_h_p: dict,
+        state_in_c_p: dict,
+        state_in_h_v: dict,
+        state_in_c_v: dict,
+    ) -> dict:
         """
-        Build action dictionary from env observations. Output has thi structure:
+
+
+        Args:
+            obs:
+            seq_in:
+            state_in_h_p:
+            state_in_c_p:
+            state_in_h_v:
+            state_in_c_v:
+
+        Returns:
+            policy_actions,
+            policy_actions_onehot,
+            policy_predictions,
+            vf_predictions,
+            states_h_p,
+            states_c_p,
+            states_h_v,
+            states_c_v,
+
+
+        Build action dictionary from env observations. 
+        
+        
+        Output has this structure:
 
                 actions: {
                     '0': [...],
@@ -252,25 +220,57 @@ class PpoAlgorithm(object):
             actions dict: actions for each agent
         """
 
-        actions, actions_onehot, predictions = {}, {}, {}
+        (
+            policy_actions,
+            policy_actions_onehot,
+            policy_predictions,
+            vf_predictions,
+            states_h_p,
+            states_c_p,
+            states_h_v,
+            states_c_v,
+        ) = ({}, {}, {}, {}, {}, {}, {}, {})
         for key in obs.keys():
             if key != "p":
-                # print(self._policy_mapping_function(key))
+
+                # inputs, seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v
+                # outputs: policy_action[0], policy_action_onehot, policy_prediction, vf_prediction, state_h_p, state_c_p, state_h_v, state_c_v
+
                 (
-                    actions[key],
-                    actions_onehot[key],
-                    predictions[key],
+                    policy_actions[key],
+                    policy_actions_onehot[key],
+                    policy_predictions[key],
+                    vf_predictions[key],
+                    states_h_p[key],
+                    states_c_p[key],
+                    states_h_v[key],
+                    states_c_v[key],
                 ) = self.training_policies[
                     self.algorithm_config.policy_mapping_function(key)
                 ].act(
-                    obs[key]
+                    obs[key],
+                    seq_in,
+                    state_in_h_p[key],
+                    state_in_c_p[key],
+                    state_in_h_v[key],
+                    state_in_c_v[key],
                 )
             else:
                 # tmp to also feed the planner
-                actions[key], actions_onehot[key], predictions[key] = (
+                policy_actions[key], policy_actions_onehot[key], policy_predictions[key], vf_predictions[key] = (
                     [0, 0, 0, 0, 0, 0, 0],
+                    0,
                     0,
                     0,
                 )
         # logging.debug(actions)
-        return actions, actions_onehot, predictions
+        return (
+            policy_actions,
+            policy_actions_onehot,
+            policy_predictions,
+            vf_predictions,
+            states_h_p,
+            states_c_p,
+            states_h_v,
+            states_c_v,
+        )

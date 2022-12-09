@@ -9,17 +9,19 @@ class PolicyConfig:
     a
     """
 
-    def __init__(self, action_space, observation_space=None):
-        # self.batch_size = batch_size
+    def __init__(self, action_space, observation_space=None, modelConfig=None):
         self.observation_space = observation_space
         self.action_space = action_space
-        self.model_config = ModelConfig(
-            action_space=action_space, observation_space=observation_space
-        )
+
+        if modelConfig is None:
+            ValueError("modelConfig can't be None!") 
+
+        self.model_config = modelConfig
         self.batch_size = 0
         self.agents_per_possible_policy = 0
         self.num_workers = 1
 
+    
     def set_batch_size_and_agents_per_possible_policy(
         self, batch_size: int, agents_per_possible_policy, num_workers: int = 1
     ):
