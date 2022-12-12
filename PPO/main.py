@@ -155,9 +155,9 @@ if __name__ == "__main__":
         logging.debug(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
         algorithm.train_one_step(env, states_h_p, states_c_p, states_h_v, states_c_v)
-        sys.exit("exit main 155")
+        # sys.exit("exit main 155")
         logging.debug(f"Trained step {i} in {time.time()-start} seconds")
-        print(f"Trained step {i} in {time.time()-start} seconds")
+        # print(f"Trained step {i} in {time.time()-start} seconds")
     # Kill multi-processes
     # algorithm.kill_processes()
     # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")

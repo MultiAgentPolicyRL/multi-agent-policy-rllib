@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import keras.backend as K
 from model.new_model_config import ModelConfig
+tf.executing_eagerly()
 
 WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
@@ -282,24 +283,30 @@ class Model:
         Defined in https://arxiv.org/abs/1707.06347
         """
       
-        advantages, prediction_picks, actions = (
-            y_true[:, :1],
-            y_true[:, 1 : 1 + self.modelConfig.action_space],
-            y_true[:, 1 + self.modelConfig.action_space :],
-        )
-      
-        print(f"ACTIONS: {actions}")
-        print(f"ACTIONS shape: {actions.shape}")
-        
-        print(f"PREDICTION: {prediction_picks}")
-        print(f"PREDICTION shape: {prediction_picks.shape}")
+        # advantages, prediction_picks, actions = (
+        #     y_true[:, :1],
+        #     y_true[:, 1 : 1 + self.modelConfig.action_space],
+        #     y_true[:, 1 + self.modelConfig.action_space :],
+        # )
 
-        sys.exit()
+        advantages = y_true[0]
+        prediction_picks = y_true[1]
+        actions = y_true[2]
+
+        print(f"y_true: {y_true}")
+        print(f"ADVANTAGES shape: {advantages.shape}")
+        print(f"PREDICTION shape: {prediction_picks.shape}")
+        print(f"ACTIONS shape: {actions.shape}")
+
       
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
 
-        prob = actions * y_pred
+        # print(f"actions_shape: {actions.shape}")
+        # print(f"y_pred shape: {y_pred[0].shape}")
+        sys.exit()
+
+        prob = actions * y_pred[0]
         old_prob = actions * prediction_picks
 
         prob = tf.keras.backend.clip(prob, 1e-10, 1.0)
@@ -319,10 +326,10 @@ class Model:
 
         actor_loss = -tf.keras.backend.mean(tf.keras.backend.minimum(p1, p2))
 
-        critic_loss = k.backend.mean((y_true - y_pred) ** 2)
+        critic_loss = tf.keras.backend.mean((y_true[3] - y_pred[1]) ** 2)
 
 
-        entropy = -(y_pred * tf.keras.backend.log(y_pred + 1e-10))
+        entropy = -(y_pred[0] * tf.keras.backend.log(y_pred[0] + 1e-10))
         entropy = ENTROPY_LOSS * tf.keras.backend.mean(entropy)
 
         total_loss = actor_loss - entropy
