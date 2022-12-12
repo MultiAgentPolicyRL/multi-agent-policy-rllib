@@ -1,10 +1,10 @@
 import copy
-from dataclasses import dataclass
 from functools import wraps
 import time
 import logging
 import numpy as np
 import tensorflow as tf
+
 
 def timeit(func):
     @wraps(func)
@@ -46,16 +46,24 @@ class BatchMemory:
         # self.keys = ["states", "next_states", "actions", "rewards", "predictions"]
 
         # key:dict
-        self.states = {key: build_states(key) for key in self.available_agent_ids}
+        self.observation = {key: build_states(key) for key in self.available_agent_ids}
         # key:dict
-        self.next_states = {key: build_states(key) for key in self.available_agent_ids}
+        self.next_observation = {key: build_states(key) for key in self.available_agent_ids}
         # key:list (onehot encoding)
-        self.actions = {key: [] for key in self.available_agent_ids}
+        self.policy_actions = {key: [] for key in self.available_agent_ids}
         # key:list
         self.rewards = {key: [] for key in self.available_agent_ids}
         # key:list
-        self.predictions = {key: [] for key in self.available_agent_ids}
+        
+        self.vf_predictions = {key: [] for key in self.available_agent_ids}
+        self.vf_predictions_old = {key: [] for key in self.available_agent_ids}
 
+        # values, states_h_p, states_c_p, states_h_v, states_c_v
+        self.states_h_p = {key: [] for key in self.available_agent_ids}
+        self.states_c_p = {key: [] for key in self.available_agent_ids}
+        self.states_h_v = {key: [] for key in self.available_agent_ids}
+        self.states_c_v = {key: [] for key in self.available_agent_ids}
+        
         """
         Actual structure is like this:
         self.states = {
@@ -85,67 +93,141 @@ class BatchMemory:
         Clears the memory.
         """
         for key in self.available_agent_ids:
-            self.actions[key].clear()
+            self.policy_actions[key].clear()
             self.rewards[key].clear()
-            self.predictions[key].clear()
+            self.vf_predictions[key].clear()
+            self.vf_predictions_old[key].clear()
 
-            for data in self.states[key].keys():
-                self.states[key][data].clear()
-                self.next_states[key][data].clear()
+            self.states_h_p[key].clear()
+            self.states_c_p[key].clear()
+            self.states_h_v[key].clear()
+            self.states_c_v[key].clear()
+
+            for data in self.observation[key].keys():
+                self.observation[key][data].clear()
+                self.next_observation[key][data].clear()
 
     def update_memory(
         self,
-        state: dict,
-        next_state: dict,
-        action_onehot: dict,
+        observation: dict,
+        next_observation: dict,
+        policy_action_onehot: dict,
+        vf_prediction: dict,
+        vf_prediction_old:dict,
         reward: dict,
-        prediction: dict,
-    ):
-        """ """
-        for key in self.available_agent_ids:
-            self.actions[key].append(action_onehot[key])
-            self.rewards[key].append(reward[key])
-            self.predictions[key].append(prediction[key])
 
-            for data in self.states[key].keys():
-                self.states[key][data].append(state[key][data])
-                self.next_states[key][data].append(next_state[key][data])
+        states_h_p: dict,
+        states_c_p: dict,
+        states_h_v: dict,
+        states_c_v: dict,
+    ):
+        """ 
+        Updates memory
+
+        Args:
+            observation, 
+            next_observation, 
+            policy_action_onehot, 
+            vf_prediction, 
+            predictions_old, 
+            reward, 
+
+            states_h_p, 
+            states_c_p, 
+            states_h_v, 
+            states_c_v, 
+
+        """
+        for key in self.available_agent_ids:
+            self.policy_actions[key].append(policy_action_onehot[key])
+            self.rewards[key].append(reward[key])
+            self.vf_predictions[key].append(vf_prediction[key])
+            self.vf_predictions_old[key].append(vf_prediction_old[key])
+            if key != 'p':
+
+                self.states_h_p[key].append(states_h_p[key])
+                self.states_c_p[key].append(states_c_p[key])
+                self.states_h_v[key].append(states_h_v[key])
+                self.states_c_v[key].append(states_c_v[key])
+
+
+            for data in self.observation[key].keys():
+                self.observation[key][data].append(observation[key][data])
+                self.next_observation[key][data].append(next_observation[key][data])
 
     @timeit
-    @tf.function
+    # @tf.function
     def get_memory(self, mapped_key):
-        this_state, this_next_state, this_action, this_reward, this_prediction = (
-            {},
-            {},
-            [],
-            [],
-            [],
-        )
+        """
+        returns:
+            observation, next_observation, policy_action, vf_prediction, vf_prediction_old, reward, states_h_p, states_c_p, states_h_v, states_c_v 
+        """
+        this_observation = {}
+        this_next_observation = {}
+        this_policy_action = []
+        this_reward = []
+        
+        this_vf_prediction = []
+        this_vf_prediction_old = []
+
+        this_states_h_p = []
+        this_states_c_p = []
+        this_states_h_v = []
+        this_states_c_v = []
 
         if mapped_key == "a":
             # Build empty this_state, this_next_state
             for item in ["world-map", "world-idx_map", "time", "flat", "action_mask"]:
-                this_state[item] = []
-                this_next_state[item] = []
+                this_observation[item] = []
+                this_next_observation[item] = []
         elif mapped_key == "p":
-            for item in ["world-map", "world-idx_map", "time", "flat", "p0", "p1", "p2", "p3", "action_mask"]:
-                this_state[item] = []
-                this_next_state[item] = []
+            for item in [
+                "world-map",
+                "world-idx_map",
+                "time",
+                "flat",
+                "p0",
+                "p1",
+                "p2",
+                "p3",
+                "action_mask",
+            ]:
+                this_observation[item] = []
+                this_next_observation[item] = []
         else:
             KeyError(f"Key {mapped_key} is not registered in the training cycle.")
 
         for key in self.available_agent_ids:
             if self.policy_mapping_function(key) == mapped_key:
-                for data in self.states[key].keys():
-                    this_state[data].extend(self.states[key][data])
-                    this_next_state[data].extend(self.next_states[key][data])
+                for data in self.observation[key].keys():
+                    this_observation[data].extend(self.observation[key][data])
+                    this_next_observation[data].extend(self.next_observation[key][data])
 
-                this_action.extend(self.actions[key])
+                this_policy_action.extend(self.policy_actions[key])
                 this_reward.extend(self.rewards[key])
-                this_prediction.extend(self.predictions[key])
+                this_vf_prediction.extend(self.vf_predictions[key])
+                this_vf_prediction_old.extend(self.vf_predictions_old[key])
+                
+                this_states_h_p.extend(self.states_h_p[key])
+                this_states_c_p.extend(self.states_c_p[key])
+                this_states_h_v.extend(self.states_h_v[key])
+                this_states_c_v.extend(self.states_c_v[key])
 
-        for key in this_state.keys():
-            this_state[key]=np.array(this_state[key])
-            this_next_state[key]=np.array(this_next_state[key])
 
-        return this_state, np.array(this_action), np.array(this_reward), np.array(this_prediction), this_next_state
+        for key in this_observation.keys():
+            this_observation[key] = np.array(this_observation[key])
+            this_next_observation[key] = np.array(this_next_observation[key])
+
+        return (
+            this_observation,
+            this_next_observation,
+            np.array(this_policy_action),
+            np.array(this_vf_prediction),
+            np.array(this_vf_prediction_old),
+            np.array(this_reward),
+
+            np.array(this_states_h_p),
+            np.array(this_states_c_p),
+            np.array(this_states_h_v),
+            np.array(this_states_c_v),
+        )

@@ -16,17 +16,14 @@ class AlgorithmConfig:
         env,
         seed: int,
         policy_mapping_fun=None,
-        multiprocessing: bool = False,
-        num_workers: int = 0,
     ):
         """
         Builds the config and validates data
 
         Arguments:
             minibatch_size: size of the minibatch # ADD logic
-            n_actors: TODO automatic, dictionary with `mapping_fun_output`: n_elements_in_that_map
-            multiprocessing: if you want multiprocessing
-            num_workers: works only with `multiprocessing` active
+        
+        TODO: docs
         """
 
         """
@@ -36,8 +33,7 @@ class AlgorithmConfig:
             'p': policy_config(stuff)
         }
         """
-        self.num_workers = num_workers
-        self.multiprocessing = multiprocessing
+        self.num_workers = 1
         self.seed = seed
         if policy_mapping_fun is None:
             self.policy_mapping_fun = self.policy_mapping_function
@@ -68,16 +64,7 @@ class AlgorithmConfig:
             self.policies_configs[key].set_batch_size_and_agents_per_possible_policy(
                 self.batch_size, self.agents_per_possible_policy[key], self.num_workers
             )
-        
-        # Checks if multiprocessing and num_workers makes no sense
-        if (self.multiprocessing and self.num_workers != 0) or (
-            self.multiprocessing is False and self.num_workers != 0
-        ):
-            if self.num_workers < 0:
-                ValueError("`num_workers` must be > 0!")
-            AttributeError(
-                "Multiprocessing and num_workers work together, put correct values. Ex: True, 4"
-            )
+
 
     def policy_mapping_function(self, key: str) -> str:
         """

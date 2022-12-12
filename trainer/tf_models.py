@@ -291,10 +291,10 @@ class KerasConvLSTM(RecurrentNetwork):
                 logits, values, state_h_p, state_c_p, state_h_v, state_c_v
             ],
         )
+
         self.register_variables(self.rnn_model.variables)
         self.rnn_model.summary()
         # tf.keras.utils.plot_model(self.rnn_model, "model.png")
-        sys.exit()
 
     def _extract_input_list(self, dictionary):
         return [dictionary[k] for k in self._input_keys]
@@ -303,7 +303,7 @@ class KerasConvLSTM(RecurrentNetwork):
         """Adds time dimension to batch before sending inputs to forward_rnn().
 
         You should implement forward_rnn() in your subclass."""
-        output, new_state = self.forward_rnn(
+        output, new_state = self._forward_rnn(
             [
                 add_time_dimension(t, seq_lens)
                 for t in self._extract_input_list(input_dict["obs"])
@@ -314,6 +314,7 @@ class KerasConvLSTM(RecurrentNetwork):
         return tf.reshape(output, [-1, self.num_outputs]), new_state
 
     def forward_rnn(self, inputs, state, seq_lens):
+        
         model_out, self._value_out, h_p, c_p, h_v, c_v = self.rnn_model(
             inputs + [seq_lens] + state)
         return model_out, [h_p, c_p, h_v, c_v]
