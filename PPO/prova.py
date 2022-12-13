@@ -76,8 +76,6 @@ import tf_agents
 # }
 
 
-
-
 # def get_environment():
 #     """
 #     Returns builded environment with `env_config` config

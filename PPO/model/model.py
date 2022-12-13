@@ -30,10 +30,7 @@ class LSTMModel(nn.Module):
 
     """
 
-    def __init__(
-        self,
-        modelConfig: ModelConfig
-    ) -> None:
+    def __init__(self, modelConfig: ModelConfig) -> None:
         """
         Initialize the ActorCritic Model.
         """
@@ -58,7 +55,10 @@ class LSTMModel(nn.Module):
         ###
 
         self.embed_map_idx = nn.Embedding(
-            self.ModelConfig.input_emb_vocab, self.ModelConfig.emb_dim, device=self.ModelConfig.device, dtype=torch.float32
+            self.ModelConfig.input_emb_vocab,
+            self.ModelConfig.emb_dim,
+            device=self.ModelConfig.device,
+            dtype=torch.float32,
         )
         self.conv_layers = nn.ModuleList()
         self.conv_shape = (
@@ -88,25 +88,50 @@ class LSTMModel(nn.Module):
                 )
             )
 
-        self.conv_dims = self.ModelConfig.kernel_size[0] * self.ModelConfig.strides * self.ModelConfig.filter[1]
-        self.flatten_dims = self.conv_dims + self.ModelConfig.observation_space["flat"].shape[0] + len(self.ModelConfig.observation_space["time"])
-        self.fc_layer_1 = nn.Linear(in_features=self.flatten_dims, out_features=self.ModelConfig.fc_dim)
-        self.fc_layer_2 = nn.Linear(in_features=self.ModelConfig.fc_dim, out_features=self.ModelConfig.fc_dim)
+        self.conv_dims = (
+            self.ModelConfig.kernel_size[0]
+            * self.ModelConfig.strides
+            * self.ModelConfig.filter[1]
+        )
+        self.flatten_dims = (
+            self.conv_dims
+            + self.ModelConfig.observation_space["flat"].shape[0]
+            + len(self.ModelConfig.observation_space["time"])
+        )
+        self.fc_layer_1 = nn.Linear(
+            in_features=self.flatten_dims, out_features=self.ModelConfig.fc_dim
+        )
+        self.fc_layer_2 = nn.Linear(
+            in_features=self.ModelConfig.fc_dim, out_features=self.ModelConfig.fc_dim
+        )
         self.lstm = nn.LSTM(
             input_size=self.ModelConfig.fc_dim,
             hidden_size=self.ModelConfig.cell_size,
             num_layers=1,
         )
         self.layer_norm = nn.LayerNorm(self.ModelConfig.fc_dim)
-        self.output_policy = nn.Linear(in_features=self.ModelConfig.cell_size, out_features=self.ModelConfig.output_size)
-        self.output_value = nn.Linear(in_features=self.ModelConfig.cell_size, out_features=1)
+        self.output_policy = nn.Linear(
+            in_features=self.ModelConfig.cell_size,
+            out_features=self.ModelConfig.output_size,
+        )
+        self.output_value = nn.Linear(
+            in_features=self.ModelConfig.cell_size, out_features=1
+        )
 
         self.relu = nn.ReLU()
 
-        self.hidden_state_h_p = torch.zeros(1, self.ModelConfig.cell_size, device=self.ModelConfig.device)
-        self.hidden_state_c_p = torch.zeros(1, self.ModelConfig.cell_size, device=self.ModelConfig.device)
-        self.hidden_state_h_v = torch.zeros(1, self.ModelConfig.cell_size, device=self.ModelConfig.device)
-        self.hidden_state_c_v = torch.zeros(1, self.ModelConfig.cell_size, device=self.ModelConfig.device)
+        self.hidden_state_h_p = torch.zeros(
+            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+        )
+        self.hidden_state_c_p = torch.zeros(
+            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+        )
+        self.hidden_state_h_v = torch.zeros(
+            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+        )
+        self.hidden_state_c_v = torch.zeros(
+            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+        )
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.ModelConfig.lr)
 
@@ -207,8 +232,12 @@ class LSTMModel(nn.Module):
         return logits, value
 
     def fit(self, input, y_true):
+        
+        
+
         # Fit the Actor network
         output = self.forward(input)
+        print(output)
 
         # Calculate the loss for the Actor network
         actor_loss = self.my_loss(output, y_true)

@@ -9,7 +9,10 @@ import time
 
 # logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
 # logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s | %(name)s \t| %(levelname)s\t| %(message)s")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(name)s \t| %(levelname)s\t| %(message)s",
+)
 
 env_config = {
     "env_config_dict": {
@@ -91,7 +94,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 5
+    EPOCHS = 1
     SEED = 1
 
     env = get_environment()
@@ -99,33 +102,34 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policy_config = {
-        "a": PolicyConfig(action_space=50, observation_space=obs['0'], name="a"),
+        "a": PolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=2, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
+        minibatch_size=2,
+        policies_configs=policy_config,
+        env=env,
+        seed=SEED,
+        multiprocessing=False,
+        num_workers=1,
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
-    # actions = algorithm.get_actions(obs)
-    # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
-    # algorithm.train_one_step(env)
-
-    # for i in tqdm(range(EPOCHS)):
     for i in range(EPOCHS):
         start = time.time()
         logging.debug(f"Training epoch {i}")
 
         actions = algorithm.get_actions(obs)[0]
-
         obs, rew, done, info = env.step(actions)
         logging.info(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
 
-        # algorithm.train_one_step(env)
+        algorithm.train_one_step(env)
+        sys.exit()
         # logging.info(f"Trained step {i} in {time.time()-start} seconds")
         # print(f"Trained step {i} in {time.time()-start} seconds")
+
     # Kill multi-processes
     # algorithm.kill_processes()
     # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")

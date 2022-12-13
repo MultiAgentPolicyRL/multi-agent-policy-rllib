@@ -4,11 +4,15 @@ Manages batching and multi-agent training.
 """
 import copy
 from multiprocessing import Pipe, Process
+import sys
+
+import torch
 from utils.timeit import timeit
 
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
 from policy.policy import PPOAgent
+
 
 class PpoAlgorithm(object):
     """
@@ -79,11 +83,11 @@ class PpoAlgorithm(object):
         #             self.algorithm_config.agents_name,
         #         )
 
-    def kill_processes(self):
-        for work in self.works:
-            work.terminate()
-            print("TERMINATED:", work)
-            work.join()
+    # def kill_processes(self):
+    #     for work in self.works:
+    #         work.terminate()
+    #         print("TERMINATED:", work)
+    #         work.join()
 
     # @timeit
     # def batch_multi_process(self):
@@ -161,26 +165,25 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         self.batch(env)
-
-        # sys.exit()
         # Pass batch to the correct policy to perform training
-        for key in self.training_policies:
+        for key in self.training_policies:  # pylint: disable = consider-using-dict-items
             # logging.debug(f"Training policy {key}")
             self.training_policies[key].learn(*self.memory.get_memory(key))
 
+        
+
     @timeit
     def batch(self, env):
-        # logging.debug("Batching")
         observation = env.reset()
         steps = 0
 
         # FIXME: add correct data type
         vf_prediction_old = {
-            '0': 0,
-            '1': 0,
-            '2': 0,
-            '3': 0,
-            'p': 0,
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "p": 0,
         }
 
         while steps < self.algorithm_config.batch_size:
@@ -188,8 +191,12 @@ class PpoAlgorithm(object):
             #     logging.debug(f"    step: {steps}")
 
             # Actor picks an action
-            policy_action, policy_action_onehot, policy_prediction, vf_prediction = self.get_actions(
-                observation)
+            (
+                policy_action,
+                policy_action_onehot,
+                policy_prediction,
+                vf_prediction,
+            ) = self.get_actions(observation)
 
             # Retrieve new state, rew
             next_observation, reward, _, _ = env.step(policy_action)
@@ -200,7 +207,10 @@ class PpoAlgorithm(object):
                 next_observation=next_observation,
                 policy_action_onehot=policy_action_onehot,
                 reward=reward,
-                policy_prediction=policy_prediction, vf_prediction=vf_prediction, vf_prediction_old=vf_prediction_old)
+                policy_prediction=policy_prediction,
+                vf_prediction=vf_prediction,
+                vf_prediction_old=vf_prediction_old,
+            )
             # sys.exit()
 
             observation = next_observation
@@ -237,7 +247,7 @@ class PpoAlgorithm(object):
                     actions[key],
                     actions_onehot[key],
                     predictions[key],
-                    values[key]
+                    values[key],
                 ) = self.training_policies[
                     self.algorithm_config.policy_mapping_function(key)
                 ].act(
@@ -246,10 +256,10 @@ class PpoAlgorithm(object):
             else:
                 # tmp to also feed the planner
                 actions[key], actions_onehot[key], predictions[key], values[key] = (
-                    [0, 0, 0, 0, 0, 0, 0],
-                    0,
-                    0,
-                    0,
+                    [torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,))],
+                    torch.zeros((1,)),
+                    torch.zeros((1,)),
+                    torch.zeros((1,)),
                 )
         # logging.debug(actions)
         return actions, actions_onehot, predictions, values
