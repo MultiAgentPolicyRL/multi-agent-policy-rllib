@@ -108,6 +108,17 @@ class PPOAgent:
         return np.vstack(gaes), np.vstack(target)
 
     def learn(
+        # observation, 
+        # next_observation, 
+        # policy_action, 
+        # vf_prediction,
+        # vf_prediction_old, 
+        # reward, 
+        # states_h_p, 
+        # states_c_p, 
+        # states_h_v, 
+        # states_c_v 
+
         self,
         observation: dict,
         next_observation: dict,
@@ -143,11 +154,7 @@ class PPOAgent:
         # stack everything to numpy array
         # pack all advantages, predictions and actions to y_true and when they are received
         # in custom PPO loss function we unpack it
-        # print(policy_action.shape)
-        # sys.exit()
-        y_true = [advantages, np.squeeze(vf_predictions, (1,2)), policy_action, target]
-        print(f"advantages: {advantages}")
-        print(f"y_true_advantages: {y_true[0]}")
+        y_true = np.hstack([advantages, np.squeeze(vf_predictions, (1,2)), policy_action, target])
 
         logging.debug(f"     Data prep required: {time.time()-tempo}s")
         tempo = time.time()
@@ -170,10 +177,10 @@ class PPOAgent:
                     observation["world-idx_map"], axis=1
                 ),
                 tf.keras.backend.expand_dims(
-                    observation["time"], axis=1
+                    observation["flat"], axis=1
                 ),
                 tf.keras.backend.expand_dims(
-                    observation["flat"], axis=1
+                    observation["time"], axis=1
                 ),
                 tf.keras.backend.expand_dims(
                     observation["action_mask"], axis=1
@@ -190,7 +197,7 @@ class PPOAgent:
         # training Actor and Critic networks
         # state, seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v
         
-        # a,b,c,d,e,f,g,h,i,j = get_input()
+        a,b,c,d,e,f,g,h,i,j = get_input()
         # print(a.shape)
         # print(b.shape)
         # print(c.shape)
@@ -217,7 +224,7 @@ class PPOAgent:
 
         logging.debug(f"     Fit Actor Network required {time.time()-tempo}s")
         logging.debug(f"        Actor loss: {a_loss.history['loss'][-1]}")
-        # sys.exit("POLicY riga 154")
+        sys.exit("POLicY riga 154")
 
         # tempo = time.time()
         # c_loss = self.Critic.critic.fit(

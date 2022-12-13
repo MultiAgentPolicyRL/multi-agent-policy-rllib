@@ -95,11 +95,11 @@ class PpoAlgorithm(object):
         state = env.reset()
         steps = 0
         vf_prediction_old = {
-            '0': tf.zeros((1,1,1), dtype=tf.dtypes.float32, name=None),
-            '1': tf.zeros((1,1,1), dtype=tf.dtypes.float32, name=None),
-            '2': tf.zeros((1,1,1), dtype=tf.dtypes.float32, name=None),
-            '3': tf.zeros((1,1,1), dtype=tf.dtypes.float32, name=None),
-            'p': tf.zeros((1,1,1), dtype=tf.dtypes.float32, name=None),
+            '0': np.array([0.0]),
+            '1': np.array([0.0]),
+            '2': np.array([0.0]),
+            '3': np.array([0.0]),
+            'p': np.array([0.0])
         }
         
 
