@@ -143,10 +143,25 @@ class PPOAgent:
         # Compute discounted rewards and advantages
         # GAE
         tempo = time.time()
-        
+
+        # print(f"VF PREDICTIONS OLD: {np.squeeze(vf_predictions_old)}")
+        # print(f"VF PREDICTIONS {np.squeeze(vf_predictions)}")
+
         advantages, target = self._get_gaes(
             np.array(reward), np.squeeze(np.squeeze(vf_predictions_old)), np.squeeze(np.squeeze(vf_predictions))
         )
+
+        # print(advantages.shape)
+        # print(np.squeeze(vf_predictions, (1,2)).shape)
+        # print(policy_action.shape)
+        # print(target.shape)
+        # sys.exit("POLicY riga 154")
+
+        # print(advantages)
+        # print(target)
+
+        # sys.exit("POLicY riga 154")
+
 
         logging.debug(f"     Gaes required {time.time()-tempo}s")
 
@@ -166,52 +181,9 @@ class PPOAgent:
         # state_in_h_v[key],
         # state_in_c_v[key],
 
-
-        ##### TMP STUFF ######
-        def get_input():
-            input = [
-                tf.keras.backend.expand_dims(
-                   observation["world-map"], axis=1
-                ),
-                tf.keras.backend.expand_dims(
-                    observation["world-idx_map"], axis=1
-                ),
-                tf.keras.backend.expand_dims(
-                    observation["flat"], axis=1
-                ),
-                tf.keras.backend.expand_dims(
-                    observation["time"], axis=1
-                ),
-                tf.keras.backend.expand_dims(
-                    observation["action_mask"], axis=1
-                ),
-                tf.convert_to_tensor(np.array([2,2,2,2,2,2,2,2])),
-                tf.convert_to_tensor(np.squeeze(states_h_p)),
-                tf.convert_to_tensor(np.squeeze(states_c_p)),
-                tf.convert_to_tensor(np.squeeze(states_h_v)),
-                tf.convert_to_tensor(np.squeeze(states_c_v)),
-            ]
-            return input
-
-
         # training Actor and Critic networks
-        # state, seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v
-        
-        a,b,c,d,e,f,g,h,i,j = get_input()
-        # print(a.shape)
-        # print(b.shape)
-        # print(c.shape)
-        # print(d.shape)
-        # print(e.shape)
-        # print(f.shape)
-        # print(g.shape)
-        # print(h.shape)
-        # print(i.shape)
-        # print(j.shape)
-        # sys.exit()
-        
         a_loss = self.Model.model.fit(
-            x=[*get_input()],
+            x=[observation, 2, states_h_p, states_c_p, states_h_v, states_c_v],
             y=y_true,
             epochs=self.policy_config.agents_per_possible_policy
             * self.policy_config.num_workers,
@@ -267,4 +239,41 @@ class PPOAgent:
             return "a"
         return "p"
 
-    
+    # @deprecated
+    # def build_action_dict(self, obs: dict):
+    #     """
+
+
+    #     Build an action dictionary that can be used in training
+    #     FIXME: right now, for developing reasons `p`'s policy doesn't exist and is not manged:
+    #     so paller's action will be `0`
+
+    #     Arguments:
+    #         obs: environment observations
+
+    #     Returns:
+    #         A dictionary containing an action for each agent
+    #     """
+    #     actions = {}
+    #     actions_oneshot = {}
+    #     predictions = {}
+
+    #     for key in obs.keys():
+    #         if self._policy_mapping_fun(key) == "a":
+    #             actions[key], actions_oneshot[key], predictions[key] = self.act(
+    #                 obs[key]
+    #             )
+    #         elif self._policy_mapping_fun(key) == "p":
+    #             actions["p"] = [0, 0, 0, 0, 0, 0, 0]
+    #         else:
+    #             IndexError(f"this actor is not managed by the environment, key: {key}")
+
+    #     return actions, actions_oneshot, predictions
+
+    # @deprecated
+    # def train_one_step_with_batch(self, data):
+    #     """
+    #     Train agents for one step using mini_batching
+    #     """
+    #     data.batch
+    #     self.learn()

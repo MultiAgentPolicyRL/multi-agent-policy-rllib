@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import tensorflow as tf
 import keras.backend as K
@@ -206,10 +205,6 @@ class Model:
             outputs=[logits, values, state_h_p, state_c_p, state_h_v, state_c_v],
         )
         ###
-        self.model.compile(
-                optimizer=tf.keras.optimizers.Adam(learning_rate=0.0003),
-                loss=self.ppo_loss,
-            )
 
         # if log_level == logging.DEBUG:
         self.model.summary()
@@ -281,21 +276,11 @@ class Model:
         FIXME
         Defined in https://arxiv.org/abs/1707.06347
         """
-      
         advantages, prediction_picks, actions = (
             y_true[:, :1],
             y_true[:, 1 : 1 + self.modelConfig.action_space],
             y_true[:, 1 + self.modelConfig.action_space :],
         )
-      
-        print(f"ACTIONS: {actions}")
-        print(f"ACTIONS shape: {actions.shape}")
-        
-        print(f"PREDICTION: {prediction_picks}")
-        print(f"PREDICTION shape: {prediction_picks.shape}")
-
-        sys.exit()
-      
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
 
@@ -318,9 +303,6 @@ class Model:
         )
 
         actor_loss = -tf.keras.backend.mean(tf.keras.backend.minimum(p1, p2))
-
-        critic_loss = k.backend.mean((y_true - y_pred) ** 2)
-
 
         entropy = -(y_pred * tf.keras.backend.log(y_pred + 1e-10))
         entropy = ENTROPY_LOSS * tf.keras.backend.mean(entropy)
