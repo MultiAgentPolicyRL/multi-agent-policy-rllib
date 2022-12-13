@@ -9,12 +9,12 @@ class PolicyConfig:
     a
     """
 
-    def __init__(self, action_space, observation_space=None):
+    def __init__(self, action_space, observation_space=None, name:str=""):
         # self.batch_size = batch_size
         self.observation_space = observation_space
         self.action_space = action_space
         self.model_config = ModelConfig(
-            action_space=action_space, observation_space=observation_space
+            action_space=action_space, observation_space=observation_space, name=name
         )
         self.batch_size = 0
         self.agents_per_possible_policy = 0

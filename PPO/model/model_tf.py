@@ -12,6 +12,7 @@ from model.model_config import ModelConfig
 from functools import wraps
 import time
 
+
 def timeit(func):
     @wraps(func)
     def timeit_wrapper(*args, **kwargs):
@@ -122,31 +123,33 @@ class ActorModel(object):
     def predict(self, obs):
         """
         If you remove the reshape good luck finding that softmax sum != 1.
-        """ 
-        action = np.squeeze(self.actor(
+        """
+        action = np.squeeze(
+            self.actor(
                 [
-                    
                     np.expand_dims(obs["world-map"], 0),
                     np.expand_dims(obs["flat"], 0),
                 ],
-            ))
-        return action/np.sum(action)
+            )
+        )
+        return action / np.sum(action)
 
     # @timeit
     @tf.function
     def predict(self, obs):
         """
         If you remove the reshape good luck finding that softmax sum != 1.
-        """ 
-        action = tf.squeeze(self.actor(
+        """
+        action = tf.squeeze(
+            self.actor(
                 [
-                    
                     tf.expand_dims(obs["world-map"], 0),
                     tf.expand_dims(obs["flat"], 0),
                 ],
-            ))
-        return tf.divide(action,tf.reduce_sum(action))
-    
+            )
+        )
+        return tf.divide(action, tf.reduce_sum(action))
+
     # @timeit
     # def batch_predict(self, obs: list):
     #     """

@@ -6,27 +6,14 @@ import logging
 import random
 import sys
 import time
-from functools import wraps
 
 import numpy as np
-import tensorflow as tf
-import torch 
-from deprecated import deprecated
+# import tensorflow as tf
+import torch
 from model.model import LSTMModel
 from policy.policy_config import PolicyConfig
+from utils.timeit import timeit
 
-
-def timeit(func):
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
-        return result
-
-    return timeit_wrapper
 
 class PPOAgent:
     """
@@ -57,7 +44,7 @@ class PPOAgent:
         # self.Actor = ActorModel(policy_config.model_config)
         # self.Critic = CriticModel(policy_config.model_config)
 
-        self.Model : LSTMModel = LSTMModel(obs=policy_config.observation_space, name="Model_a")
+        self.Model : LSTMModel = LSTMModel(policy_config.model_config)
 
         # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
         # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
@@ -106,7 +93,6 @@ class PPOAgent:
         return action, action_onehot, logits, value
 
     # @timeit
-    # @tf.function
     def _get_gaes(
         self,
         rewards,
@@ -211,19 +197,19 @@ class PPOAgent:
 
         logging.debug(f"        Critic loss: {c_loss.history['loss'][-1]}")
 
-    def _load(self) -> None:
-        """
-        Save Actor and Critic weights'
-        """
-        self.Actor.actor.load_weights(self.Actor_name)
-        self.Critic.critic.load_weights(self.Critic_name)
+    # def _load(self) -> None:
+    #     """
+    #     Save Actor and Critic weights'
+    #     """
+    #     self.Actor.actor.load_weights(self.Actor_name)
+    #     self.Critic.critic.load_weights(self.Critic_name)
 
-    def _save(self) -> None:
-        """
-        Load Actor and Critic weights'
-        """
-        self.Actor.actor.save_weights(self.Actor_name)
-        self.Critic.critic.save_weights(self.Critic_name)
+    # def _save(self) -> None:
+    #     """
+    #     Load Actor and Critic weights'
+    #     """
+    #     self.Actor.actor.save_weights(self.Actor_name)
+    #     self.Critic.critic.save_weights(self.Critic_name)
 
     def _policy_mapping_fun(self, i: str) -> str:
         """

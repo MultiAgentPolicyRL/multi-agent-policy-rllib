@@ -3,50 +3,12 @@ PPO's top level algorithm.
 Manages batching and multi-agent training.
 """
 import copy
-import logging
 from multiprocessing import Pipe, Process
-import sys
+from utils.timeit import timeit
 
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
 from policy.policy import PPOAgent
-from functools import wraps
-import time
-
-
-def timeit(func):
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        logging.debug(
-            f"Function {func.__name__} Took {total_time:.4f} seconds")
-        return result
-
-    return timeit_wrapper
-
-
-class Environment(Process):
-    def __init__(self, env, seed, child_conn):
-        super(Environment, self).__init__()
-        self.env = copy.deepcopy(env)
-        self.env.seed(seed)
-        self.child_conn = child_conn
-        self.obs = self.env.reset()
-
-    def run(self):
-        super(Environment, self).run()
-        self.child_conn.send(self.obs)
-
-        while True:
-            action = self.child_conn.recv()
-
-            state, reward, _, _ = self.env.step(action)
-
-            self.child_conn.send([state, reward])
-
 
 class PpoAlgorithm(object):
     """
@@ -123,66 +85,66 @@ class PpoAlgorithm(object):
             print("TERMINATED:", work)
             work.join()
 
-    @timeit
-    def batch_multi_process(self):
-        for idx in range(self.algorithm_config.num_workers):
-            self.memory_dictionary[idx].reset_memory()
+    # @timeit
+    # def batch_multi_process(self):
+    #     for idx in range(self.algorithm_config.num_workers):
+    #         self.memory_dictionary[idx].reset_memory()
 
-        step = 0
-        while (
-            step < self.algorithm_config.batch_size // self.algorithm_config.num_workers
-        ):
-            # logging.debug(f"Batching step: {step}x{self.algorithm_config.num_workers}")
-            for idx in range(self.algorithm_config.num_workers):
-                (
-                    self.batch_memory_dictionary[idx]["action"],
-                    self.batch_memory_dictionary[idx]["action_onehot"],
-                    self.batch_memory_dictionary[idx]["prediction"],
-                ) = self.get_actions(self.batch_memory_dictionary[idx]["state"])
+    #     step = 0
+    #     while (
+    #         step < self.algorithm_config.batch_size // self.algorithm_config.num_workers
+    #     ):
+    #         # logging.debug(f"Batching step: {step}x{self.algorithm_config.num_workers}")
+    #         for idx in range(self.algorithm_config.num_workers):
+    #             (
+    #                 self.batch_memory_dictionary[idx]["action"],
+    #                 self.batch_memory_dictionary[idx]["action_onehot"],
+    #                 self.batch_memory_dictionary[idx]["prediction"],
+    #             ) = self.get_actions(self.batch_memory_dictionary[idx]["state"])
 
-            for worker_id, parent_conn in enumerate(self.parent_conns):
-                parent_conn.send(
-                    self.batch_memory_dictionary[worker_id]["action"])
+    #         for worker_id, parent_conn in enumerate(self.parent_conns):
+    #             parent_conn.send(
+    #                 self.batch_memory_dictionary[worker_id]["action"])
 
-            # Retrieve new state, rew
-            for worker_id, parent_conn in enumerate(self.parent_conns):
-                (
-                    self.batch_memory_dictionary[worker_id]["next_state"],
-                    self.batch_memory_dictionary[worker_id]["reward"],
-                ) = parent_conn.recv()
-            # next_state, reward, _, _ = env.step(action)
+    #         # Retrieve new state, rew
+    #         for worker_id, parent_conn in enumerate(self.parent_conns):
+    #             (
+    #                 self.batch_memory_dictionary[worker_id]["next_state"],
+    #                 self.batch_memory_dictionary[worker_id]["reward"],
+    #             ) = parent_conn.recv()
+    #         # next_state, reward, _, _ = env.step(action)
 
-            # Memorize (state, action, reward) for trainig
-            for idx in range(self.algorithm_config.num_workers):
-                self.memory_dictionary
-            # self.memory.update_memory(
-            #     state, next_state, action_onehot, reward, prediction
-            # )
+    #         # Memorize (state, action, reward) for trainig
+    #         for idx in range(self.algorithm_config.num_workers):
+    #             self.memory_dictionary
+    #         # self.memory.update_memory(
+    #         #     state, next_state, action_onehot, reward, prediction
+    #         # )
 
-            # update state for next step
-            for idx in range(self.algorithm_config.num_workers):
-                # state, next_state, action_onehot, reward, prediction
-                self.memory_dictionary[idx].update_memory(
-                    self.batch_memory_dictionary[idx]["state"],
-                    self.batch_memory_dictionary[idx]["next_state"],
-                    self.batch_memory_dictionary[idx]["action_onehot"],
-                    self.batch_memory_dictionary[idx]["reward"],
-                    self.batch_memory_dictionary[idx]["prediction"]
-                )
+    #         # update state for next step
+    #         for idx in range(self.algorithm_config.num_workers):
+    #             # state, next_state, action_onehot, reward, prediction
+    #             self.memory_dictionary[idx].update_memory(
+    #                 self.batch_memory_dictionary[idx]["state"],
+    #                 self.batch_memory_dictionary[idx]["next_state"],
+    #                 self.batch_memory_dictionary[idx]["action_onehot"],
+    #                 self.batch_memory_dictionary[idx]["reward"],
+    #                 self.batch_memory_dictionary[idx]["prediction"]
+    #             )
 
-                self.batch_memory_dictionary[idx][
-                    "state"
-                ] = self.batch_memory_dictionary[idx]["next_state"]
+    #             self.batch_memory_dictionary[idx][
+    #                 "state"
+    #             ] = self.batch_memory_dictionary[idx]["next_state"]
 
-            step += 1
+    #         step += 1
 
-        # Get total memory
-        print("getting memory")
-        for idx in range(self.algorithm_config.num_workers):
-            self.memory += self.memory_dictionary[idx]
+    #     # Get total memory
+    #     print("getting memory")
+    #     for idx in range(self.algorithm_config.num_workers):
+    #         self.memory += self.memory_dictionary[idx]
 
-        # self.kill_processes()
-        # sys.exit()
+    #     # self.kill_processes()
+    #     # sys.exit()
 
     def train_one_step(
         self,
@@ -291,3 +253,23 @@ class PpoAlgorithm(object):
                 )
         # logging.debug(actions)
         return actions, actions_onehot, predictions, values
+
+
+# class Environment(Process):
+#     def __init__(self, env, seed, child_conn):
+#         super(Environment, self).__init__()
+#         self.env = copy.deepcopy(env)
+#         self.env.seed(seed)
+#         self.child_conn = child_conn
+#         self.obs = self.env.reset()
+
+#     def run(self):
+#         super(Environment, self).run()
+#         self.child_conn.send(self.obs)
+
+#         while True:
+#             action = self.child_conn.recv()
+
+#             state, reward, _, _ = self.env.step(action)
+
+#             self.child_conn.send([state, reward])

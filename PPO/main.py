@@ -1,20 +1,15 @@
 import logging
-import os
 import sys
 
-# import tensorflow as tf
 from algorithm.algorithm import PpoAlgorithm
 from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
-# from ai_economist import foundation
 import time
-# from tqdm import tqdm
 
 # logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
-
 # logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s | %(name)s \t| %(levelname)s\t| %(message)s")
 
 env_config = {
     "env_config_dict": {
@@ -96,7 +91,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 1
+    EPOCHS = 5
     SEED = 1
 
     env = get_environment()
@@ -104,7 +99,7 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policy_config = {
-        "a": PolicyConfig(action_space=50, observation_space=obs['0']),
+        "a": PolicyConfig(action_space=50, observation_space=obs['0'], name="a"),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
@@ -128,9 +123,9 @@ if __name__ == "__main__":
         logging.info(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
 
-        algorithm.train_one_step(env)
-        logging.info(f"Trained step {i} in {time.time()-start} seconds")
-        print(f"Trained step {i} in {time.time()-start} seconds")
+        # algorithm.train_one_step(env)
+        # logging.info(f"Trained step {i} in {time.time()-start} seconds")
+        # print(f"Trained step {i} in {time.time()-start} seconds")
     # Kill multi-processes
     # algorithm.kill_processes()
     # foundation.utils.save_episode_log(env.env, "./dioawnsdo.lz4")
