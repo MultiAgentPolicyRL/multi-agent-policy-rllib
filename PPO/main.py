@@ -8,10 +8,8 @@ from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
 from ai_economist import foundation
-from model.new_model_config import ModelConfig
 import time
 from tqdm import tqdm
-import numpy as np
 
 # logging.basicConfig(filename="nomirror.txt",level=logging.DEBUG, format="")
 # tf.config.run_functions_eagerly(True)
@@ -98,6 +96,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
+
     EPOCHS = 5
     SEED = 1
 
@@ -105,57 +104,36 @@ if __name__ == "__main__":
     env.seed(SEED)
     obs = env.reset()
 
-    modelConfigAgents = ModelConfig(
-        observation_space=obs.get("0"),
-        action_space=50,
-        emb_dim=4,
-        cell_size=128,
-        input_emb_vocab=100,
-        num_conv=2,
-        fc_dim=128,
-        num_fc=2,
-        filtering=(16, 32),
-        kernel_size=(3, 3),
-        strides=2,
-    )
-
     policy_config = {
-        "a": PolicyConfig(action_space=50, observation_space=env.observation_space, modelConfig=modelConfigAgents),
+        "a": PolicyConfig(action_space=50, observation_space=env.observation_space),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=2,
+        minibatch_size=1000,
         policies_configs=policy_config,
         env=env,
         seed=SEED,
+        multiprocessing=False,
+        num_workers=1,
     )
-
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
     # actions = algorithm.get_actions(obs)
     # obs, rew, done, info = env.step(algorithm.get_actions(obs)[0])
     # algorithm.train_one_step(env)
 
-    state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v = {},{},{},{}
-    for key in ['0','1','2','3']:
-        state_in_h_p[key] = np.zeros((1,128), np.float32)
-        state_in_c_p[key] = np.zeros((1,128), np.float32)
-        state_in_h_v[key] = np.zeros((1,128), np.float32)
-        state_in_c_v[key] = np.zeros((1,128), np.float32)
-
     # for i in tqdm(range(EPOCHS)):
     for i in range(EPOCHS):
         start = time.time()
         logging.debug(f"Training epoch {i}")
-        actions, actions_onehot, predictions, values, states_h_p, states_c_p, states_h_v, states_c_v = algorithm.get_actions(obs,1, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v)
-        # print(actions)
-        obs, rew, done, info = env.step(actions)
 
+        actions = algorithm.get_actions(obs)[0]
+
+        obs, rew, done, info = env.step(actions)
         logging.debug(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
-        algorithm.train_one_step(env, states_h_p, states_c_p, states_h_v, states_c_v)
-        sys.exit("exit main 155")
+        algorithm.train_one_step(env)
         logging.debug(f"Trained step {i} in {time.time()-start} seconds")
         print(f"Trained step {i} in {time.time()-start} seconds")
     # Kill multi-processes
