@@ -1,9 +1,9 @@
 # from ai_economist import foundation
 # from env_wrapper import EnvWrapper
-# import numpy as np
-# import time
-# import tensorflow as tf
-# import tf_agents
+import numpy as np
+import time
+import tensorflow as tf
+import tf_agents
 
 # env_config = {
 #     "env_config_dict": {
@@ -86,49 +86,37 @@
 #     return EnvWrapper(env_config)
 
 if __name__ == "__main__":
+    tf
+#     # env = get_environment()
+#     # env.seed(1)
+#     # env.env.save_game_object(".")
+#     # obs = env.reset()
 
-    # a = {
-    #     'a': "banana"
-    # }
+#     # print(env.observation_space)
+#     # print(env.observation_space_pl)
+#     # help(env.env)
+#     # env.env.previous_episode_replay_log
 
-    # b = {
-    #     'a': "casa"
-    # }
+#     # foundation.utils.save_episode_log(env.env, "./dioawnsdo")
+#     # print(env.n_agents)
 
+#     # ablka = {
+#     #     '1': 20,
+#     #     'p': 'a'
+#     # }
+#     # print('a' in ablka)
 
-    # c = {
-    #     'a': []
-    # }
-    # for key, value in b.items():
-    #     c[key].append(value)
+#     # print(env.action_space.__len__)
+#     # env.save_game_object(".")
 
-    # print(c)
+#     i = 0
 
-    lista = [1,2,3,4]
-    lista.append([1,2,3])
-    print(lista)
-    lista.extend([7,8,9])
-    print(lista)
-
-
-
-    # dizionario = {}
-    # for key in dati:
-    #     dizionario[key] = {}
-    # print(dizionario)
-
-    # dizionario = { key : [] for key in dati }
-    # print(type(dizionario['a']))
-
-
-    # data = {
-    #     'a': {'a':'abla'},
-    #     1: 'cacca',
-    # }
-
-    # print(data)
-    # data['a'].clear()
-    # print(data)
+#     stats = {
+#     '0': 0,
+#     '1': 0,
+#     '2': 0,
+#     '3': 0
+#     }
 
 #     while i < 1500:
 #         start = time.time()

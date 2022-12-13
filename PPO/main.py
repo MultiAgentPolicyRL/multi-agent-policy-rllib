@@ -11,8 +11,8 @@ from ai_economist import foundation
 import time
 from tqdm import tqdm
 
-# logging.basicConfig(filename="nomirror.txt",level=logging.DEBUG, format="")
-# tf.config.run_functions_eagerly(True)
+# logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
+
 # logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(message)s")
 
@@ -95,9 +95,8 @@ def get_environment():
     return EnvWrapper(env_config)
 
 
-if __name__ == "__main__":  
-
-    EPOCHS = 5
+if __name__ == "__main__":
+    EPOCHS = 1
     SEED = 1
 
     env = get_environment()

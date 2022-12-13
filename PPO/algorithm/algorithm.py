@@ -12,7 +12,6 @@ from memory import BatchMemory
 from policy.policy import PPOAgent
 from functools import wraps
 import time
-import tensorflow as tf
 
 
 def timeit(func):
@@ -81,11 +80,11 @@ class PpoAlgorithm(object):
             )
 
         # Setup batch memory
+        # FIXME: doesn't work with `self.algorithm_config.policy_mapping_fun` reference
         self.memory = BatchMemory(
             self.algorithm_config.policy_mapping_function,
             self.algorithm_config.policies_configs,
             self.algorithm_config.agents_name,
-            self.algorithm_config.env
         )
 
         if self.algorithm_config.multiprocessing:
@@ -203,7 +202,7 @@ class PpoAlgorithm(object):
 
             state = next_state
             steps += 1
-    
+
     def train_one_step(
         self,
         env,
@@ -215,6 +214,7 @@ class PpoAlgorithm(object):
         """
         # Resetting memory
         self.memory.reset_memory()
+
         env = copy.deepcopy(env)
 
         # state = obs
@@ -225,7 +225,7 @@ class PpoAlgorithm(object):
         else:
             NotImplementedError("DONT USE ME")
             self.batch_multi_process()
-
+        # sys.exit()
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
             # logging.debug(f"Training policy {key}")
