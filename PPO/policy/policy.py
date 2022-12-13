@@ -2,17 +2,18 @@
 docs about this file
 """
 import copy
-from functools import wraps
 import logging
 import random
 import sys
+import time
+from functools import wraps
 
 import numpy as np
 import tensorflow as tf
+import torch 
 from deprecated import deprecated
-from model.model import ActorModel, CriticModel
+from model.model import LSTMModel
 from policy.policy_config import PolicyConfig
-import time
 
 
 def timeit(func):
@@ -26,10 +27,6 @@ def timeit(func):
         return result
 
     return timeit_wrapper
-
-
-# @tf.function(jit_compile=True)
-
 
 class PPOAgent:
     """
@@ -45,51 +42,68 @@ class PPOAgent:
         self.batch_size = self.policy_config.batch_size  # training epochs
         self.shuffle = False
 
-        # if policy_config is not None:
-        #     self.action_space = policy_config["action_space"]
-        #     self.observation_space:  gym.spaces = policy_config["observation_space"]
+        # # if policy_config is not None:
+        # #     self.action_space = policy_config["action_space"]
+        # #     self.observation_space:  gym.spaces = policy_config["observation_space"]
 
-        # Instantiate plot memory
-        self.scores_, self.episodes_, self.average_ = (
-            [],
-            [],
-            [],
-        )  # used in matplotlib plots
+        # # Instantiate plot memory
+        # self.scores_, self.episodes_, self.average_ = (
+        #     [],
+        #     [],
+        #     [],
+        # )  # used in matplotlib plots
 
-        # Create Actor-Critic network models
-        self.Actor = ActorModel(policy_config.model_config)
-        self.Critic = CriticModel(policy_config.model_config)
+        # # Create Actor-Critic network models
+        # self.Actor = ActorModel(policy_config.model_config)
+        # self.Critic = CriticModel(policy_config.model_config)
+
+        self.Model : LSTMModel = LSTMModel(obs=policy_config.observation_space, name="Model_a")
 
         # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
         # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
 
     def act(self, state):
         """
-        No idea why with numpy isnt working.
+        Gets an action and vf value from the model.
 
-        example:
-        pred = np.array([0.05, 0.85, 0.1])
-        action_size = 3
-        np.random.choice(a, p=pred)
-        result>>> 1, because it have the highest probability to be taken
+        Args:
+            state: actor state (dict)
+        
+        Returns:
+            action: single action in [0, self.action_space] from logits distribution
+            action_one_hot: one hot encoding for selected action 
+            logits: actions probabiliy distribution
+            value: vf value
+
         """
         # Use the network to predict the next action to take, using the model
-        # start_time = time.perf_counter()
-        prediction = self.Actor.predict(state)
-        # print(f"    PREDICTION TIME: {time.perf_counter()-start_time}")
-        # logging.debug(f"ACTING AAAAA {prediction}")
-        # action = int(random.choices(state["action_mask"], weights=prediction)[0])
-        # start_time = time.perf_counter()
-        
-        # action = int(random.choices(np.arange(50), weights=prediction)[0])
-        # print(f"    RANDOM CHOICES TIME: {time.perf_counter()-start_time}")
-        action = np.random.choice(np.arange(50), p=prediction)
-        # start_time = time.perf_counter()
-        action_onehot = np.zeros([self.action_space])
-        # print(f"    NP ZEROS TIME: {time.perf_counter()-start_time}")
-        action_onehot[action] = 1
+        # Logits: action distribution w/applied mask 
+        # Value: value function result
+        # for key in state.keys():
+        #     state[key] = torch.tensor(state[key])
 
-        return action, action_onehot, prediction
+        input_state = [
+                torch.FloatTensor(state["world-map"]).unsqueeze(0),
+                torch.FloatTensor(state["world-idx_map"]).unsqueeze(0),
+                torch.FloatTensor(state["time"]).unsqueeze(0),
+                torch.FloatTensor(state["flat"]).unsqueeze(0),
+                torch.FloatTensor(state["action_mask"]).unsqueeze(0),
+            ]
+
+        # Get the prediction from the Actor network        
+        with torch.no_grad():
+            logits, value = self.Model(input_state)
+
+        prediction = torch.squeeze(logits)
+        # print(value)
+        # Sample an action from the prediction distribution
+        action = torch.FloatTensor(random.choices(np.arange(self.action_space), weights=prediction.detach().numpy()))
+        
+        # One-hot encode the action
+        action_onehot = torch.zeros([self.action_space])
+        action_onehot[int(action.item())] = 1
+
+        return action, action_onehot, logits, value
 
     # @timeit
     # @tf.function
@@ -122,67 +136,42 @@ class PPOAgent:
 
     def learn(
         self,
-        states: list,
-        actions: list,
+        observations: list,
+        next_observations: list,
+        policy_actions: list,
+        policy_predictions: list,
         rewards: list,
-        predictions: list,
-        next_states: list,
+        vf_predictions: list,
+        vf_predictions_old: list,
     ):
         """
         Train Policy networks
         """
         # Get Critic network predictions
-        #values = self.Critic.batch_predict(np.array(states))
-        #next_values = self.Critic.batch_predict(next_states)
         tempo = time.time()
-        # values = [self.Critic.predict(state) for state in states]
-        # next_values = [self.Critic.predict(state) for state in next_states]
-        values = self.Critic.batch_predict(states)
-        next_values = self.Critic.batch_predict(next_states)
+        sys.exit()
+
+        values = self.Critic.batch_predict(observations)
+        next_values = self.Critic.batch_predict(next_observations)
+        
         logging.debug(f"     Values and next_values required {time.time()-tempo}s")
 
         # Compute discounted rewards and advantages
         # GAE
         tempo = time.time()
+        
         advantages, target = self._get_gaes(
             rewards, np.squeeze(values), np.squeeze(next_values)
         )
 
         logging.debug(f"     Gaes required {time.time()-tempo}s")
-        # sys.exit()
-
         
-        tempo = time.time()
         # stack everything to numpy array
         # pack all advantages, predictions and actions to y_true and when they are received
         # in custom PPO loss function we unpack it
-        y_true = np.hstack([advantages, predictions, actions])
-        # print(y_true.shape)                       (n_agents*steps, 101) -> 101 = 1+50+50
-        # print(advantages.shape)                   (n_agents*steps, 1)
-        # print(np.array(predictions).shape)        (n_agents*steps, 50)
-        # print(np.array(actions).shape)            (n_agents*steps, 50)
-
-        world_map = []
-        flat = []
-        for s in states:
-            world_map.append(
-                tf.convert_to_tensor(
-                    s["world-map"],
-                )
-            )
-
-            flat.append(
-                tf.convert_to_tensor(
-                    s["flat"],
-                )
-            )
-
-        y_true = tf.convert_to_tensor(y_true)
-        world_map = tf.convert_to_tensor(world_map)
-        flat = tf.convert_to_tensor(flat)
+        tempo = time.time()
+        y_true = np.hstack([advantages, vf_predictions, policy_actions])
         logging.debug(f"     Data prep required: {time.time()-tempo}s")
-
-
 
         tempo = time.time()
 
@@ -247,42 +236,3 @@ class PPOAgent:
         if str(i).isdigit() or i == "a":
             return "a"
         return "p"
-
-    @deprecated
-    def build_action_dict(self, obs: dict):
-        """
-
-
-        Build an action dictionary that can be used in training
-        FIXME: right now, for developing reasons `p`'s policy doesn't exist and is not manged:
-        so paller's action will be `0`
-
-        Arguments:
-            obs: environment observations
-
-        Returns:
-            A dictionary containing an action for each agent
-        """
-        actions = {}
-        actions_oneshot = {}
-        predictions = {}
-
-        for key in obs.keys():
-            if self._policy_mapping_fun(key) == "a":
-                actions[key], actions_oneshot[key], predictions[key] = self.act(
-                    obs[key]
-                )
-            elif self._policy_mapping_fun(key) == "p":
-                actions["p"] = [0, 0, 0, 0, 0, 0, 0]
-            else:
-                IndexError(f"this actor is not managed by the environment, key: {key}")
-
-        return actions, actions_oneshot, predictions
-
-    @deprecated
-    def train_one_step_with_batch(self, data):
-        """
-        Train agents for one step using mini_batching
-        """
-        data.batch
-        self.learn()

@@ -1,261 +1,221 @@
-"""
-tf.kears actor-critic model
-"""
+import os
+import torch
 import logging
-import sys
-
-# from gym.spaces import MultiDiscrete
-import keras as k
 import numpy as np
-import tensorflow as tf
-from model.model_config import ModelConfig
-from functools import wraps
-import time
+import torch.nn as nn
 
-def timeit(func):
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        # logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
-        logging.debug(f"{total_time}")
-        return result
-
-    return timeit_wrapper
+from typing import Optional, Tuple, Union
 
 
-def dict_to_tensor_dict(a_dict: dict):
+WORLD_MAP = "world-map"
+WORLD_IDX_MAP = "world-idx_map"
+ACTION_MASK = "action_mask"
+
+
+def apply_logit_mask(logits, mask):
+    """Mask values of 1 are valid actions."
+    " Add huge negative values to logits with 0 mask values."""
+    logit_mask = torch.ones(logits.shape) * -10000000
+    logit_mask = logit_mask * (1 - mask)
+
+    return logits + logit_mask
+
+class LSTMModel(nn.Module):
     """
-    pass a single agent obs, returns it's tensor_dict
-    """
-    tensor_dict = {}
-    for key, value in a_dict.items():
-        tensor_dict[key] = tf.convert_to_tensor(value, name=key)
-        tensor_dict[key] = tf.expand_dims(tensor_dict[key], axis=0)
-
-    return tensor_dict
-
-
-class ActorModel(object):
-    """
-    Network's Actor model
-    """
-
-    def __init__(self, model_config: ModelConfig) -> k.Model:
-        """
-        Builds the model.
-        """
-        self.action_space = model_config.action_space
-
-        with tf.device("CPU:0"):
-            self.cnn_in = k.Input(shape=(7, 11, 11))
-            self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
-            self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
-            self.map_cnn = k.layers.Flatten()(self.map_cnn)
-
-            self.info_input = k.Input(shape=(136))
-            self.mlp1 = k.layers.Concatenate()([self.map_cnn, self.info_input])
-            self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
-            self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
-            self.mlp1 = k.layers.Reshape([1, -1])(self.mlp1)
-
-            self.lstm = k.layers.LSTM(128, unroll=True)(self.mlp1)
-
-            # Policy pi - needs to be a probabiliy value
-            self.action_probs = k.layers.Dense(
-                self.action_space, name="Out_probs_actions", activation="sigmoid"
-            )(self.lstm)
-
-            self.actor: k.Model = k.Model(
-                inputs=[self.cnn_in, self.info_input], outputs=self.action_probs
-            )
-
-            # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
-            self.actor.compile(
-                optimizer=k.optimizers.Adam(learning_rate=0.0003),
-                loss=self.ppo_loss,
-                run_eagerly=False,
-            )
-
-        logging.critical(self.actor.summary())
-
-    def ppo_loss(self, y_true, y_pred):
-        """
-        Defined in https://arxiv.org/abs/1707.06347
-        """
-        advantages, prediction_picks, actions = (
-            y_true[:, :1],
-            y_true[:, 1 : 1 + self.action_space],
-            y_true[:, 1 + self.action_space :],
-        )
-        LOSS_CLIPPING = 0.2
-        ENTROPY_LOSS = 0.001
-
-        prob = actions * y_pred
-        old_prob = actions * prediction_picks
-
-        prob = k.backend.clip(prob, 1e-10, 1.0)
-        old_prob = k.backend.clip(old_prob, 1e-10, 1.0)
-
-        ratio = k.backend.exp(k.backend.log(prob) - k.backend.log(old_prob))
-
-        p1 = ratio * advantages
-        p2 = (
-            k.backend.clip(
-                ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING
-            )
-            * advantages
-        )
-
-        actor_loss = -k.backend.mean(k.backend.minimum(p1, p2))
-
-        entropy = -(y_pred * k.backend.log(y_pred + 1e-10))
-        entropy = ENTROPY_LOSS * k.backend.mean(entropy)
-
-        total_loss = actor_loss - entropy
-
-        return total_loss
-
-    # @timeit
-    def predict(self, obs):
-        """
-        If you remove the reshape good luck finding that softmax sum != 1.
-        """ 
-        action = np.squeeze(self.actor(
-                [
-                    
-                    np.expand_dims(obs["world-map"], 0),
-                    np.expand_dims(obs["flat"], 0),
-                ],
-            ))
-        return action/np.sum(action)
-
-    # @timeit
-    @tf.function
-    def predict(self, obs):
-        """
-        If you remove the reshape good luck finding that softmax sum != 1.
-        """ 
-        action = tf.squeeze(self.actor(
-                [
-                    
-                    tf.expand_dims(obs["world-map"], 0),
-                    tf.expand_dims(obs["flat"], 0),
-                ],
-            ))
-        return tf.divide(action,tf.reduce_sum(action))
+    Actor&Critic (Policy) Model.
+    =====
     
-    # @timeit
-    # def batch_predict(self, obs: list):
-    #     """
-    #     Calculates a batch of prediction for n_obs
-    #     """
-    #     world_map = []
-    #     flat = []
-    #     for element in obs:
-    #         world_map.append(element["world-map"])
-    #         flat.append(element["flat"])
-    #     return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
+    
 
-
-class CriticModel(object):
     """
-    Network's Critic model
-    """
-
-    def __init__(self, model_config: ModelConfig) -> k.Model:
-        """Builds the model. Takes in input the parameters that were not specified in the paper."""
-
-        with tf.device("CPU:0"):
-            cnn_in = k.Input(shape=(7, 11, 11))
-            map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
-            map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
-            map_cnn = k.layers.Flatten()(map_cnn)
-
-            info_input = k.Input(shape=(136))
-            mlp1 = k.layers.Concatenate()([map_cnn, info_input])
-            mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
-            mlp1 = k.layers.Dense(128, activation="relu")(mlp1)
-            mlp1 = k.layers.Reshape([1, -1])(mlp1)
-
-            lstm = k.layers.LSTM(128, unroll=True)(mlp1)
-            # None or tanh, DO NOT USE SOFTMAX!
-            value_pred = k.layers.Dense(1, name="Out_value_function", activation=None)(
-                lstm
-            )
-
-            self.critic: k.Model = k.Model(
-                inputs=[cnn_in, info_input], outputs=value_pred
-            )
-
-            # reason of Adam optimizer https://github.com/ray-project/ray/issues/8091
-            # 0.0003
-            self.critic.compile(
-                optimizer=k.optimizers.Adam(learning_rate=0.0003),
-                loss=self.loss,
-                run_eagerly=False,
-            )
-
-    def loss(self, y_true, y_pred):
+    
+    def __init__(self, obs: dict, name: str, emb_dim: int = 4, cell_size: int = 128, input_emb_vocab: int = 100, num_conv: int = 2, fc_dim: int = 128, num_fc: int = 2, filter: Tuple[int, int]= (16, 32), kernel_size: Tuple[int, int] = (3, 3), strides: int = 2, output_size: int = 50, lr: float = 0.0003, log_level: int = logging.INFO, log_path: str = None, device: str = 'cpu') -> None:
         """
-        PPO's loss function, can be with mean or clipped
+        Initialize the ActorCritic Model.
         """
-        # separate y_pred and values:
-        values = y_pred[1]
-        y_pred = y_pred[0]
+        super(LSTMModel, self).__init__()
 
-        # standard PPO loss
-        # value_loss = k.backend.mean((y_true - y_pred) ** 2)
+        self.name = name
+        # self.logger = get_basic_logger(name, level=log_level, log_path=log_path)
+        self.shapes = dict()
 
-        # L_CLIP
-        LOSS_CLIPPING = 0.2
-        clipped_value_loss = values + k.backend.clip(
-            y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING
+        ### Initialize some variables needed here
+        self.cell_size = cell_size
+        self.num_outputs = output_size
+        self.input_emb_vocab = input_emb_vocab
+        self.emb_dim = emb_dim
+        self.num_conv = num_conv
+        self.fc_dim = fc_dim
+        self.num_fc = num_fc
+        self.filter = filter
+        self.kernel_size = kernel_size
+        self.strides = strides
+        self.lr = lr
+        self.output_size = output_size
+        self.device = device
+
+        ### This is for managing all the possible inputs without having more networks
+        for key, value in obs.items():
+            ### Check if the input must go through a Convolutional Layer
+            if key == ACTION_MASK:
+                pass
+            elif key == WORLD_MAP:
+                self.conv_shape_r, self.conv_shape_c, self.conv_map_channels = (
+                    value.shape[1],
+                    value.shape[2],
+                    value.shape[0],
+                )
+            elif key == WORLD_IDX_MAP:
+                self.conv_idx_channels = value.shape[0] * emb_dim
+        ###
+
+        self.embed_map_idx = nn.Embedding(input_emb_vocab, emb_dim, device=device, dtype=torch.float32)
+        self.conv_layers = nn.ModuleList()
+        self.conv_shape = (self.conv_shape_r, self.conv_shape_c, self.conv_map_channels + self.conv_idx_channels)
+
+        for i in range(1, self.num_conv):
+            if i == 1:
+                self.conv_layers.append(
+                    nn.Conv2d(
+                        in_channels=self.conv_shape[1],
+                        out_channels=filter[0],
+                        kernel_size=kernel_size,
+                        stride=strides,
+                        # padding_mode='same',
+                ))
+            self.conv_layers.append(
+                    nn.Conv2d(
+                        in_channels=filter[0],
+                        out_channels=filter[1],
+                        kernel_size=kernel_size,
+                        stride=strides,
+                        # padding_mode='same',
+                ))
+        
+        self.conv_dims = kernel_size[0] * strides * filter[1]
+        self.flatten_dims = self.conv_dims + obs['flat'].shape[0] + len(obs['time'])
+        self.fc_layer_1 = nn.Linear(in_features=self.flatten_dims, out_features=fc_dim)
+        self.fc_layer_2 = nn.Linear(in_features=fc_dim, out_features=fc_dim)
+        self.lstm = nn.LSTM(
+            input_size=fc_dim,
+            hidden_size=cell_size,
+            num_layers=1,
         )
-        v_loss1 = (y_true - clipped_value_loss) ** 2
-        v_loss2 = (y_true - y_pred) ** 2
-        value_loss = 0.5 * k.backend.mean(k.backend.maximum(v_loss1, v_loss2))
-        return value_loss
+        self.layer_norm = nn.LayerNorm(fc_dim)
+        self.output_policy = nn.Linear(in_features=cell_size, out_features=output_size)
+        self.output_value = nn.Linear(in_features=cell_size, out_features=1)
 
-        # return loss
+        self.relu = nn.ReLU()
 
-    # def predict(self, obs_predict: dict):
-    #     """
-    #     a
-    #     """
-    #     if self.critic.run_eagerly:
-    #         return self.critic(
-    #             [
-    #                 k.backend.expand_dims(obs_predict["world-map"], 0),
-    #                 k.backend.expand_dims(obs_predict["flat"], 0),
-    #             ]
-    #         )
-    #     action = self.critic.predict(
-    #         [
-    #             k.backend.expand_dims(obs_predict["world-map"], 0),
-    #             k.backend.expand_dims(obs_predict["flat"], 0),
-    #         ],
-    #         verbose=False,
-    #         use_multiprocessing=True,
-    #         steps=1,
-    #     )
+        self.hidden_state_h_p = torch.zeros(1, self.cell_size, device=self.device)
+        self.hidden_state_c_p = torch.zeros(1, self.cell_size, device=self.device)
+        self.hidden_state_h_v = torch.zeros(1, self.cell_size, device=self.device)
+        self.hidden_state_c_v = torch.zeros(1, self.cell_size, device=self.device)
 
-    #     # logging.debug(f"action")
-    #     return action
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        
+        # self.logger.info("Model created successfully")
 
-    # @timeit
-    # @tf.function
-    def batch_predict(self, obs: list):
-        """
-        Calculates a batch of prediction for n_obs
-        """
-        world_map = []
-        flat = []
-        for element in obs:
-            world_map.append(element["world-map"])
-            flat.append(element["flat"])
-        # print(type(world_map), type(world_map[0]))
-        # print(type(flat), type(flat[0]))
-        return self.critic.predict_on_batch([np.array(world_map), np.array(flat)])
+    # @time_it
+    def forward(self, input: dict):
+        if isinstance(input, dict):
+            _world_map = input[WORLD_MAP]
+            _world_idx_map = input[WORLD_IDX_MAP]
+            _flat = input["flat"]
+            _time = input["time"]
+            _action_mask = input[ACTION_MASK]
+        else:
+            _world_map = input[0]
+            _world_idx_map = input[1].long()
+            _flat = input[2]
+            _time = input[3]
+            _action_mask = input[4]
+
+        if self.name == 'p':
+            _p0 = input["p0"]
+            _p1 = input["p1"]
+            _p2 = input["p2"]
+            _p3 = input["p3"]
+
+        conv_input_map = torch.permute(_world_map, (0, 2, 3, 1))
+        conv_input_idx = torch.permute(_world_idx_map, (0, 2, 3, 1))
+
+        # Concatenate the remainings of the input
+        if self.name == 'p':
+            non_convolutional_input = torch.cat(
+                [
+                    _flat,
+                    _time,
+                    _p0,
+                    _p1,
+                    _p2,
+                    _p3,
+                ],
+                axis=1,
+            )
+        else:
+            non_convolutional_input = torch.cat(
+                [
+                    _flat,
+                    _time,
+                ],
+                axis=1,
+            )
+        
+        for tag in ['_policy', '_value']:
+            # Embedd from 100 to 4
+            map_embedd = self.embed_map_idx(conv_input_idx) # TO CHECK WHICH IS THE INPUT -- DONE
+            # Reshape the map
+            map_embedd = torch.reshape(map_embedd, (-1, self.conv_shape_r, self.conv_shape_c, self.conv_idx_channels))
+            # Concatenate the map and the idx map
+            conv_input = torch.cat([conv_input_map, map_embedd], axis=-1)
+            # Convolutional Layers
+            for conv_layer in self.conv_layers:
+                conv_input = self.relu(conv_layer(conv_input))
+            # Flatten the output of the convolutional layers
+            flatten = torch.reshape(conv_input, (-1, self.conv_dims)) # 192 is from 32 * 3 * 2
+            # Concatenate the convolutional output with the non convolutional input
+            fc_in = torch.cat([flatten, non_convolutional_input], axis=-1)
+            # Fully Connected Layers
+            for i in range(self.num_fc):
+                if i == 0:
+                    fc_in = self.relu(self.fc_layer_1(fc_in))
+                else:
+                    fc_in = self.relu(self.fc_layer_2(fc_in))
+            # Normalize the output
+            layer_norm_out = self.layer_norm(fc_in)
+            # LSTM
+            
+            # Project LSTM output to logits or value
+            #
+            if tag == '_policy':
+                lstm_out, hidden = self.lstm(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
+                self.hidden_state_h_p, self.hidden_state_c_p = hidden
+                logits = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
+            else:
+                lstm_out, hidden = self.lstm(layer_norm_out, (self.hidden_state_h_v, self.hidden_state_c_v))
+                self.hidden_state_h_v, self.hidden_state_c_v = hidden
+                value = self.output_value(lstm_out)
+        
+        return logits, value
+
+
+    def fit(self, input, y_true):
+        # Fit the Actor network
+        output = self.forward(input)
+        
+        # Calculate the loss for the Actor network
+        actor_loss = self.my_loss(output, y_true)
+
+        # Backpropagate the loss
+        actor_loss.backward()
+
+        # Update the Actor network
+        self.optimizer.step()
+    
+    def my_loss(self, output, y_true):
+        # Calculate the loss for the Actor network
+        actor_loss = torch.nn.functional.cross_entropy(output, y_true)
+        actor_loss._requires_grad = True
+        return actor_loss
+                

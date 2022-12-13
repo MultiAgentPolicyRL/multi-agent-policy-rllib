@@ -2,14 +2,14 @@ import logging
 import os
 import sys
 
-import tensorflow as tf
+# import tensorflow as tf
 from algorithm.algorithm import PpoAlgorithm
 from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
 from policy.policy_config import PolicyConfig
-from ai_economist import foundation
+# from ai_economist import foundation
 import time
-from tqdm import tqdm
+# from tqdm import tqdm
 
 # logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
 
@@ -104,12 +104,12 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policy_config = {
-        "a": PolicyConfig(action_space=50, observation_space=env.observation_space),
+        "a": PolicyConfig(action_space=50, observation_space=obs['0']),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=1000, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
+        minibatch_size=2, policies_configs=policy_config, env=env, seed=SEED, multiprocessing=False, num_workers=1
     )
     algorithm: PpoAlgorithm = PpoAlgorithm(algorithm_config)
 
@@ -125,10 +125,11 @@ if __name__ == "__main__":
         actions = algorithm.get_actions(obs)[0]
 
         obs, rew, done, info = env.step(actions)
-        logging.debug(f"Actions: {actions}")
+        logging.info(f"Actions: {actions}")
         logging.info(f"Reward step {i}: {rew}")
+
         algorithm.train_one_step(env)
-        logging.debug(f"Trained step {i} in {time.time()-start} seconds")
+        logging.info(f"Trained step {i} in {time.time()-start} seconds")
         print(f"Trained step {i} in {time.time()-start} seconds")
     # Kill multi-processes
     # algorithm.kill_processes()

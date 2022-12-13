@@ -1,7 +1,11 @@
+import copy
 from dataclasses import dataclass
 from functools import wraps
+import sys
 import time
 import logging
+
+import numpy as np
 
 
 def timeit(func):
@@ -11,7 +15,8 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        logging.debug(f"Function {func.__name__} Took {total_time:.4f} seconds")
+        logging.debug(
+            f"Function {func.__name__} Took {total_time:.4f} seconds")
         return result
 
     return timeit_wrapper
@@ -20,105 +25,168 @@ def timeit(func):
 @dataclass
 class BatchMemory:
     def __init__(
-        self, policy_mapping_function, policy_config: dict, available_agent_id: list
+        self, policy_mapping_function, policy_config: dict, available_agent_id: list, env
     ):
         self.policy_mapping_function = policy_mapping_function
         # ['0','1','2','3','p']
-        self.available_agent_id = available_agent_id
+        self.available_agent_ids = available_agent_id
 
-        # states, next_states, actions, rewards, predictions, dones
-        self.keys = ["states", "next_states", "actions", "rewards", "predictions"]
+        # Environment
+        env = copy.deepcopy(env)
+        obs = env.reset()
 
-        self.states = []
-        self.next_states = []
-        self.actions = []
-        self.rewards = []
-        self.predictions = []
+        def build_states(key):
+            data_dict = {}
+            for keys in obs[key].keys():
+                data_dict[keys] = []
+            return data_dict
 
-        # Initialize empty memory
-        # for key in available_agent_groups:
-        #     self.batch[key] = {e: [] for e in keys}
-    # @timeit
-    def __add__(self, other):
-        self.states += other.states
-        self.next_states += other.next_states
-        self.actions += other.actions
-        self.rewards += other.rewards
-        self.predictions += other.predictions
-        return self
+        # state, next_state, action_onehot, reward, actor_prediction, vf_prediction, vf_prediction_old
+        # self.keys = ["states", "next_states", "actions", "rewards", "predictions"]
+
+        # key:dict -= state
+        self.observations = {key: build_states(key) for key in self.available_agent_ids}
+        # key:dict - next_state
+        self.next_observations = {key: build_states(key) for key in self.available_agent_ids}
+        # key:list (onehot encoding) - action_onehot
+        self.policy_actions = {key: [] for key in self.available_agent_ids}
+        # key:list
+        self.policy_predictions = {key: [] for key in self.available_agent_ids}
+        # key:list - reward
+        self.rewards = {key: [] for key in self.available_agent_ids}
+        self.vf_predictions = {key: [] for key in self.available_agent_ids}
+        self.vf_predictions_old = {key: [] for key in self.available_agent_ids}
+
+        """
+        Actual structure is like this:
+        self.states = {
+            '0': {...},
+            '1': {...},
+            ...
+            'p': {...},
+        }
+        self.next_states = {
+            '0': {...},
+            '1': {...},
+            ...
+            'p': {...},
+        }
+        ...
+        self.predictions = {
+            '0': {...},
+            '1': {...},
+            ...
+            'p': {...},
+        }
+        """
 
     @timeit
     def reset_memory(self):
         """
-        Method.
         Clears the memory.
         """
-        self.states.clear()
-        self.next_states.clear()
-        self.actions.clear()
-        self.rewards.clear()
-        self.predictions.clear()
+        for key in self.available_agent_ids:
+            self.policy_actions[key].clear()
+            self.rewards[key].clear()
+            self.policy_predictions[key].clear()
+            self.vf_predictions[key].clear()
+            self.vf_predictions_old[key].clear()
 
-    #@timeit
+            for data in self.observations[key].keys():
+                self.observations[key][data].clear()
+                self.next_observations[key][data].clear()
+
+    # @timeit
     def update_memory(
         self,
-        state: dict,
-        next_state: dict,
-        action_onehot: dict,
+        observation: dict,
+        next_observation: dict,
+        policy_action_onehot: dict,
         reward: dict,
-        prediction: dict,
+        policy_prediction: dict,
+        vf_prediction: dict,
+        vf_prediction_old: dict,
     ):
-        """ """
-        self.states.append(state)
-        self.next_states.append(next_state)
-        self.actions.append(action_onehot)
-        self.rewards.append(reward)
-        self.predictions.append(prediction)
+        """ 
+        Updates memory
+        """
+        for key in self.available_agent_ids:
+            self.policy_actions[key].append(policy_action_onehot[key])
+            self.rewards[key].append(reward[key])
+            self.policy_predictions[key].append(policy_prediction[key])
+            self.vf_predictions[key].append(vf_prediction[key])
+            self.vf_predictions_old[key].append(vf_prediction_old[key])
+
+            for data in self.observations[key].keys():
+                self.observations[key][data].append(observation[key][data])
+                self.next_observations[key][data].append(next_observation[key][data])
 
     @timeit
-    def get_memory(self, key):
-        data_structure = {}
-        # keys = ['0','1','2','3','p']
-        for keys in self.available_agent_id:
-            data_structure[keys] = {
-                "state": [],
-                "next_state": [],
-                "action": [],
-                "reward": [],
-                "prediction": [],
-            }
+    def get_memory(self, mapped_key):
+        """
+        Returns:
+            observation,
+            next_observation,
+            policy_action
+            policy_predictions
+            reward
+            vf_prediction
+            vf_prediction_old
+        """
 
-        for state, next_state, action, reward, prediction in zip(
-            self.states, self.next_states, self.actions, self.rewards, self.predictions
-        ):
-            for keys in self.available_agent_id:
-                data_structure[keys]["state"].append(state[keys])
-                data_structure[keys]["next_state"].append(next_state[keys])
-                data_structure[keys]["action"].append(action[keys])
-                data_structure[keys]["reward"].append(reward[keys])
-                data_structure[keys]["prediction"].append(prediction[keys])
+        this_observation = {}
+        this_next_observation = {}
+        this_policy_action = []
+        this_reward = []
+        this_policy_predictions = []
+        this_vf_prediction = []
+        this_vf_prediction_old = []
 
-        this_state, this_next_state, this_action, this_reward, this_prediction = (
-            [],
-            [],
-            [],
-            [],
-            [],
+        if mapped_key == "a":
+            # Build empty this_state, this_next_state
+            for item in ["world-map", "world-idx_map", "time", "flat", "action_mask"]:
+                this_observation[item] = []
+                this_next_observation[item] = []
+        elif mapped_key == "p":
+            for item in [
+                "world-map",
+                "world-idx_map",
+                "time",
+                "flat",
+                "p0",
+                "p1",
+                "p2",
+                "p3",
+                "action_mask",
+            ]:
+                this_observation[item] = []
+                this_next_observation[item] = []
+        else:
+            KeyError(f"Key {mapped_key} is not registered in the training cycle.")
+
+        for key in self.available_agent_ids:
+            if self.policy_mapping_function(key) == mapped_key:
+                for data in self.observations[key].keys():
+                    this_observation[data].extend(self.observations[key][data])
+                    this_next_observation[data].extend(self.next_observations[key][data])
+
+                this_policy_action.extend(self.policy_actions[key])
+                this_reward.extend(self.rewards[key])
+                this_policy_predictions.extend(self.policy_predictions[key])
+                this_vf_prediction.extend(self.vf_predictions[key])
+                this_vf_prediction_old.extend(self.vf_predictions_old[key])                
+
+
+        for key in this_observation.keys():
+            this_observation[key] = np.array(this_observation[key])
+            this_next_observation[key] = np.array(this_next_observation[key])
+
+        return (
+            this_observation,
+            this_next_observation,
+            np.array(this_policy_action),
+            np.array(this_policy_predictions),
+            np.array(this_reward),
+            np.array(this_vf_prediction),
+            np.array(this_vf_prediction_old),
         )
-
-        for keys in data_structure.keys():
-            if self.policy_mapping_function(keys) == key:
-                for state, next_state, action, reward, prediction in zip(
-                    data_structure[keys]["state"],
-                    data_structure[keys]["next_state"],
-                    data_structure[keys]["action"],
-                    data_structure[keys]["reward"],
-                    data_structure[keys]["prediction"],
-                ):
-                    this_state.append(state)
-                    this_next_state.append(next_state)
-                    this_action.append(action)
-                    this_reward.append(reward)
-                    this_prediction.append(prediction)
-
-        return this_state, this_action, this_reward, this_prediction, this_next_state
