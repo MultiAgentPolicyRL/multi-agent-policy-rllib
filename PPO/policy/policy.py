@@ -177,16 +177,11 @@ class PPOAgent:
         # print(type(policy_predictions))
         # sys.exit()
 
+        y_pred = [np.zeros((1,50))] + policy_predictions[1:]
+        prob = torch.tensor(policy_actions * policy_predictions)
+        old_prob = torch.tensor(policy_actions * y_pred)
 
-        prob = policy_actions * policy_predictions
         
-
-        # policy_predictions = 
-        print(policy_predictions.shape)
-        # banana = 
-        
-        sys.exit()
-        old_prob = policy_actions * ([[0 for _ in range(50)]] + policy_predictions[1:])
 
         prob = torch.clip(prob, 1e-10, 1.0)
         old_prob = torch.clip(old_prob, 1e-10, 1.0)
@@ -195,9 +190,22 @@ class PPOAgent:
             torch.log(prob) - torch.log(old_prob)
         )
 
-        print(ratio)
-        sys.exit()
+        p1 = ratio * advantages
 
+        p2 = (
+            torch.clip(ratio, max_value=torch.tensor(1 + EPSYLON), min_value=torch.tensor(1 - EPSYLON))
+            * advantages
+        )
+
+        actor_loss = -torch.mean(torch.minimum(p1, p2))
+
+        # critic_loss = # TODO
+
+        entropy = -(y_pred * torch.log(y_pred + 1e-10))
+        entropy = ENTROPY_LOSS * torch.mean(entropy)
+
+        total_loss = actor_loss - entropy       
+        print(total_loss)
         # print(advantages.shape)
         # print(vf_predictions.shape)
         # print(policy_actions.shape)

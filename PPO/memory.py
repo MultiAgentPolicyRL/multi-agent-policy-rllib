@@ -102,7 +102,7 @@ class BatchMemory:
         Updates memory
         """
         for key in self.available_agent_ids:
-            self.policy_actions[key].append(policy_action_onehot[key])
+            self.policy_actions[key].append(policy_action_onehot[key].numpy())
             self.rewards[key].append(reward[key])
             self.policy_predictions[key].append(policy_prediction[key].numpy())
             self.vf_predictions[key].append(vf_prediction[key])
