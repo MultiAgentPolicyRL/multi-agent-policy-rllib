@@ -190,21 +190,25 @@ class PPOAgent:
             torch.log(prob) - torch.log(old_prob)
         )
 
-        p1 = ratio * advantages
+        p1 = ratio * torch.tensor(advantages)
 
-        p2 = (
-            torch.clip(ratio, max_value=torch.tensor(1 + EPSYLON), min_value=torch.tensor(1 - EPSYLON))
-            * advantages
-        )
+        p2 = torch.clip(ratio, max=(1 + EPSYLON), min=(1 - EPSYLON)) * advantages
 
         actor_loss = -torch.mean(torch.minimum(p1, p2))
 
         # critic_loss = # TODO
 
-        entropy = -(y_pred * torch.log(y_pred + 1e-10))
+        entropy = list()
+        for x in y_pred:
+            print(f"DIO {x}")
+            x += 1e-10
+            print(f"CANE {x}")
+            entropy.append(-(x * np.log(x)))
+
+        entropy = torch.from_numpy(np.array(entropy))
         entropy = ENTROPY_LOSS * torch.mean(entropy)
 
-        total_loss = actor_loss - entropy       
+        total_loss = actor_loss - entropy
         print(total_loss)
         # print(advantages.shape)
         # print(vf_predictions.shape)
@@ -212,10 +216,10 @@ class PPOAgent:
         # print(target.shape)
         # sys.exit()
 
-        y_true = [advantages, vf_predictions, policy_actions, target]
+        # y_true = [advantages, vf_predictions, policy_actions, target]
 
-        # FIT
-        self.Model.fit(observations, y_true)
+        # # FIT
+        # self.Model.fit(observations, y_true)
 
         # values = self.Critic.batch_predict(observations)
         # next_values = self.Critic.batch_predict(next_observations)
