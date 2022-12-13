@@ -68,7 +68,7 @@ class AlgorithmConfig:
             self.policies_configs[key].set_batch_size_and_agents_per_possible_policy(
                 self.batch_size, self.agents_per_possible_policy[key], self.num_workers
             )
-
+        
         # Checks if multiprocessing and num_workers makes no sense
         if (self.multiprocessing and self.num_workers != 0) or (
             self.multiprocessing is False and self.num_workers != 0

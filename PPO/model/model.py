@@ -15,7 +15,6 @@ import time
 
 # mirrored_strategy = tf.distribute.MirroredStrategy()
 
-
 def timeit(func):
     @wraps(func)
     def timeit_wrapper(*args, **kwargs):
@@ -54,12 +53,10 @@ class ActorModel(object):
         self.action_space = model_config.action_space
 
         with tf.device("CPU:0"):
-            # with mirrored_strategy.scope():
+        # with mirrored_strategy.scope():    
             self.cnn_in = tf.keras.Input(shape=(7, 11, 11))
             self.map_cnn = tf.keras.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
-            self.map_cnn = tf.keras.layers.Conv2D(32, 3, activation="relu")(
-                self.map_cnn
-            )
+            self.map_cnn = tf.keras.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
             self.map_cnn = tf.keras.layers.Flatten()(self.map_cnn)
 
             self.info_input = tf.keras.Input(shape=(136))
@@ -87,7 +84,7 @@ class ActorModel(object):
             )
 
         logging.critical(self.actor.summary())
-
+    
     @tf.function
     def ppo_loss(self, y_true, y_pred):
         """
@@ -104,6 +101,7 @@ class ActorModel(object):
         EPSYLON = 0.2
         ENTROPY_LOSS = 0.001
 
+
         # pi = actions_one_hot [0,50] * actions_prediction_distribution
         # pi_old = actions_one_hot [0,50] * old_actions_prediction_distribution
         prob = actions * y_pred
@@ -114,24 +112,25 @@ class ActorModel(object):
         prob = tf.keras.backend.clip(prob, 1e-10, 1.0)
         old_prob = tf.keras.backend.clip(old_prob, 1e-10, 1.0)
 
-        ratio = tf.keras.backend.exp(
-            tf.keras.backend.log(prob) - tf.keras.backend.log(old_prob)
-        )
+        ratio = tf.keras.backend.exp(tf.keras.backend.log(prob) - tf.keras.backend.log(old_prob))
         ####
+
 
         # probabiliy_ratio*advantage_estimation
         # rt(θ) ∗ ˆAt
         p1 = ratio * advantages
-
+        
         # CLIP: clip(probabiliy_ratio, 1-Epsylon, 1+Epsylon)*advantage_estimation)
         # clip(rt(θ), 1 − ε, 1 + ε) ∗ ˆAt)
         p2 = (
-            tf.keras.backend.clip(ratio, min_value=1 - EPSYLON, max_value=1 + EPSYLON)
+            tf.keras.backend.clip(
+                ratio, min_value=1 - EPSYLON, max_value=1 + EPSYLON
+            )
             * advantages
         )
 
         # L_CLIP: min(probabiliy_ratio*advantage_estimation, clip(probabiliy_ratio, 1-Epsylon, 1+Epsylon)*advantage_estimation)
-        # LCLIP (θ) = ˆEt[min(rt(θ) ∗ ˆAt, clip(rt(θ), 1 − ε, 1 + ε) ∗ ˆAt)]
+        # LCLIP (θ) = ˆEt[min(rt(θ) ∗ ˆAt, clip(rt(θ), 1 − ε, 1 + ε) ∗ ˆAt)] 
         actor_loss = -tf.keras.backend.mean(tf.keras.backend.minimum(p1, p2))
 
         # critic_loss = # TODO
@@ -148,17 +147,17 @@ class ActorModel(object):
     def predict(self, obs):
         """
         If you remove the reshape good luck finding that softmax sum != 1.
-        """
-        action = tf.squeeze(
-            self.actor(
+        """ 
+        action = tf.squeeze(self.actor(
                 [
+                    
                     tf.expand_dims(obs["world-map"], 0),
                     tf.expand_dims(obs["flat"], 0),
                 ],
-            )
-        )
+            ))
         # return tf.divide(action,tf.reduce_sum(action))
         return action
+
 
 
 class CriticModel(object):
@@ -170,7 +169,7 @@ class CriticModel(object):
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
         with tf.device("CPU:0"):
-            # with mirrored_strategy.scope():
+        # with mirrored_strategy.scope():
             cnn_in = tf.keras.Input(shape=(7, 11, 11))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
@@ -222,6 +221,4 @@ class CriticModel(object):
         """
         Calculates a batch of prediction for n_obs
         """
-        return self.critic(
-            [tf.convert_to_tensor(obs["world-map"]), tf.convert_to_tensor(obs["flat"])]
-        )
+        return self.critic([tf.convert_to_tensor(obs['world-map']), tf.convert_to_tensor(obs['flat'])])

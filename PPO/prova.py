@@ -4,7 +4,6 @@ from env_wrapper import EnvWrapper
 import numpy as np
 import time
 import tensorflow as tf
-
 # import tf_agents
 
 env_config = {
@@ -78,6 +77,8 @@ env_config = {
 }
 
 
+
+
 def get_environment():
     """
     Returns builded environment with `env_config` config
@@ -85,18 +86,17 @@ def get_environment():
     # return foundation.make_env_instance(**env_config["env_config_dict"])
     return EnvWrapper(env_config)
 
-
 if __name__ == "__main__":
     from tf_models import KerasConvLSTM
-
     env = get_environment()
     env.seed(1)
     obs = env.reset()
 
+
     model = KerasConvLSTM(env.observation_space)
     # print(env.observation_space.keys())
     # sys.exit()
-    a, b, c, d = model.get_initial_state()
+    a,b,c,d= model.get_initial_state()
 
     """
     Dict(action_mask:Box(-1e+20, 1e+20, (50,), float32), 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     world-idx_map:Box(-30178, 30178, (2, 11, 11), int16), 
     world-map:Box(-1e+20, 1e+20, (7, 11, 11), float32))
     """
-
+    
     # print(obs['0'].keys())
     # print(obs['0']['action_mask'])
 
@@ -122,8 +122,8 @@ if __name__ == "__main__":
     #     'action_mask':obs['0']['action_mask']
     # }
 
-    aa, bb = model.forward(
-        input_dict={"obs": obs["0"]}, state=[a, b, c, d], seq_lens=[1]
-    )
+
+
+    aa,bb = model.forward(input_dict={'obs': obs['0']}, state=[a,b,c,d], seq_lens=[1])
     print(aa)
     print(bb)

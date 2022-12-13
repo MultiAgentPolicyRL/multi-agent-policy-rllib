@@ -67,7 +67,7 @@ class PPOAgent:
         """
         # Use the network to predict the next action to take, using the model
         prediction = (self.Actor.predict(state)).numpy()
-
+                
         action = np.random.choice(np.arange(50), p=prediction)
         action_onehot = np.zeros([self.action_space])
         action_onehot[action] = 1
@@ -127,23 +127,22 @@ class PPOAgent:
         )
 
         logging.debug(f"     Gaes required {time.time()-tempo}s")
-
+        
         tempo = time.time()
         # stack everything to numpy array
         # pack all advantages, predictions and actions to y_true and when they are received
         # in custom PPO loss function we unpack it
         y_true = np.hstack([advantages, predictions, actions])
-
+        
         logging.debug(f"     Data prep required: {time.time()-tempo}s")
         tempo = time.time()
 
         # training Actor and Critic networks
         a_loss = self.Actor.actor.fit(
-            x=[states["world-map"], states["flat"]],
+            x=[states['world-map'], states['flat']],
             y=y_true,
-            epochs=self.policy_config.agents_per_possible_policy
-            * self.policy_config.num_workers,
-            steps_per_epoch=self.batch_size // self.policy_config.num_workers,
+            epochs=self.policy_config.agents_per_possible_policy*self.policy_config.num_workers,
+            steps_per_epoch=self.batch_size//self.policy_config.num_workers,
             verbose=0,
             # shuffle=self.shuffle,
             workers=8,
@@ -155,7 +154,7 @@ class PPOAgent:
 
         tempo = time.time()
         c_loss = self.Critic.critic.fit(
-            x=[states["world-map"], states["flat"]],
+            x=[states['world-map'],states['flat']],
             y=target,
             epochs=1,
             steps_per_epoch=self.batch_size,

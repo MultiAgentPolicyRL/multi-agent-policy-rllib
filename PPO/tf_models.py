@@ -14,7 +14,6 @@ _WORLD_MAP_NAME = "world-map"
 _WORLD_IDX_MAP_NAME = "world-idx_map"
 _MASK_NAME = "action_mask"
 
-
 def add_time_dimension(padded_inputs, seq_lens):
     """Adds a time dimension to padded inputs.
 
@@ -38,10 +37,9 @@ def add_time_dimension(padded_inputs, seq_lens):
 
     # Dynamically reshape the padded batch to introduce a time dimension.
     new_batch_size = padded_batch_size // max_seq_len
-    new_shape = [new_batch_size, max_seq_len] + padded_inputs.get_shape().as_list()[1:]
+    new_shape = ([new_batch_size, max_seq_len] + padded_inputs.get_shape().as_list()[1:])
 
     return tf.reshape(padded_inputs, new_shape)
-
 
 def get_flat_obs_size(obs_space):
     if isinstance(obs_space, Box):
@@ -70,8 +68,7 @@ def apply_logit_mask(logits, mask):
 
     return logits + logit_mask
 
-
-class KerasConvLSTM:
+class KerasConvLSTM():
     """
     The model used in the paper "The AI Economist: Optimal Economic Policy
     Design via Two-level Deep Reinforcement Learning"
@@ -85,7 +82,7 @@ class KerasConvLSTM:
 
     def __init__(self, obs_space, action_space="a", num_outputs=50, name="a"):
         self.num_outputs = num_outputs
-
+        
         input_emb_vocab = 100
         emb_dim = 4
         num_conv = 2
@@ -101,14 +98,11 @@ class KerasConvLSTM:
 
         if not isinstance(obs_space, Dict):
             if isinstance(obs_space, Box):
-                raise TypeError(
-                    "({}) Observation space should be a gym Dict."
-                    " Is a Box of shape {}".format(name, obs_space.shape)
-                )
-            raise TypeError(
-                "({}) Observation space should be a gym Dict."
-                " Is {} instead.".format(name, type(obs_space))
-            )
+                raise TypeError("({}) Observation space should be a gym Dict."
+                                " Is a Box of shape {}".format(
+                                    name, obs_space.shape))
+            raise TypeError("({}) Observation space should be a gym Dict."
+                            " Is {} instead.".format(name, type(obs_space)))
 
         # Define input layers
         self._input_keys = []
@@ -121,7 +115,7 @@ class KerasConvLSTM:
         found_world_map = False
         found_world_idx = False
         for k, v in obs_space.spaces.items():
-            shape = (None,) + v.shape
+            shape = (None, ) + v.shape
             input_dict[k] = tf.keras.layers.Input(shape=shape, name=k)
             self._input_keys.append(k)
             if k == _MASK_NAME:
@@ -141,21 +135,19 @@ class KerasConvLSTM:
 
         # Cell state and hidden state for the
         # policy and value function networks.
-        state_in_h_p = tf.keras.layers.Input(shape=(cell_size,), name="h_pol")
-        state_in_c_p = tf.keras.layers.Input(shape=(cell_size,), name="c_pol")
-        state_in_h_v = tf.keras.layers.Input(shape=(cell_size,), name="h_val")
-        state_in_c_v = tf.keras.layers.Input(shape=(cell_size,), name="c_val")
+        state_in_h_p = tf.keras.layers.Input(shape=(cell_size, ), name="h_pol")
+        state_in_c_p = tf.keras.layers.Input(shape=(cell_size, ), name="c_pol")
+        state_in_h_v = tf.keras.layers.Input(shape=(cell_size, ), name="h_val")
+        state_in_c_v = tf.keras.layers.Input(shape=(cell_size, ), name="c_val")
         seq_in = tf.keras.layers.Input(shape=(), name="seq_in")
 
         # Determine which of the inputs are treated as non-conv inputs
         if generic_name is None:
             non_conv_inputs = tf.keras.layers.concatenate(
-                [input_dict[k] for k in non_conv_input_keys]
-            )
+                [input_dict[k] for k in non_conv_input_keys])
         elif isinstance(generic_name, (tuple, list)):
             non_conv_inputs = tf.keras.layers.concatenate(
-                [input_dict[k] for k in generic_name]
-            )
+                [input_dict[k] for k in generic_name])
         elif isinstance(generic_name, str):
             non_conv_inputs = input_dict[generic_name]
         else:
@@ -170,12 +162,10 @@ class KerasConvLSTM:
                 conv_map_channels + conv_idx_channels,
             )
 
-            conv_input_map = tf.keras.layers.Permute((1, 3, 4, 2))(
-                input_dict[_WORLD_MAP_NAME]
-            )
-            conv_input_idx = tf.keras.layers.Permute((1, 3, 4, 2))(
-                input_dict[_WORLD_IDX_MAP_NAME]
-            )
+            conv_input_map = tf.keras.layers.Permute(
+                (1, 3, 4, 2))(input_dict[_WORLD_MAP_NAME])
+            conv_input_idx = tf.keras.layers.Permute(
+                (1, 3, 4, 2))(input_dict[_WORLD_IDX_MAP_NAME])
 
         else:
             assert not found_world_idx
@@ -204,18 +194,19 @@ class KerasConvLSTM:
 
             # Apply convolution to the spatial inputs
             if use_conv:
-                map_embedding = tf.keras.layers.Embedding(
-                    input_emb_vocab, emb_dim, name="embedding" + tag
-                )
+                map_embedding = tf.keras.layers.Embedding(input_emb_vocab,
+                                                          emb_dim,
+                                                          name="embedding" +
+                                                          tag)
                 conv_idx_embedding = tf.keras.layers.Reshape(
-                    (-1, conv_shape_r, conv_shape_c, conv_idx_channels)
-                )(map_embedding(conv_input_idx))
+                    (-1, conv_shape_r, conv_shape_c,
+                     conv_idx_channels))(map_embedding(conv_input_idx))
 
                 conv_input = tf.keras.layers.concatenate(
-                    [conv_input_map, conv_idx_embedding]
-                )
+                    [conv_input_map, conv_idx_embedding])
 
-                conv_model = tf.keras.models.Sequential(name="conv_model" + tag)
+                conv_model = tf.keras.models.Sequential(name="conv_model" +
+                                                        tag)
                 assert conv_shape
                 conv_model.add(
                     tf.keras.layers.Conv2D(
@@ -225,8 +216,7 @@ class KerasConvLSTM:
                         activation="relu",
                         input_shape=conv_shape,
                         name="conv2D_1" + tag,
-                    )
-                )
+                    ))
 
                 for i in range(num_conv - 1):
                     conv_model.add(
@@ -236,12 +226,12 @@ class KerasConvLSTM:
                             strides=2,
                             activation="relu",
                             name="conv2D_{}{}".format(i + 2, tag),
-                        )
-                    )
+                        ))
 
                 conv_model.add(tf.keras.layers.Flatten())
 
-                conv_td = tf.keras.layers.TimeDistributed(conv_model)(conv_input)
+                conv_td = tf.keras.layers.TimeDistributed(conv_model)(
+                    conv_input)
 
                 # Combine the conv output with the non-conv inputs
                 dense = tf.keras.layers.concatenate([conv_td, non_conv_inputs])
@@ -252,16 +242,22 @@ class KerasConvLSTM:
 
             # Preprocess observation with hidden layers and send to LSTM cell
             for i in range(num_fc):
-                layer = tf.keras.layers.Dense(
-                    fc_dim, activation=tf.nn.relu, name="dense{}".format(i + 1) + tag
-                )
+                layer = tf.keras.layers.Dense(fc_dim,
+                                              activation=tf.nn.relu,
+                                              name="dense{}".format(i + 1) +
+                                              tag)
                 dense = layer(dense)
 
-            dense = tf.keras.layers.LayerNormalization(name="layer_norm" + tag)(dense)
+            dense = tf.keras.layers.LayerNormalization(name="layer_norm" +
+                                                       tag)(dense)
 
             lstm_out, state_h, state_c = tf.keras.layers.LSTM(
-                cell_size, return_sequences=True, return_state=True, name="lstm" + tag
-            )(inputs=dense, mask=tf.sequence_mask(seq_in), initial_state=state_in)
+                cell_size,
+                return_sequences=True,
+                return_state=True,
+                name="lstm" + tag)(inputs=dense,
+                                   mask=tf.sequence_mask(seq_in),
+                                   initial_state=state_in)
 
             # Project LSTM output to logits or value
             output = tf.keras.layers.Dense(
@@ -284,14 +280,18 @@ class KerasConvLSTM:
         # This will be set in the forward_rnn() call below
         self._value_out = None
 
-        for out in [logits, values, state_h_p, state_c_p, state_h_v, state_c_v]:
+        for out in [
+                logits, values, state_h_p, state_c_p, state_h_v, state_c_v
+        ]:
             assert out is not None
 
         # Create the RNN model
         self.rnn_model = tf.keras.Model(
-            inputs=self._extract_input_list(input_dict)
-            + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v],
-            outputs=[logits, values, state_h_p, state_c_p, state_h_v, state_c_v],
+            inputs=self._extract_input_list(input_dict) +
+            [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v],
+            outputs=[
+                logits, values, state_h_p, state_c_p, state_h_v, state_c_v
+            ],
         )
 
         # self.register_variables(self.rnn_model.variables)
@@ -316,10 +316,9 @@ class KerasConvLSTM:
         return tf.reshape(output, [-1, self.num_outputs]), new_state
 
     def forward_rnn(self, inputs, state, seq_lens):
-
+        
         model_out, self._value_out, h_p, c_p, h_v, c_v = self.rnn_model(
-            inputs + [seq_lens] + state
-        )
+            inputs + [seq_lens] + state)
         return model_out, [h_p, c_p, h_v, c_v]
 
     def get_initial_state(self):
@@ -332,3 +331,4 @@ class KerasConvLSTM:
 
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
+

@@ -1,6 +1,6 @@
-import sys
-from model.new_model import Model
-from model.new_model_config import ModelConfig
+from actor import Actor
+# from ai_economist_ppo_dt.utils import create_environment
+import random
 from env_wrapper import EnvWrapper
 
 env_config = {
@@ -74,6 +74,8 @@ env_config = {
 }
 
 
+
+
 def get_environment():
     """
     Returns builded environment with `env_config` config
@@ -85,41 +87,18 @@ def get_environment():
 env = get_environment()
 env.seed(1)
 state = env.reset()
-
-model_config = ModelConfig(
-    observation_space=state.get("0"),
-    action_space=50,
-    emb_dim=4,
-    cell_size=128,
-    input_emb_vocab=100,
-    num_conv=2,
-    fc_dim=128,
-    num_fc=2,
-    filtering=(16, 32),
-    kernel_size=(3, 3),
-    strides=2,
-)
-
-model = Model(model_config)
-
+model = Actor(state.get('0'), )
 
 # Test
 # make a random action
 prob_action = dict()
 seq_in = 1
 state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v = model.initial_state()
-for agent in [
-    "0",
-    "1",
-    "2",
-    "3",
-]:
-    # input = state[agent] + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v]
-    a, b, c, d, e, f = model(
-        state[agent], seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v
-    )
+for agent in ['0', '1', '2', '3',]:
+    #input = state[agent] + [seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v]
+    a, b, c, d, e, f = model(state[agent], seq_in, state_in_h_p, state_in_c_p, state_in_h_v, state_in_c_v)
     print(f"Agent: {agent}\nAction: {a}\nValue-Function: {b}")
 
 
 # get the next state, reward, and done flag
-# print(prob_action['0'])
+#print(prob_action['0'])
