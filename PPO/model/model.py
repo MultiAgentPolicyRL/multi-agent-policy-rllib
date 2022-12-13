@@ -46,7 +46,7 @@ class ActorModel(object):
     Network's Actor model
     """
 
-    def __init__(self, model_config: ModelConfig) -> tf.keras.Model:
+    def __init__(self, model_config: ModelConfig) -> k.Model:
         """
         Builds the model.
         """
@@ -54,31 +54,31 @@ class ActorModel(object):
 
         with tf.device("CPU:0"):
         # with mirrored_strategy.scope():    
-            self.cnn_in = tf.keras.Input(shape=(7, 11, 11))
-            self.map_cnn = tf.keras.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
-            self.map_cnn = tf.keras.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
-            self.map_cnn = tf.keras.layers.Flatten()(self.map_cnn)
+            self.cnn_in = k.Input(shape=(7, 11, 11))
+            self.map_cnn = k.layers.Conv2D(16, 3, activation="relu")(self.cnn_in)
+            self.map_cnn = k.layers.Conv2D(32, 3, activation="relu")(self.map_cnn)
+            self.map_cnn = k.layers.Flatten()(self.map_cnn)
 
-            self.info_input = tf.keras.Input(shape=(136))
-            self.mlp1 = tf.keras.layers.Concatenate()([self.map_cnn, self.info_input])
-            self.mlp1 = tf.keras.layers.Dense(128, activation="relu")(self.mlp1)
-            self.mlp1 = tf.keras.layers.Dense(128, activation="relu")(self.mlp1)
-            self.mlp1 = tf.keras.layers.Reshape([1, -1])(self.mlp1)
+            self.info_input = k.Input(shape=(136))
+            self.mlp1 = k.layers.Concatenate()([self.map_cnn, self.info_input])
+            self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
+            self.mlp1 = k.layers.Dense(128, activation="relu")(self.mlp1)
+            self.mlp1 = k.layers.Reshape([1, -1])(self.mlp1)
 
-            self.lstm = tf.keras.layers.LSTM(128, unroll=True)(self.mlp1)
+            self.lstm = k.layers.LSTM(128, unroll=True)(self.mlp1)
 
             # Policy pi - needs to be a probabiliy value
-            self.action_probs = tf.keras.layers.Dense(
+            self.action_probs = k.layers.Dense(
                 self.action_space, name="Out_probs_actions", activation="softmax"
             )(self.lstm)
 
-            self.actor: tf.keras.Model = tf.keras.Model(
+            self.actor: k.Model = k.Model(
                 inputs=[self.cnn_in, self.info_input], outputs=self.action_probs
             )
 
             # reason of Adam optimizer lr=0.0003 https://github.com/ray-project/ray/issues/8091
             self.actor.compile(
-                optimizer=tf.keras.optimizers.Adam(learning_rate=0.0003),
+                optimizer=k.optimizers.Adam(learning_rate=0.0003),
                 loss=self.ppo_loss,
                 run_eagerly=False,
             )
@@ -90,47 +90,34 @@ class ActorModel(object):
         """
         Defined in https://arxiv.org/abs/1707.06347
         """
-        # advantages (ex: from gae), predictions, actions_one_hot
         advantages, prediction_picks, actions = (
             y_true[:, :1],
             y_true[:, 1 : 1 + self.action_space],
             y_true[:, 1 + self.action_space :],
         )
-
-        EPSYLON = 0.2
+        LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
 
-
-        # pi = actions [0,50] * actions_prediction_distribution
-        # pi_old = actions [0,50] * old_actions_prediction_distribution
         prob = actions * y_pred
         old_prob = actions * prediction_picks
 
-        #### Probably done for optimization:
-        #### https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/
-        prob = tf.keras.backend.clip(prob, 1e-10, 1.0)
-        old_prob = tf.keras.backend.clip(old_prob, 1e-10, 1.0)
+        prob = k.backend.clip(prob, 1e-10, 1.0)
+        old_prob = k.backend.clip(old_prob, 1e-10, 1.0)
 
-        ratio = tf.keras.backend.exp(tf.keras.backend.log(prob) - tf.keras.backend.log(old_prob))
-        ####
+        ratio = k.backend.exp(k.backend.log(prob) - k.backend.log(old_prob))
 
-
-        # probabiliy_ratio*advantage_estimation
         p1 = ratio * advantages
-        
-        # CLIP: clip(probabiliy_ratio, 1-Epsylon, 1+Epsylon)*advantage_estimation)
         p2 = (
-            tf.keras.backend.clip(
-                ratio, min_value=1 - EPSYLON, max_value=1 + EPSYLON
+            k.backend.clip(
+                ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING
             )
             * advantages
         )
 
-        # L_CLIP: min(probabiliy_ratio*advantage_estimation, clip(probabiliy_ratio, 1-Epsylon, 1+Epsylon)*advantage_estimation)
-        actor_loss = -tf.keras.backend.mean(tf.keras.backend.minimum(p1, p2))
+        actor_loss = -k.backend.mean(k.backend.minimum(p1, p2))
 
-        entropy = -(y_pred * tf.keras.backend.log(y_pred + 1e-10))
-        entropy = ENTROPY_LOSS * tf.keras.backend.mean(entropy)
+        entropy = -(y_pred * k.backend.log(y_pred + 1e-10))
+        entropy = ENTROPY_LOSS * k.backend.mean(entropy)
 
         total_loss = actor_loss - entropy
 
@@ -159,12 +146,12 @@ class CriticModel(object):
     Network's Critic model
     """
 
-    def __init__(self, model_config: ModelConfig) -> tf.keras.Model:
+    def __init__(self, model_config: ModelConfig) -> k.Model:
         """Builds the model. Takes in input the parameters that were not specified in the paper."""
 
         with tf.device("CPU:0"):
         # with mirrored_strategy.scope():
-            cnn_in = tf.keras.Input(shape=(7, 11, 11))
+            cnn_in = k.Input(shape=(7, 11, 11))
             map_cnn = k.layers.Conv2D(16, 3, activation="relu")(cnn_in)
             map_cnn = k.layers.Conv2D(32, 3, activation="relu")(map_cnn)
             map_cnn = k.layers.Flatten()(map_cnn)

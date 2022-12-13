@@ -1,0 +1,69 @@
+None
+Training epoch 0
+Actions: {'0': 36, '1': 42, '2': 21, '3': 5, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 0: {'0': -0.20999999999999996, '1': 0.0, '2': -0.20999999999999996, '3': -0.05250000000000021, 'p': 0.0}
+Function reset_memory Took 0.0000 seconds
+Function batch Took 4.9568 seconds
+Function get_memory Took 0.0064 seconds
+     Values and next_values required 0.2659623622894287s
+     Gaes required 0.02860403060913086s
+     Data prep required: 0.4246535301208496s
+     Fit Actor Network required 8.971121549606323s
+        Actor loss: -0.0010540565708652139
+    Prep 2 required 0.00025773048400878906
+     Fit Critic Network required 2.630519390106201s
+        Critic loss: 2.487842559814453
+Trained step 0 in 17.428075075149536 seconds
+Training epoch 1
+Actions: {'0': 28, '1': 32, '2': 24, '3': 39, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 1: {'0': -0.05250000000000021, '1': -0.05250000000000021, '2': -0.05250000000000021, '3': 0.0, 'p': 0.0}
+Function reset_memory Took 0.0120 seconds
+Function batch Took 4.7689 seconds
+Function get_memory Took 0.0045 seconds
+     Values and next_values required 0.106597900390625s
+     Gaes required 0.024723529815673828s
+     Data prep required: 0.2747972011566162s
+None
+Training epoch 0
+Actions: {'0': 36, '1': 42, '2': 21, '3': 5, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 0: {'0': -0.20999999999999996, '1': 0.0, '2': -0.20999999999999996, '3': -0.05250000000000021, 'p': 0.0}
+Function reset_memory Took 0.0000 seconds
+Function batch Took 4.5435 seconds
+Function get_memory Took 0.0053 seconds
+     Values and next_values required 0.22423195838928223s
+     Gaes required 0.022499561309814453s
+     Data prep required: 0.4092833995819092s
+     Fit Actor Network required 8.618837118148804s
+        Actor loss: -0.0010609310120344162
+    Prep 2 required 0.00019669532775878906
+     Fit Critic Network required 2.5106427669525146s
+        Critic loss: 2.4899141788482666
+Trained step 0 in 16.466755151748657 seconds
+Training epoch 1
+Actions: {'0': 28, '1': 32, '2': 24, '3': 39, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 1: {'0': -0.05250000000000021, '1': -0.05250000000000021, '2': -0.05250000000000021, '3': 0.0, 'p': 0.0}
+Function reset_memory Took 0.0101 seconds
+Function batch Took 4.6736 seconds
+Function get_memory Took 0.0052 seconds
+     Values and next_values required 0.10769438743591309s
+     Gaes required 0.025803089141845703s
+None
+Training epoch 0
+Actions: {'0': 36, '1': 42, '2': 21, '3': 5, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 0: {'0': -0.20999999999999996, '1': 0.0, '2': -0.20999999999999996, '3': -0.05250000000000021, 'p': 0.0}
+Function reset_memory Took 0.0000 seconds
+Function batch Took 13.3497 seconds
+Function get_memory Took 0.0145 seconds
+     Values and next_values required 0.567399263381958s
+     Gaes required 0.05736708641052246s
+     Data prep required: 1.1524698734283447s
+None
+Training epoch 0
+Actions: {'0': 36, '1': 42, '2': 21, '3': 5, 'p': [0, 0, 0, 0, 0, 0, 0]}
+Reward step 0: {'0': -0.20999999999999996, '1': 0.0, '2': -0.20999999999999996, '3': -0.05250000000000021, 'p': 0.0}
+Function reset_memory Took 0.0000 seconds
+Function batch Took 14.6787 seconds
+Function get_memory Took 0.0163 seconds
+     Values and next_values required 0.6277365684509277s
+     Gaes required 0.06341433525085449s
+     Data prep required: 1.3399162292480469s

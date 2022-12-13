@@ -17,8 +17,6 @@ from ray.tune.logger import NoopLogger, pretty_print
 from tf_models import KerasConvLSTM  # used by config.yaml
 from env_wrapper import RLlibEnvWrapper
 from utils import remote, saving
-import tensorflow as tf
-# tf.compat.v1.enable_eager_execution() 
 
 ray.init(log_to_driver=False)
 
@@ -34,7 +32,7 @@ def process_args():
         "--run-dir",
         type=str,
         help="Path to the directory for this run.",
-        default="experiments/_original_phases/phase1",
+        default="/home/ettore/MultiAgentPolicyRL/DT-multi-agent-policy-rllib/trainer/experiments/_original_phases/phase1",
     )
 
     args = parser.parse_args()
