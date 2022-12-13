@@ -90,8 +90,7 @@ class ActorModel(object):
         """
         Defined in https://arxiv.org/abs/1707.06347
         """
-        # advantages - \hat{A_t} (ex: from gae)
-        # predictions, actions_one_hot
+        # advantages (ex: from gae), predictions, actions_one_hot
         advantages, prediction_picks, actions = (
             y_true[:, :1],
             y_true[:, 1 : 1 + self.action_space],
@@ -102,8 +101,8 @@ class ActorModel(object):
         ENTROPY_LOSS = 0.001
 
 
-        # pi = actions_one_hot [0,50] * actions_prediction_distribution
-        # pi_old = actions_one_hot [0,50] * old_actions_prediction_distribution
+        # pi = actions [0,50] * actions_prediction_distribution
+        # pi_old = actions [0,50] * old_actions_prediction_distribution
         prob = actions * y_pred
         old_prob = actions * prediction_picks
 
