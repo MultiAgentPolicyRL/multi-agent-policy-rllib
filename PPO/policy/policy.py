@@ -47,9 +47,6 @@ class PPOAgent:
 
         self.Model: LSTMModel = LSTMModel(policy_config.model_config)
 
-        # self.Actor_name = f"{self.env_name}_PPO_Actor.h5"
-        # self.Critic_name = f"{self.env_name}_PPO_Critic.h5"
-
     def _obs_dict_to_tensor_list(self, observation: dict):
         """
         Converts a dict of numpy.ndarrays to torch.tensors
@@ -60,13 +57,7 @@ class PPOAgent:
         output = []
         for key, value in observation.items():
             output.append(torch.FloatTensor(value).unsqueeze(0)) # pylint: disable=no-member
-        # input_state = [
-        #     torch.FloatTensor(observation["world-map"]).unsqueeze(0),   # pylint: disable=no-member
-        #     torch.FloatTensor(observation["world-idx_map"]).unsqueeze(0),
-        #     torch.FloatTensor(observation["time"]).unsqueeze(0),
-        #     torch.FloatTensor(observation["flat"]).unsqueeze(0),
-        #     torch.FloatTensor(observation["action_mask"]).unsqueeze(0),
-        # ]
+    
         return output
 
     @timeit
@@ -87,39 +78,18 @@ class PPOAgent:
         # Use the network to predict the next action to take, using the model
         # Logits: action distribution w/applied mask
         # Value: value function result
-        # for key in state.keys():
-        #     state[key] = torch.tensor(state[key])
-
         input_state = self._obs_dict_to_tensor_list(state)
-        # [
-        #     torch.FloatTensor(state["world-map"]).unsqueeze(0),
-        #     torch.FloatTensor(state["world-idx_map"]).unsqueeze(0),
-        #     torch.FloatTensor(state["time"]).unsqueeze(0),
-        #     torch.FloatTensor(state["flat"]).unsqueeze(0),
-        #     torch.FloatTensor(state["action_mask"]).unsqueeze(0),
-        # ]
 
         # Get the prediction from the Actor network
         with torch.no_grad():
             logits, value = self.Model(input_state)
 
-        prediction = torch.squeeze(logits)
-        # print(prediction)
-        # print(torch.sum(prediction))
-        # sys.exit()
-        # print(value)
-        # Sample an action from the prediction distribution
-        # action = torch.FloatTensor(
-            # random.choices(
-                # np.arange(self.action_space), weights=prediction.detach().numpy()
-            # )
-        # )
-        action_distribution = torch.distributions.Categorical(prediction)
+        prediction = torch.squeeze(logits)  # pylint: disable=no-member
+        action_distribution = torch.distributions.Categorical(prediction) # pylint: disable=no-member
         action = action_distribution.sample()
-        # print(action)
-        # sys.exit()
+        
         # One-hot encode the action
-        action_onehot = torch.zeros([self.action_space])
+        action_onehot = torch.zeros([self.action_space]) # pylint: disable=no-member
         action_onehot[int(action.item())] = 1
 
         return action, action_onehot, logits, value

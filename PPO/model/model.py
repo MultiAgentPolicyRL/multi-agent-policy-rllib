@@ -24,7 +24,7 @@ def apply_logit_mask(logits, mask):
 
 class LSTMModel(nn.Module):
     """
-    Actor&Critic (Policy) Model.
+    policy&value_function (Actor-Critic) Model
     =====
 
 
@@ -33,7 +33,7 @@ class LSTMModel(nn.Module):
 
     def __init__(self, modelConfig: ModelConfig) -> None:
         """
-        Initialize the ActorCritic Model.
+        Initialize the policy&value_function Model.
         """
         super(LSTMModel, self).__init__()
         self.ModelConfig = modelConfig
@@ -246,21 +246,21 @@ class LSTMModel(nn.Module):
         
         
 
-        # Fit the Actor network
+        # Fit the policy network
         output = self.forward(input)
         print(output)
 
-        # Calculate the loss for the Actor network
-        actor_loss = self.my_loss(output, y_true)
+        # Calculate the loss for the policy network
+        policy_loss = self.my_loss(output, y_true)
 
         # Backpropagate the loss
-        actor_loss.backward()
+        policy_loss.backward()
 
-        # Update the Actor network
+        # Update the policy network
         self.optimizer.step()
 
     def my_loss(self, output, y_true):
-        # Calculate the loss for the Actor network
-        actor_loss = torch.nn.functional.cross_entropy(output, y_true)
-        actor_loss._requires_grad = True
-        return actor_loss
+        # Calculate the loss for the policy network
+        policy_loss = torch.nn.functional.cross_entropy(output, y_true)
+        policy_loss._requires_grad = True
+        return policy_loss
