@@ -41,12 +41,12 @@ class LSTMModel(nn.Module):
         Initialize the policy&value_function Model.
         """
         super(LSTMModel, self).__init__()
-        self.modelConfig = modelConfig
+        self.model_config = modelConfig
         # self.logger = get_basic_logger(name, level=log_level, log_path=log_path)
         self.shapes = dict()
 
         ### This is for managing all the possible inputs without having more networks
-        for key, value in self.modelConfig.observation_space.items():
+        for key, value in self.model_config.observation_space.items():
             ### Check if the input must go through a Convolutional Layer
             if key == ACTION_MASK:
                 pass
@@ -57,13 +57,13 @@ class LSTMModel(nn.Module):
                     value.shape[0],
                 )
             elif key == WORLD_IDX_MAP:
-                self.conv_idx_channels = value.shape[0] * self.modelConfig.emb_dim
+                self.conv_idx_channels = value.shape[0] * self.model_config.emb_dim
         ###
 
         self.embed_map_idx = nn.Embedding(
-            self.modelConfig.input_emb_vocab,
-            self.modelConfig.emb_dim,
-            device=self.modelConfig.device,
+            self.model_config.input_emb_vocab,
+            self.model_config.emb_dim,
+            device=self.model_config.device,
             dtype=torch.float32,
         )
         self.conv_layers = nn.ModuleList()
@@ -73,72 +73,72 @@ class LSTMModel(nn.Module):
             self.conv_map_channels + self.conv_idx_channels,
         )
 
-        for i in range(1, self.modelConfig.num_conv):
+        for i in range(1, self.model_config.num_conv):
             if i == 1:
                 self.conv_layers.append(
                     nn.Conv2d(
                         in_channels=self.conv_shape[1],
-                        out_channels=self.modelConfig.filter[0],
-                        kernel_size=self.modelConfig.kernel_size,
-                        stride=self.modelConfig.strides,
+                        out_channels=self.model_config.filter[0],
+                        kernel_size=self.model_config.kernel_size,
+                        stride=self.model_config.strides,
                         # padding_mode='same',
                     )
                 )
             self.conv_layers.append(
                 nn.Conv2d(
-                    in_channels=self.modelConfig.filter[0],
-                    out_channels=self.modelConfig.filter[1],
-                    kernel_size=self.modelConfig.kernel_size,
-                    stride=self.modelConfig.strides,
+                    in_channels=self.model_config.filter[0],
+                    out_channels=self.model_config.filter[1],
+                    kernel_size=self.model_config.kernel_size,
+                    stride=self.model_config.strides,
                     # padding_mode='same',
                 )
             )
 
         self.conv_dims = (
-            self.modelConfig.kernel_size[0]
-            * self.modelConfig.strides
-            * self.modelConfig.filter[1]
+            self.model_config.kernel_size[0]
+            * self.model_config.strides
+            * self.model_config.filter[1]
         )
         self.flatten_dims = (
             self.conv_dims
-            + self.modelConfig.observation_space["flat"].shape[0]
-            + len(self.modelConfig.observation_space["time"])
+            + self.model_config.observation_space["flat"].shape[0]
+            + len(self.model_config.observation_space["time"])
         )
         self.fc_layer_1 = nn.Linear(
-            in_features=self.flatten_dims, out_features=self.modelConfig.fc_dim
+            in_features=self.flatten_dims, out_features=self.model_config.fc_dim
         )
         self.fc_layer_2 = nn.Linear(
-            in_features=self.modelConfig.fc_dim, out_features=self.modelConfig.fc_dim
+            in_features=self.model_config.fc_dim, out_features=self.model_config.fc_dim
         )
         self.lstm = nn.LSTM(
-            input_size=self.modelConfig.fc_dim,
-            hidden_size=self.modelConfig.cell_size,
+            input_size=self.model_config.fc_dim,
+            hidden_size=self.model_config.cell_size,
             num_layers=1,
         )
-        self.layer_norm = nn.LayerNorm(self.modelConfig.fc_dim)
+        self.layer_norm = nn.LayerNorm(self.model_config.fc_dim)
         self.output_policy = nn.Linear(
-            in_features=self.modelConfig.cell_size,
-            out_features=self.modelConfig.output_size,
+            in_features=self.model_config.cell_size,
+            out_features=self.model_config.output_size,
         )
         self.output_value = nn.Linear(
-            in_features=self.modelConfig.cell_size, out_features=1
+            in_features=self.model_config.cell_size, out_features=1
         )
 
         self.relu = nn.ReLU()
         self.hidden_state_h_p = torch.zeros(
-            1, self.modelConfig.cell_size, device=self.modelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
         self.hidden_state_c_p = torch.zeros(
-            1, self.modelConfig.cell_size, device=self.modelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
         self.hidden_state_h_v = torch.zeros(
-            1, self.modelConfig.cell_size, device=self.modelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
         self.hidden_state_c_v = torch.zeros(
-            1, self.modelConfig.cell_size, device=self.modelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.modelConfig.lr)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.model_config.lr)
 
         # self.logger.info("Model created successfully")
 
@@ -168,7 +168,7 @@ class LSTMModel(nn.Module):
             _time = observation[3]
             _action_mask = observation[4]
 
-        if self.modelConfig.name == "p":
+        if self.model_config.name == "p":
             _p0 = observation["p0"]
             _p1 = observation["p1"]
             _p2 = observation["p2"]
@@ -178,7 +178,7 @@ class LSTMModel(nn.Module):
         conv_input_idx = torch.permute(_world_idx_map, (0, 2, 3, 1))
 
         # Concatenate the remainings of the input
-        if self.modelConfig.name == "p":
+        if self.model_config.name == "p":
             non_convolutional_input = torch.cat(
                 [
                     _flat,
@@ -221,7 +221,7 @@ class LSTMModel(nn.Module):
             # Concatenate the convolutional output with the non convolutional input
             fc_in = torch.cat([flatten, non_convolutional_input], axis=-1)
             # Fully Connected Layers
-            for i in range(self.modelConfig.num_fc):
+            for i in range(self.model_config.num_fc):
                 if i == 0:
                     fc_in = self.relu(self.fc_layer_1(fc_in))
                 else:
