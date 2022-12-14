@@ -138,25 +138,35 @@ class LSTMModel(nn.Module):
         # self.logger.info("Model created successfully")
 
     # @time_it
-    def forward(self, input: dict):
-        if isinstance(input, dict):
-            _world_map = input[WORLD_MAP]
-            _world_idx_map = input[WORLD_IDX_MAP]
-            _flat = input["flat"]
-            _time = input["time"]
-            _action_mask = input[ACTION_MASK]
+    def forward(self, observation: dict):
+        """
+        Model's forward. Given an agent observation, action distribution and value function prediction are returned.
+
+        Args:
+            observation: agent observation
+
+        Returns:
+            logits: actions probability distribution
+            value: value function prediction
+        """
+        if isinstance(observation, dict):
+            _world_map = observation[WORLD_MAP]
+            _world_idx_map = observation[WORLD_IDX_MAP]
+            _flat = observation["flat"]
+            _time = observation["time"]
+            _action_mask = observation[ACTION_MASK]
         else:
-            _world_map = input[0]
-            _world_idx_map = input[1].long()
-            _flat = input[2]
-            _time = input[3]
-            _action_mask = input[4]
+            _world_map = observation[0]
+            _world_idx_map = observation[1].long()
+            _flat = observation[2]
+            _time = observation[3]
+            _action_mask = observation[4]
 
         if self.ModelConfig.name == "p":
-            _p0 = input["p0"]
-            _p1 = input["p1"]
-            _p2 = input["p2"]
-            _p3 = input["p3"]
+            _p0 = observation["p0"]
+            _p1 = observation["p1"]
+            _p2 = observation["p2"]
+            _p3 = observation["p3"]
 
         conv_input_map = torch.permute(_world_map, (0, 2, 3, 1))
         conv_input_idx = torch.permute(_world_idx_map, (0, 2, 3, 1))

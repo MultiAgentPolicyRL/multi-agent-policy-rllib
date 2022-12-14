@@ -198,15 +198,27 @@ class PPOAgent:
 
         # critic_loss = # TODO
 
-        entropy = list()
-        for x in y_pred:
-            print(f"DIO {x}")
-            x += 1e-10
-            print(f"CANE {x}")
-            entropy.append(-(x * np.log(x)))
+        # entropy = list()
+        # for x in y_pred:
+        #     print(f"DIO {x}")
+        #     x += 1e-10
+        #     print(f"CANE {x}")
+        #     entropy.append(-(x * np.log(x)))
 
-        entropy = torch.from_numpy(np.array(entropy))
-        entropy = ENTROPY_LOSS * torch.mean(entropy)
+        # entropy = torch.from_numpy(np.array(entropy))
+        # entropy = ENTROPY_LOSS * torch.mean(entropy)
+
+        entropy = []
+        for x in y_pred:
+            # entropy.append(-(x * np.log(x)))
+            # print(np.log(x))
+            print(np.log(torch.tensor([-10000000])))
+
+        sys.exit()
+        # entropy = -(y_pred * torch.log(y_pred))
+        entropy = ENTROPY_LOSS * torch.mean(torch.tensor(entropy))
+
+        total_loss = actor_loss - entropy
 
         total_loss = actor_loss - entropy
         print(total_loss)
