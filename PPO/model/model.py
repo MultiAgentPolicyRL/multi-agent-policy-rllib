@@ -1,11 +1,8 @@
-import os
-import torch
-import logging
 import numpy as np
+import sys
+import torch
 import torch.nn as nn
 from model.model_config import ModelConfig
-from typing import Optional, Tuple, Union
-
 
 WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
@@ -17,8 +14,12 @@ def apply_logit_mask(logits, mask):
     " Add huge negative values to logits with 0 mask values."""
     logit_mask = torch.ones(logits.shape) * -10000000
     logit_mask = logit_mask * (1 - mask)
+    logit_mask = (logits + logit_mask)
 
-    return logits + logit_mask
+    ## Softmax:
+    logit_mask = torch.softmax(logit_mask, dim = 1)
+
+    return logit_mask
 
 
 class LSTMModel(nn.Module):

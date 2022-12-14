@@ -69,7 +69,7 @@ class PPOAgent:
         # ]
         return output
 
-
+    @timeit
     def act(self, state):
         """
         Gets an action and vf value from the model.
@@ -104,14 +104,20 @@ class PPOAgent:
             logits, value = self.Model(input_state)
 
         prediction = torch.squeeze(logits)
+        # print(prediction)
+        # print(torch.sum(prediction))
+        # sys.exit()
         # print(value)
         # Sample an action from the prediction distribution
-        action = torch.FloatTensor(
-            random.choices(
-                np.arange(self.action_space), weights=prediction.detach().numpy()
-            )
-        )
-
+        # action = torch.FloatTensor(
+            # random.choices(
+                # np.arange(self.action_space), weights=prediction.detach().numpy()
+            # )
+        # )
+        action_distribution = torch.distributions.Categorical(prediction)
+        action = action_distribution.sample()
+        # print(action)
+        # sys.exit()
         # One-hot encode the action
         action_onehot = torch.zeros([self.action_space])
         action_onehot[int(action.item())] = 1
@@ -210,13 +216,14 @@ class PPOAgent:
 
         entropy = []
         for x in y_pred:
-            # entropy.append(-(x * np.log(x)))
-            # print(np.log(x))
-            print(np.log(torch.tensor([-10000000])))
-
-        sys.exit()
+            entropy.append(-(x * np.log(x)))
+            print(np.log(x))
+            # print(np.log(torch.tensor([-10000000])))
+        # print(y_pred)
+        # # print(entropy)
+        # sys.exit()
         # entropy = -(y_pred * torch.log(y_pred))
-        entropy = ENTROPY_LOSS * torch.mean(torch.tensor(entropy))
+        entropy = ENTROPY_LOSS * torch.mean(torch.tensor(np.array(entropy)))
 
         total_loss = actor_loss - entropy
 
