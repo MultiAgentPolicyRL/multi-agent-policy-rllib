@@ -30,21 +30,6 @@ class PPOAgent:
         self.batch_size = self.policy_config.batch_size  # training epochs
         self.shuffle = False
 
-        # # if policy_config is not None:
-        # #     self.action_space = policy_config["action_space"]
-        # #     self.observation_space:  gym.spaces = policy_config["observation_space"]
-
-        # # Instantiate plot memory
-        # self.scores_, self.episodes_, self.average_ = (
-        #     [],
-        #     [],
-        #     [],
-        # )  # used in matplotlib plots
-
-        # # Create Actor-Critic network models
-        # self.Actor = ActorModel(policy_config.model_config)
-        # self.Critic = CriticModel(policy_config.model_config)
-
         self.Model: LSTMModel = LSTMModel(policy_config.model_config)
 
     def _obs_dict_to_tensor_list(self, observation: dict):
@@ -55,9 +40,9 @@ class PPOAgent:
             observation: Single agent environment observation
         """
         output = []
-        for key, value in observation.items():
-            output.append(torch.FloatTensor(value).unsqueeze(0)) # pylint: disable=no-member
-    
+        for key in observation.keys():
+            output.append(torch.FloatTensor(observation[key]).unsqueeze(0)) # pylint: disable=no-member
+
         return output
 
     @timeit

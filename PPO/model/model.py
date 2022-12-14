@@ -2,7 +2,9 @@ import numpy as np
 import sys
 import torch
 import torch.nn as nn
-from model.model_config import ModelConfig
+from model.model_config import ModelConfig # pylint: disable=import-error
+# pylint: disable=no-member
+
 
 WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
@@ -26,9 +28,6 @@ class LSTMModel(nn.Module):
     """
     policy&value_function (Actor-Critic) Model
     =====
-
-
-
     """
 
     def __init__(self, modelConfig: ModelConfig) -> None:
@@ -120,7 +119,6 @@ class LSTMModel(nn.Module):
         )
 
         self.relu = nn.ReLU()
-
         self.hidden_state_h_p = torch.zeros(
             1, self.ModelConfig.cell_size, device=self.ModelConfig.device
         )
@@ -141,7 +139,8 @@ class LSTMModel(nn.Module):
     # @time_it
     def forward(self, observation: dict):
         """
-        Model's forward. Given an agent observation, action distribution and value function prediction are returned.
+        Model's forward. Given an agent observation, action distribution and value function
+        prediction are returned.
 
         Args:
             observation: agent observation
@@ -242,12 +241,19 @@ class LSTMModel(nn.Module):
 
         return logits, value
 
-    def fit(self, input, y_true):
-        
-        
+    def fit(self, data, y_true):
+        """
+        Fits the model - at the moment not fully implemented
+
+        TODO: implement correctly
+
+        Args:
+            data:  agent(s) environment observations
+            y_true: data needed for fit and loss calculation
+        """
 
         # Fit the policy network
-        output = self.forward(input)
+        output = self.forward(data)
         print(output)
 
         # Calculate the loss for the policy network
@@ -260,7 +266,16 @@ class LSTMModel(nn.Module):
         self.optimizer.step()
 
     def my_loss(self, output, y_true):
+        """
+        PPO Loss
+
+        TODO: implement correctly
+
+        Args:
+            output:
+            y_true:
+        """
         # Calculate the loss for the policy network
         policy_loss = torch.nn.functional.cross_entropy(output, y_true)
-        policy_loss._requires_grad = True
+        policy_loss._requires_grad = True # pylint: disable=protected-access
         return policy_loss
