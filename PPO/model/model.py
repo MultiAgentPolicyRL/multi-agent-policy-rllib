@@ -225,7 +225,6 @@ class LSTMModel(nn.Module):
             # LSTM
 
             # Project LSTM output to logits or value
-            #
             if tag == "_policy":
                 lstm_out, hidden = self.lstm(
                     layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p)
@@ -241,7 +240,7 @@ class LSTMModel(nn.Module):
 
         return logits, value
 
-    def fit(self, data, y_true):
+    def fit(self, data, y_true, epochs: int, epochs_size: int):
         """
         Fits the model - at the moment not fully implemented
 
