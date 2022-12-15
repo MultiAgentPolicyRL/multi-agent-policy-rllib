@@ -54,7 +54,7 @@ It should manage multiple agents data such as:
 - `observation`
 - `policy_action`
 - `policy_probability` (logits)
-- `value_function`
+- `vf_action`
 - `reward`
 - `done` -> not needed
 

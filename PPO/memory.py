@@ -16,55 +16,20 @@ class BatchMemory:
         available_agent_id: list,
         env,
     ):
+        self.policy_config = policy_config
         self.policy_mapping_function = policy_mapping_function
         # ['0','1','2','3','p']
         self.available_agent_ids = available_agent_id
 
-        # Environment
-        env = copy.deepcopy(env)
-        obs = env.reset()
-
-        def build_states(key):
-            data_dict = {}
-            for keys in obs[key].keys():
-                data_dict[keys] = []
-            return data_dict
-
-        # state, next_state, action_onehot, reward, actor_prediction, vf_prediction, vf_prediction_old
-        # self.keys = ["states", "next_states", "actions", "rewards", "predictions"]
-
-        # key:dict -= state
-        self.observations = {key: build_states(
-            key) for key in self.available_agent_ids}
-        # key:dict - next_state
-        self.next_observations = {
-            key: build_states(key) for key in self.available_agent_ids
-        }
-        # key:list (onehot encoding) - action_onehot
-        self.policy_actions = {key: [] for key in self.available_agent_ids}
-        # key:list
-        self.policy_predictions = {key: [] for key in self.available_agent_ids}
-        # key:list - reward
-        self.rewards = {key: [] for key in self.available_agent_ids}
-        self.vf_predictions = {key: [] for key in self.available_agent_ids}
-        self.vf_predictions_old = {key: [] for key in self.available_agent_ids}
-
+        self.observation = {key: [] for key in self.available_agent_ids}
+        self.policy_action = {key: [] for key in self.available_agent_ids}
+        self.policy_probability = {key: [] for key in self.available_agent_ids}
+        self.vf_action = {key: [] for key in self.available_agent_ids}
+        self.reward = {key: [] for key in self.available_agent_ids}
+        
         """
-        Actual structure is like this:
-        self.states = {
-            '0': {...},
-            '1': {...},
-            ...
-            'p': {...},
-        }
-        self.next_states = {
-            '0': {...},
-            '1': {...},
-            ...
-            'p': {...},
-        }
-        ...
-        self.predictions = {
+        Internal structure is like this:
+        self.observation = {
             '0': {...},
             '1': {...},
             ...
@@ -75,124 +40,79 @@ class BatchMemory:
     @timeit
     def reset_memory(self):
         """
-        Clears the memory.
+        Clears the memory keeping internal baseic data structure.
+
+        Basically it remains like this:
+        self.observation = {'0':[], '1':[], '2':[], '3':[], 'p':[]}
         """
         for key in self.available_agent_ids:
-            self.policy_actions[key].clear()
-            self.rewards[key].clear()
-            self.policy_predictions[key].clear()
-            self.vf_predictions[key].clear()
-            self.vf_predictions_old[key].clear()
-
-            for data in self.observations[key].keys():
-                self.observations[key][data].clear()
-                self.next_observations[key][data].clear()
+            self.observation[key].clear()
+            self.policy_action[key].clear()
+            self.policy_probability[key].clear()
+            self.vf_action[key].clear()
+            self.reward[key].clear()
 
     # @timeit
     def update_memory(
         self,
-        observation: dict,
-        next_observation: dict,
-        policy_action_onehot: dict,
-        reward: dict,
-        policy_prediction: dict,
-        vf_prediction: dict,
-        vf_prediction_old: dict,
+        observation: dict, 
+        policy_action: dict, 
+        policy_probability: dict, 
+        vf_action: dict, 
+        reward: dict
     ):
         """
-        Updates memory
+        Splits each input for each agent and appends its data to the correct structure
+
+        Args:
+            observation: environment observation with all agents ('0', '1', '2', '3', 'p')
+            policy_action: policy's taken action, single for '0', '1', '2', '3', multiple for 'p'
+            policy_probability: policy's action distribution for each agent
+            vf_action: value function action prediction for each agent
+            reward: environment given reward for each agent
+
+        Return:
+            nothing
         """
         for key in self.available_agent_ids:
-            self.policy_actions[key].append(policy_action_onehot[key].numpy())
-            self.rewards[key].append(reward[key])
-            self.policy_predictions[key].append(policy_prediction[key].numpy())
-            self.vf_predictions[key].append(vf_prediction[key])
-            self.vf_predictions_old[key].append(vf_prediction_old[key])
-
-            for data in self.observations[key].keys():
-                self.observations[key][data].append(observation[key][data])
-                self.next_observations[key][data].append(
-                    next_observation[key][data])
+            self.observation[key].append(observation[key])
+            self.policy_action[key].append(policy_action[key])
+            self.policy_probability[key].append(policy_probability[key])
+            self.vf_action[key].append(vf_action[key])
+            self.reward[key].append(reward[key])
 
     @timeit
     def get_memory(self, mapped_key):
         """
+        Each memorized input is retrived from the memory and merged by agent
+
+        Return example:
+            observations = [observation['0'], observation['1'], observation['2'], observation['3']]
+            policy_actions = [policy_action['0'], policy_action['1'], policy_action['2'], ...
+
+        Args:
+            key: selected group
+
         Returns:
-            observation,
-            next_observation,
-            policy_action
-            policy_predictions
-            reward
-            vf_prediction
-            vf_prediction_old
+            observations, policy_actions, policy_probabilitiess, value_functions,
+            rewards, epochs, steps_per_epoch
         """
 
-        this_observation = {}
-        this_next_observation = {}
-        this_new_observation = {}
-
-        this_policy_action = []
-        this_reward = []
-        this_policy_predictions = []
-        this_vf_prediction = []
-        this_vf_prediction_old = []
-
-        if mapped_key == "a":
-            # Build empty this_state, this_next_state
-            for item in ["world-map", "world-idx_map", "time", "flat", "action_mask"]:
-                this_observation[item] = []
-                this_next_observation[item] = []
-                this_new_observation[item] = []
-        elif mapped_key == "p":
-            for item in [
-                "world-map",
-                "world-idx_map",
-                "time",
-                "flat",
-                "p0",
-                "p1",
-                "p2",
-                "p3",
-                "action_mask",
-            ]:
-                this_observation[item] = []
-                this_next_observation[item] = []
-                this_new_observation[item] = []
-
-        else:
-            KeyError(
-                f"Key {mapped_key} is not registered in the training cycle.")
+        observations = []
+        policy_actions = []
+        policy_probabilitiess = []
+        value_functions = []
+        rewards = []
 
         for key in self.available_agent_ids:
             if self.policy_mapping_function(key) == mapped_key:
-                for data in self.observations[key].keys():
-                    this_observation[data].extend(self.observations[key][data])
-                    this_next_observation[data].extend(
-                        self.next_observations[key][data]
-                    )
+                observations.extend(self.observation[key])
+                policy_actions.extend(self.policy_action[key])
+                policy_probabilitiess.extend(self.policy_probability[key])
+                value_functions.extend(self.vf_action[key])
+                rewards.extend(self.reward[key])
 
-                this_policy_action.extend(self.policy_actions[key])
-                this_reward.extend(self.rewards[key])
-                this_policy_predictions.extend(self.policy_predictions[key])
-                this_vf_prediction.extend(self.vf_predictions[key])
-                this_vf_prediction_old.extend(self.vf_predictions_old[key])
+        epochs = self.policy_config[mapped_key].agents_per_possible_policy
+        steps_per_epoch = len(observations)/epochs
 
-        for key in this_observation.keys():
-            this_observation[key] = np.array(this_observation[key])
-            this_next_observation[key] = np.array(this_next_observation[key])
-
-        # TESTING STUFF
-        for key in this_observation.keys():
-            for item in this_observation[key]:
-                this_new_observation[key].extend(
-                    torch.FloatTensor(item).unsqueeze(0))
-
-        return (
-            this_new_observation,
-            this_next_observation,
-            np.array(this_policy_action),
-            this_policy_predictions,
-            np.array(this_reward),
-            np.array(this_vf_prediction, dtype=object),
-            np.array(this_vf_prediction_old, dtype=object),
-        )
+        return observations, policy_actions, policy_probabilitiess, value_functions, rewards, epochs, steps_per_epoch

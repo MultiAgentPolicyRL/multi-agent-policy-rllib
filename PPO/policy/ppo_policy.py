@@ -62,7 +62,7 @@ class PPOAgent:
         value_functions: list,
         rewards: list,
         epochs: int,
-        steps_per_epoch: int
+        steps_per_epoch: int,
     ):
         """
         Train Policy networks
@@ -99,7 +99,6 @@ class PPOAgent:
             nothing
 
         """
-    
         
         """
         Logic simplified:
