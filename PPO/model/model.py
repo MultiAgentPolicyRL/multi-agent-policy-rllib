@@ -22,10 +22,10 @@ def apply_logit_mask(logits, mask):
     " Add huge negative values to logits with 0 mask values."""
     logit_mask = torch.ones(logits.shape) * -10000000
     logit_mask = logit_mask * (1 - mask)
-    logit_mask = (logits + logit_mask)
+    logit_mask = logits + logit_mask
 
     ## Softmax:
-    logit_mask = torch.softmax(logit_mask, dim = 1)
+    logit_mask = torch.softmax(logit_mask, dim=1)
 
     return logit_mask
 
@@ -282,5 +282,5 @@ class LSTMModel(nn.Module):
         """
         # Calculate the loss for the policy network
         policy_loss = torch.nn.functional.cross_entropy(output, y_true)
-        policy_loss._requires_grad = True # pylint: disable=protected-access
+        policy_loss._requires_grad = True  # pylint: disable=protected-access
         return policy_loss

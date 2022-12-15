@@ -34,7 +34,8 @@ class BatchMemory:
         # self.keys = ["states", "next_states", "actions", "rewards", "predictions"]
 
         # key:dict -= state
-        self.observations = {key: build_states(key) for key in self.available_agent_ids}
+        self.observations = {key: build_states(
+            key) for key in self.available_agent_ids}
         # key:dict - next_state
         self.next_observations = {
             key: build_states(key) for key in self.available_agent_ids
@@ -110,7 +111,8 @@ class BatchMemory:
 
             for data in self.observations[key].keys():
                 self.observations[key][data].append(observation[key][data])
-                self.next_observations[key][data].append(next_observation[key][data])
+                self.next_observations[key][data].append(
+                    next_observation[key][data])
 
     @timeit
     def get_memory(self, mapped_key):
@@ -158,7 +160,8 @@ class BatchMemory:
                 this_new_observation[item] = []
 
         else:
-            KeyError(f"Key {mapped_key} is not registered in the training cycle.")
+            KeyError(
+                f"Key {mapped_key} is not registered in the training cycle.")
 
         for key in self.available_agent_ids:
             if self.policy_mapping_function(key) == mapped_key:
@@ -181,8 +184,8 @@ class BatchMemory:
         # TESTING STUFF
         for key in this_observation.keys():
             for item in this_observation[key]:
-                this_new_observation[key].extend(torch.FloatTensor(item).unsqueeze(0))
-
+                this_new_observation[key].extend(
+                    torch.FloatTensor(item).unsqueeze(0))
 
         return (
             this_new_observation,

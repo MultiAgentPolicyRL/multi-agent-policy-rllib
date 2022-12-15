@@ -5,7 +5,7 @@ Manages batching and multi-agent training.
 # pylint: disable=no-member
 # pylint: disable=import-error
 # pylint: disable=no-name-in-module
-
+# pylint: disable = consider-using-dict-items
 import copy
 import sys
 
@@ -63,9 +63,16 @@ class PpoAlgorithm(object):
         env,
     ):
         """
-        Train all Policys
-        Here PPO's Minibatch is generated and splitted to each policy, following
-        `policy_mapping_fun` rules
+        Train all Policys.
+        PPO's data batch is generated and splitted to each policy following
+        `self.policy_mapping_fun` rules. The environment is copied and resetted to avoid
+        problems with non-differentiable operations.
+        
+        Args:
+            env: environment where training is done
+
+        Returns:
+            nothing
         """
         # Resetting memory
         self.memory.reset_memory()
@@ -73,60 +80,57 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         self.batch(env)
-        # Pass batch to the correct policy to perform training
-        for key in self.training_policies:  # pylint: disable = consider-using-dict-items
-            # logging.debug(f"Training policy {key}")
-            self.training_policies[key].learn(*self.memory.get_memory(key))
 
-        
+        # Pass batch to the correct policy to perform training
+        for key in self.training_policies:
+            self.training_policies[key].learn(*self.memory.get_memory(key))
 
     @timeit
     def batch(self, env):
+        """
+        Generates and memorizes a batch of `self.algorithm_config.batch_size` size.
+        Data is stored in `self.memory`
+
+        Args:
+            env: environment where batching is done
+
+        Returns:
+            nothing
+        """
         observation = env.reset()
         steps = 0
-
-        # FIXME: add correct data type
-        vf_prediction_old = {
-            "0": 0,
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "p": 0,
-        }
 
         while steps < self.algorithm_config.batch_size:
             # if steps % 100 == 0:
             #     logging.debug(f"    step: {steps}")
 
+            # Preprocess observation so that it's made of torch.tensors
+            observation = self.data_preprocess(observation=observation)
+
             # Actor picks an action
-            (
-                policy_action,
-                policy_action_onehot,
-                policy_prediction,
-                vf_prediction,
-            ) = self.get_actions(observation)
+            # Returned data are all torch.tensors
+            policy_actions, policy_probabilities, vf_actions = self.get_actions(
+                observation)
 
             # Retrieve new state, rew
-            next_observation, reward, _, _ = env.step(policy_action)
+            next_observation, reward, _, _ = env.step(policy_actions)
+
+            # FIXME (?): reward is still a np.array 
 
             # Memorize (state, action, reward) for trainig
             self.memory.update_memory(
                 observation=observation,
-                next_observation=next_observation,
-                policy_action_onehot=policy_action_onehot,
-                reward=reward,
-                policy_prediction=policy_prediction,
-                vf_prediction=vf_prediction,
-                vf_prediction_old=vf_prediction_old,
+                policy_action=policy_actions,
+                policy_probability=policy_probabilities,
+                vf_actions=vf_actions,
+                reward=reward
             )
-            # sys.exit()
 
             observation = next_observation
-            vf_prediction_old = vf_prediction
             steps += 1
 
     # @timeit
-    def get_actions(self, obs: dict) -> dict:
+    def get_actions(self, observation: dict) -> dict:
         """
         Build action dictionary from env observations. Output has thi structure:
 
@@ -141,33 +145,61 @@ class PpoAlgorithm(object):
         FIXME: Planner
 
         Arguments:
-            obs: observation dictionary of the environment, it contains all observations for each agent
+            observation: observation dictionary of the environment, it contains all observations for each agent
 
         Returns:
-            actions dict: actions for each agent
+            policy_actions dict: predicted actions for each agent
+            policy_probability dict: action probabilities for each agent
+            vf_actions dict: value function action predicted for each agent
         """
 
-        actions, actions_onehot, predictions, values = {}, {}, {}, {}
-        for key in obs.keys():
+        # Define built memories
+        policy_actions, policy_probabilities, vf_actions = {}, {}, {}
+        
+        # Bad implementation that works only with agents.
+        # To work also with the planner it needs to know which agents are trained so that it can default 
+        # to something if they are not under a policy. (so 2 different default, one for 'a', one for 'p')
+        for key in observation.keys():
             if key != "p":
-                # print(self._policy_mapping_function(key))
-                (
-                    actions[key],
-                    actions_onehot[key],
-                    predictions[key],
-                    values[key],
-                ) = self.training_policies[
+                policy_actions[key], policy_probabilities[key], vf_actions[key] = self.training_policies[
                     self.algorithm_config.policy_mapping_function(key)
-                ].act(
-                    obs[key]
-                )
+                    ].act(observation[key])
             else:
                 # tmp to also feed the planner
-                actions[key], actions_onehot[key], predictions[key], values[key] = (
-                    [torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,))],
+                policy_actions[key], policy_probabilities[key], vf_actions[key] = (
+                    [torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros(
+                        (1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,))],
                     torch.zeros((1,)),
-                    torch.zeros((1,)),
-                    torch.zeros((1,)),
+                    torch.zeros((1,))
                 )
-        # logging.debug(actions)
-        return actions, actions_onehot, predictions, values
+
+        return policy_actions, policy_probabilities, vf_actions
+
+    def data_preprocess(self, observation: dict) -> dict:
+        """
+            Takes as an input a dict of np.arrays and trasforms them to Torch.tensors.
+
+            Args:
+                observation: observation of the environment
+
+            Returns:
+                observation_tensored: same structure of `observation`, but np.arrays are not 
+                    torch.tensors
+
+                observation_tensored: {
+                    '0': {
+                        'var': Tensor
+                        ...
+                    },
+                    ...
+                }
+        """
+        observation_tensored = dict()
+
+        for key in observation:
+            # Agents: '0', '1', '2', '3', 'p'
+            for data_key in observation[key]:
+                # Accessing to specific data like 'world-map', 'flat', 'time', ...
+                observation_tensored[key][data_key] = torch.FloatTensor(observation[key][data_key]).unsqueeze(0)
+
+        return observation_tensored

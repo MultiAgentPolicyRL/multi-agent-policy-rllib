@@ -62,7 +62,7 @@ It should manage multiple agents data such as:
 Clears the memory keeping data structures (TODO)
 ## `update_memory`:
 ```
-def update_memory(observation, policy_action, policy_probability, value_function, reward):
+def update_memory(observation, policy_action, policy_probability, vf_action, reward):
 """
     Splits each input for each agent and appends its data to the correct structure
 
@@ -70,7 +70,7 @@ def update_memory(observation, policy_action, policy_probability, value_function
         observation: environment observation with all agents ('0', '1', '2', '3', 'p')
         policy_action: policy's taken action, single for '0', '1', '2', '3', multiple for 'p'
         policy_probability: policy's action distribution for each agent
-        value_function: value function action prediction for each agent
+        vf_action: value function action prediction for each agent
         reward: environment given reward for each agent
 
     Return:
@@ -137,9 +137,9 @@ def get_actions(self, observation: dict) -> dict:
         observation: observation of the environment, it contains all observations for each agent
 
     Returns:
-        actions dict: predicted actions for each agent
+        policy_actions dict: predicted actions for each agent
         policy_probability dict: action probabilities for each agent
-        value_function dict: value function action predicted for each agent
+        vf_actions dict: value function action predicted for each agent
 """
 ```
 
