@@ -78,6 +78,7 @@ def update_memory(observation, policy_action, policy_probability, vf_action, rew
 """
 ```
 ## `get_memory`:
+Add `epochs` (how many agents in the batch) and `steps_per_epoch` (batch size per agent)
 ```
 def get_memory(self, key):
 """
@@ -91,7 +92,7 @@ def get_memory(self, key):
         key: selected group
 
     Returns:
-     observations, policy_actions, policy_probabilitys, value_functions, rewards
+     observations, policy_actions, policy_probabilitiess, value_functions, rewards, epochs, steps_per_epoch
 """
     
 ```
@@ -102,9 +103,9 @@ It will get simplified:
 ```
 def act(self, state):
     with torch.no_grad():
-        policy_action, policy_probability, value_function = self.Model(input_state)
+        policy_action, policy_probability, vf_action = self.Model(input_state)
     
-    return policy_action, policy_probability, value_function
+    return policy_action, policy_probability, vf_action
 ```
 ## `learn`
 TODO

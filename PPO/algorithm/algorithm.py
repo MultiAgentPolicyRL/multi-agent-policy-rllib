@@ -14,7 +14,7 @@ from utils.timeit import timeit
 
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
-from policy.policy import PPOAgent
+from PPO.policy.ppo_policy import PPOAgent
 
 
 class PpoAlgorithm(object):

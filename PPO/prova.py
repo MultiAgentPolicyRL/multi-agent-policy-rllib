@@ -1,9 +1,8 @@
 # from ai_economist import foundation
 # from env_wrapper import EnvWrapper
+import random
 import numpy as np
-import time
-import tensorflow as tf
-import tf_agents
+
 
 # env_config = {
 #     "env_config_dict": {
@@ -84,7 +83,22 @@ import tf_agents
 #     return EnvWrapper(env_config)
 
 if __name__ == "__main__":
-    tf
+    # dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
+    epochs = 4
+    batch_size = 5
+    # # for i in range(n_agents):
+    # #     print(dati[:i:4])
+
+    # print(dati[:4])
+    # print(dati[::4])
+    # print(dati[0::4])
+    epochs_selected = list(range(epochs))
+    random.shuffle(epochs_selected)
+    dati : list = [0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3]
+    for i in epochs_selected:
+        print(dati[i*batch_size:batch_size+i*batch_size])
+
+
 #     # env = get_environment()
 #     # env.seed(1)
 #     # env.env.save_game_object(".")

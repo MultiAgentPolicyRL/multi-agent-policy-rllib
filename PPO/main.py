@@ -4,7 +4,7 @@ import sys
 from algorithm.algorithm import PpoAlgorithm
 from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
-from policy.policy_config import PolicyConfig
+from PPO.policy.ppo_policy_config import PpoPolicyConfig
 import time
 
 # logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policy_config = {
-        "a": PolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
+        "a": PpoPolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 

@@ -4,7 +4,7 @@ Set up and data check of policy's config
 from model.model_config import ModelConfig
 
 
-class PolicyConfig:
+class PpoPolicyConfig:
     """
     a
     """
