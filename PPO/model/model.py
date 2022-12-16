@@ -31,15 +31,14 @@ def apply_logit_mask(logits, mask):
         probs: this `action` log_probability
     """
 
-
     # Add huge negative values to logits with 0 mask values.
     logit_mask = torch.ones(logits.shape) * -10000000
     logit_mask = logit_mask * (1 - mask)
     logit_mask = logits + logit_mask
 
-    ## Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
+    # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     logit_mask = torch.softmax(logit_mask, dim=1)
-    ## Makes a Categorical distribution
+    # Makes a Categorical distribution
     dist = torch.distributions.Categorical(logit_mask)
     # Gets the action
     action = dist.sample()
@@ -64,9 +63,9 @@ class LSTMModel(nn.Module):
         # self.logger = get_basic_logger(name, level=log_level, log_path=log_path)
         self.shapes = dict()
 
-        ### This is for managing all the possible inputs without having more networks
+        # This is for managing all the possible inputs without having more networks
         for key, value in self.model_config.observation_space.items():
-            ### Check if the input must go through a Convolutional Layer
+            # Check if the input must go through a Convolutional Layer
             if key == ACTION_MASK:
                 pass
             elif key == WORLD_MAP:
@@ -256,7 +255,9 @@ class LSTMModel(nn.Module):
                     layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p)
                 )
                 self.hidden_state_h_p, self.hidden_state_c_p = hidden
-                policy_action, policy_probability = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
+                policy_action, policy_probability = apply_logit_mask(
+                    self.output_policy(lstm_out), _action_mask
+                )
             else:
                 lstm_out, hidden = self.lstm(
                     layer_norm_out, (self.hidden_state_h_v, self.hidden_state_c_v)
@@ -266,19 +267,34 @@ class LSTMModel(nn.Module):
 
         return policy_action, policy_probability, value
 
-    def fit(self, data, y_true, epochs: int, epochs_size: int):
+    def fit(
+        self,
+        observations,
+        policy_actions,
+        policy_probabilitiess,
+        value_functions,
+        rewards,
+    ):
         """
         Fits the model - at the moment not fully implemented
 
         TODO: implement correctly
 
         Args:
-            data:  agent(s) environment observations
-            y_true: data needed for fit and loss calculation
+            observations: Agent ordered, time listed observations per agent
+            policy_actions: Agent ordered, time listed policy_actions per agent
+            policy_probabilitiess: Agent ordered, time listed policy_probabilitiess per agent
+            value_functions: Agent ordered, time listed observalue_functionsvations per agent
+            rewards: Agent ordered, time listed rewards per agent
         """
 
+        # 1. Get new policy forward results
+        # 2. Calculate GAE
+        # 3. Calculate loss (for policy and vf)
+        # 4. Do backpropagation and optimizer step
+
         # Fit the policy network
-        output = self.forward(data)
+        policy_action, policy_probabiliy, vf_prediction = self.forward(data)
         print(output)
 
         # Calculate the loss for the policy network

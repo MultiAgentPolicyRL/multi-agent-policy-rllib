@@ -94,9 +94,9 @@ if __name__ == "__main__":
     # print(dati[0::4])
     epochs_selected = list(range(epochs))
     random.shuffle(epochs_selected)
-    dati : list = [0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3]
+    dati: list = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
     for i in epochs_selected:
-        print(dati[i*batch_size:batch_size+i*batch_size])
+        print(dati[i * batch_size : batch_size + i * batch_size])
 
 
 #     # env = get_environment()

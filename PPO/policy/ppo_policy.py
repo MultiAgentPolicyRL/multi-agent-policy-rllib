@@ -50,7 +50,8 @@ class PPOAgent:
         # Get the prediction from the Actor network
         with torch.no_grad():
             policy_action, policy_probability, vf_action = self.Model.forward(
-                observation)
+                observation
+            )
 
         return policy_action, policy_probability, vf_action
 
@@ -119,24 +120,30 @@ class PPOAgent:
 
         for i in epochs_order:
             # Get it's data
-            selected_observations = observations[i*steps_per_epoch:steps_per_epoch+i*steps_per_epoch]
-            selected_policy_actions =  policy_actions[i*steps_per_epoch:steps_per_epoch+i*steps_per_epoch]
-            selected_policy_probabilitiess =  policy_probabilitiess[i*steps_per_epoch:steps_per_epoch+i*steps_per_epoch]
-            selected_value_functions =  value_functions[i*steps_per_epoch:steps_per_epoch+i*steps_per_epoch]
-            selected_rewards =  rewards[i*steps_per_epoch:steps_per_epoch+i*steps_per_epoch]
+            selected_observations = observations[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            selected_policy_actions = policy_actions[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            selected_policy_probabilitiess = policy_probabilitiess[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            selected_value_functions = value_functions[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            selected_rewards = rewards[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
 
             # Fit the model
             self.Model.fit(
-                observations = selected_observations,
-                policy_actions =selected_policy_actions,
-                policy_probabilitiess = selected_policy_probabilitiess,
-                value_functions = selected_value_functions,
-                rewards = selected_rewards
+                observations=selected_observations,
+                policy_actions=selected_policy_actions,
+                policy_probabilitiess=selected_policy_probabilitiess,
+                value_functions=selected_value_functions,
+                rewards=selected_rewards,
             )
-
-
-
-
 
         # y_true = [advantages, vf_predictions, policy_actions, target]
 

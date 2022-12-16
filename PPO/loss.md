@@ -12,9 +12,10 @@ def forward(self, observation: dict):
             observation: agent observation
 
         Returns:
-            logits: actions probability distribution
-            value: value function prediction
-    """
+            policy_action: action taken by the actor, example: Tensor([2])
+            policy_probabiliy: `policy_action` log_probability
+            vf_prediction: value function action prediction
+        """
 ```
 I would modify returns:
 - policy_action: (single) action taken by the actor, example: `2`

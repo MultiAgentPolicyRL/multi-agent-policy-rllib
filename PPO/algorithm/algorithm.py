@@ -66,7 +66,7 @@ class PpoAlgorithm(object):
         PPO's data batch is generated and splitted to each policy following
         `self.policy_mapping_fun` rules. The environment is copied and resetted to avoid
         problems with non-differentiable operations.
-        
+
         Args:
             env: environment where training is done
 
@@ -109,12 +109,13 @@ class PpoAlgorithm(object):
             # Actor picks an action
             # Returned data are all torch.tensors
             policy_actions, policy_probabilities, vf_actions = self.get_actions(
-                observation)
+                observation
+            )
 
             # Retrieve new state, rew
             next_observation, reward, _, _ = env.step(policy_actions)
 
-            # FIXME (?): reward is still a np.array 
+            # FIXME (?): reward is still a np.array
 
             # Memorize (state, action, reward) for trainig
             self.memory.update_memory(
@@ -122,7 +123,7 @@ class PpoAlgorithm(object):
                 policy_action=policy_actions,
                 policy_probability=policy_probabilities,
                 vf_action=vf_actions,
-                reward=reward
+                reward=reward,
             )
 
             observation = next_observation
@@ -154,47 +155,59 @@ class PpoAlgorithm(object):
 
         # Define built memories
         policy_actions, policy_probabilities, vf_actions = {}, {}, {}
-        
+
         # Bad implementation that works only with agents.
-        # To work also with the planner it needs to know which agents are trained so that it can default 
+        # To work also with the planner it needs to know which agents are trained so that it can default
         # to something if they are not under a policy. (so 2 different default, one for 'a', one for 'p')
         for key in observation.keys():
             if key != "p":
-                policy_actions[key], policy_probabilities[key], vf_actions[key] = self.training_policies[
+                (
+                    policy_actions[key],
+                    policy_probabilities[key],
+                    vf_actions[key],
+                ) = self.training_policies[
                     self.algorithm_config.policy_mapping_function(key)
-                    ].act(observation[key])
+                ].act(
+                    observation[key]
+                )
             else:
                 # tmp to also feed the planner
                 policy_actions[key], policy_probabilities[key], vf_actions[key] = (
-                    [torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros(
-                        (1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,))],
+                    [
+                        torch.zeros((1,)),
+                        torch.zeros((1,)),
+                        torch.zeros((1,)),
+                        torch.zeros((1,)),
+                        torch.zeros((1,)),
+                        torch.zeros((1,)),
+                        torch.zeros((1,)),
+                    ],
                     torch.zeros((1,)),
-                    torch.zeros((1,))
+                    torch.zeros((1,)),
                 )
 
         return policy_actions, policy_probabilities, vf_actions
 
     def data_preprocess(self, observation: dict) -> dict:
         """
-            Takes as an input a dict of np.arrays and trasforms them to Torch.tensors.
+        Takes as an input a dict of np.arrays and trasforms them to Torch.tensors.
 
-            Args:
-                observation: observation of the environment
+        Args:
+            observation: observation of the environment
 
-            Returns:
-                observation_tensored: same structure of `observation`, but np.arrays are not 
-                    torch.tensors
+        Returns:
+            observation_tensored: same structure of `observation`, but np.arrays are not
+                torch.tensors
 
-                observation_tensored: {
-                    '0': {
-                        'var': Tensor
-                        ...
-                    },
+            observation_tensored: {
+                '0': {
+                    'var': Tensor
                     ...
-                }
+                },
+                ...
+            }
         """
         # observation_tensored = observation
-
 
         observation_tensored = {}
 
@@ -203,6 +216,8 @@ class PpoAlgorithm(object):
             observation_tensored[key] = {}
             for data_key in observation[key]:
                 # Accessing to specific data like 'world-map', 'flat', 'time', ...
-                observation_tensored[key][data_key] = torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
+                observation_tensored[key][data_key] = (
+                    torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
+                )
 
         return observation_tensored

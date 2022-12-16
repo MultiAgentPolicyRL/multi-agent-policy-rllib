@@ -27,7 +27,7 @@ import os
 import sys
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # -1:cpu, 0:first gpu
-tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
+tf.config.experimental_run_functions_eagerly(True)  # used for debuging and development
 # tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
 
 
@@ -96,7 +96,7 @@ class Actor_Model:
 
         self.Actor = Model(inputs=X_input, outputs=output)
         self.Actor.compile(loss=self.ppo_loss, optimizer=optimizer(lr=lr))
-    
+
     # @tf.function
     def ppo_loss(self, y_true, y_pred):
         # Defined in https://arxiv.org/abs/1707.06347
@@ -107,14 +107,14 @@ class Actor_Model:
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
-        
+
         print("actions:")
         print(actions)
         print("y_pred:")
         print(y_pred)
         print("prediction_picks")
         print(prediction_picks)
-        
+
         prob = actions * y_pred
         old_prob = actions * prediction_picks
 
@@ -173,7 +173,7 @@ class Critic_Model:
         return loss
 
     def predict(self, state):
-        return self.Critic.predict([state, np.zeros((state.shape[0], 1))], verbose = 0)
+        return self.Critic.predict([state, np.zeros((state.shape[0], 1))], verbose=0)
 
 
 class PPOAgent:
