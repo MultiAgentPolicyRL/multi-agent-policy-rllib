@@ -13,17 +13,35 @@ ACTION_MASK = "action_mask"
 
 
 def apply_logit_mask(logits, mask):
-    """Mask values of 1 are valid actions."
-    " Add huge negative values to logits with 0 mask values."""
-    logit_mask = torch.ones(logits.shape) * -10000000
+    """
+    Apply mask to logits, gets an action and calculates its log_probability.
+    Mask values of 1 are valid actions.
+
+    Args:
+        logits: actions probability distribution
+        mask: action_mask (consists of a tensor of N boolean [0,1] values)
+
+    Returns:
+        action: predicted action
+        probs: this `action` log_probability
+    """
+
+
+    # Add huge negative values to logits with 0 mask values.
+    logit_mask = torch.ones(logits.shape)# * -10000000
     logit_mask = logit_mask * (1 - mask)
+    logit_mask = logits + logit_mask
 
-    temp = logits + logit_mask
+    ## Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
+    logit_mask = torch.softmax(logit_mask, dim=1)
+    ## Makes a Categorical distribution
+    dist = torch.distributions.Categorical(logit_mask)
+    # Gets the action
+    action = dist.sample()
+    # Gets action log_probability
+    # probs = torch.squeeze(dist.log_prob(action)).item()
 
-    if torch.isnan(temp).any():
-        raise ValueError("NAN")
-    
-    return temp
+    return action, logit_mask
 
 class LSTMModel(nn.Module):
     """
@@ -146,8 +164,10 @@ class LSTMModel(nn.Module):
         self.hidden_state_h_v = torch.ones(1, self.cell_size, device=self.device)
         self.hidden_state_c_v = torch.ones(1, self.cell_size, device=self.device)
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        
+        # self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        # self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.lr)
+        self.optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+
         # Initialize the weights
         for param in self.parameters():
             param.grad = None
@@ -238,11 +258,8 @@ class LSTMModel(nn.Module):
         # Project LSTM output to logits 
         lstm_out, hidden = self.lstm_policy(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
-        if torch.isnan(lstm_out).any():
-            self.logger.critical("NAN in lstm_out")
-            raise ValueError("NAN in lstm_out")
         lstm_out = self.output_policy(lstm_out)
-        logits = self.softmax(lstm_out)#apply_logit_mask(self.output_policy(lstm_out), _action_mask)
+        action, logits = apply_logit_mask(lstm_out, _action_mask)    
 
         #Value
         # Embedd from 100 to 4
@@ -271,9 +288,6 @@ class LSTMModel(nn.Module):
         # Project LSTM output to logits 
         lstm_out, hidden = self.lstm_value(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
-        if torch.isnan(lstm_out).any():
-            self.logger.critical("NAN in lstm_out")
-            raise ValueError("NAN in lstm_out")
         value = self.output_value(lstm_out)
     
 
@@ -317,7 +331,8 @@ class LSTMModel(nn.Module):
         #         self.hidden_state_h_v, self.hidden_state_c_v = hidden[0].detach(), hidden[1].detach()
         #         value = self.output_value(lstm_out)
 
-        return logits, value
+        return action, logits, value
+        #return logits, value
 
     def fit(self, states: List[dict], epochs: int, batch_size: int, gaes: List[torch.FloatTensor], predictions: List[torch.FloatTensor], actions: List[torch.FloatTensor], verbose: Union[bool, int] = 0) -> torch.Tensor:
         """
@@ -336,7 +351,7 @@ class LSTMModel(nn.Module):
             self.logger.debug(f"{_text:-^20}")
             for batch in range(batch_size):
                 # Get the predictions
-                logits, values = self.forward(states[batch])
+                action, logits, values = self.forward(states[batch])
 
                 if torch.isnan(logits).any():
                     self.logger.error(f"s:\n{states[batch]}")
@@ -391,16 +406,8 @@ class LSTMModel(nn.Module):
 
         # Calculate the entropy without considering `nan` values
         entropy = -torch.nansum(out_logits * torch.log(out_logits + 1e-10), dim=1).mean()
-        
-        if torch.isnan(policy_loss):
-            self.logger.critical("Policy loss is NaN: \np1 = {}\np2 = {}".format(p1, p2))
-            raise ValueError("Policy loss is NaN")
 
-        loss = policy_loss
-        if torch.isnan(entropy):
-            self.logger.warning("Entropy is NaN: \n{}".format(torch.log(out_logits + 1e-10).detach().numpy().squeeze(0)))
-        else:
-            loss += _entropy * entropy
+        loss = policy_loss + _entropy * entropy
         
         return loss
 

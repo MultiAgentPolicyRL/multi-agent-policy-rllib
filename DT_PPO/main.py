@@ -41,22 +41,22 @@ if __name__ == "__main__":
     # Init PPO
     algorithm = PPO(env, 50, batch_size=1000, log_level=logging.INFO, log_path=log_path)
 
-    iterations = 1
-
-    logger.warning(f"The 'p' agent is not considered for now! In future it must be fixed.")
+    iterations = 50
+    total_rewards = 0
     
     for it in range(iterations):
         logger.info(f"Starting iteration {it+1}/{iterations}")
 
-        states, actions, rewards, predictions, next_states, values = algorithm.populate_batch() # Torch
+        states, actions, rewards, predictions, next_states, values, total_rewards = algorithm.populate_batch(total_rewards=total_rewards) # Torch
         # states, actions, rewards, predictions, next_states, values, _ = algorithm.populate_batch() # Tensorflow
 
-        for agent in ['0', '1', '2', '3', 'p']:
-            # rewards is a dict of agents
-            # rerwards[agent] is a list of tensor rewards for each agent
-            temp_rewards = [x.squeeze(0).item() for x in rewards[agent]]
-            logger.info(f"Agent {agent} rewards | mean: {round(np.mean(temp_rewards), 3)}, std: {round(np.std(temp_rewards), 3)}, min: {round(np.min(temp_rewards), 3)}, max: {round(np.max(temp_rewards), 3)}")
-        
+        # for agent in ['0', '1', '2', '3', 'p']:
+        #     # rewards is a dict of agents
+        #     # rerwards[agent] is a list of tensor rewards for each agent
+        #     temp_rewards = [x.squeeze(0).item() for x in rewards[agent]]
+        #     logger.info(f"Agent {agent} rewards | mean: {round(np.mean(temp_rewards), 3)}, std: {round(np.std(temp_rewards), 3)}, min: {round(np.min(temp_rewards), 3)}, max: {round(np.max(temp_rewards), 3)}")
+        logger.info(f"Total rewards: {total_rewards}")
+
         losses = algorithm.train(states, actions, rewards, predictions, next_states, values,) # Torch
         # losses = algorithm.train(states, actions, rewards, predictions, next_states, values, _) # Tensorflow
         

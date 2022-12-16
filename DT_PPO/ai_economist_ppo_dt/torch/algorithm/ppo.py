@@ -190,30 +190,21 @@ class PPO():
             self.logger.debug(f"Input state: {(x.shape[1:] for x in state)}")
             # Get the prediction from the Actor network
             #with torch.no_grad():
-            logits, value = self.actor(state)
-            _prediction = torch.squeeze(logits).detach().numpy()
+            action, logits, value = self.actor(state)
+            # _prediction = torch.squeeze(logits).detach().numpy()
             # Log the prediction
-            self.logger.debug(f"Prediction: {[round(float(p), 3) for p in _prediction]}")
+            # self.logger.debug(f"Prediction: {[round(float(p), 3) for p in _prediction]}")
 
             # Sample an action from the prediction distribution
-            action = torch.FloatTensor(random.choices(np.arange(self.action_space[agent]), weights=_prediction)).to(self.device)
+            # action = torch.FloatTensor(random.choices(np.arange(self.action_space[agent]), weights=_prediction)).to(self.device)
             # Log
             self.logger.debug(f"Action: {action}")
-
-            # One-hot encode the action
-            one_hot_action = torch.zeros([self.action_space[agent]]).to(self.device)
-            one_hot_action[int(action.item())] = 1
-            # Log
-            self.logger.debug(f"One-hot action: {np.where(one_hot_action == 1)[0]}")
         else:
             action = torch.IntTensor([random.randint(0,21) for _ in range(7)])
-            one_hot_action = torch.zeros([self.action_space[agent]]).to(self.device)
-            for action_idx in action:
-                one_hot_action[action_idx.item()] = 1
             logits = torch.zeros([self.action_space[agent]]).to(self.device)
             value = torch.zeros([1]).to(self.device)
         
-        return action, one_hot_action, logits, value
+        return action, logits, value
 
     # @time_it
     @torch.no_grad()
@@ -236,22 +227,21 @@ class PPO():
             Probability distribution over the actions.
         """
         # Initialize dict to store actions
-        actions, actions_one_hot, predictions, values = {}, {}, {}, {}
+        actions, predictions, values = {}, {}, {}
 
         # Iterate over agents
         for agent in states.keys():
             # Get the action, one-hot encoded action, and prediction
-            action, one_hot_action, prediction, value = self._act(states[agent], 'a' if agent != 'p' else 'p')
+            action, prediction, value = self._act(states[agent], 'a' if agent != 'p' else 'p')
             # Log
             self.logger.debug(f"Agent {agent} action: {action}")
             
             # Store actions, one-hot encoded actions, and predictions
             actions[agent] = action
-            actions_one_hot[agent] = one_hot_action
             predictions[agent] = prediction
             values[agent] = value
                 
-        return actions, actions_one_hot, predictions, values
+        return actions, predictions, values
 
     @torch.no_grad()
     def convert_state_to_tensor(self, state: Dict[str, list]) -> Dict[str, list]:
@@ -284,7 +274,7 @@ class PPO():
     
     # @time_it
     @torch.no_grad()
-    def populate_batch(self, agents: list = ['0', '1', '2', '3', 'p']) -> dict:
+    def populate_batch(self, agents: list = ['0', '1', '2', '3', 'p'], total_rewards: int = 0) -> dict:
         """
         Populate a batch.
         
@@ -319,7 +309,7 @@ class PPO():
         start_timer = time.time()
         for iteration in range(self.batch_size):
             # Get actions, one-hot encoded actions, and predictions
-            actions, _, predictions, values = self.get_actions(state)
+            actions, predictions, values = self.get_actions(state)
             # Log
             self.logger.debug(f"Actions: {actions}")
 
@@ -338,6 +328,7 @@ class PPO():
                 predictions_dict[agent].append(predictions[agent])
                 next_states_dict[agent].append(next_state[agent])
                 values_dict[agent].append(values[agent])
+                total_rewards += rewards[agent]
             
             # # Remove Log - info since it's very fast
             # if iteration % 100 == 0 and iteration:
@@ -357,7 +348,7 @@ class PPO():
         self.logger.info(f"Rewards neq zero: '0' {r_temp[0]}%, '1' {r_temp[1]}%, '2' {r_temp[2]}%, '3' {r_temp[3]}%")
         del r_temp, actions, predictions, rewards, next_state, state
 
-        return states_dict, actions_dict, rewards_dict, predictions_dict, next_states_dict, values_dict
+        return states_dict, actions_dict, rewards_dict, predictions_dict, next_states_dict, values_dict, total_rewards
 
     def train(self, states: dict, actions: dict, rewards: dict, predictions: dict, next_states: dict, values: dict) -> dict:
         """
@@ -378,7 +369,6 @@ class PPO():
         """
         losses = {'0': [], '1': [], '2': [], '3': []}
 
-        self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")
         self.logger.info(f"Training on {self.batch_size} steps.")
         
         start_timer = time.time()
