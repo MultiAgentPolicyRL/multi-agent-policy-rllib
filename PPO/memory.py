@@ -1,10 +1,12 @@
-import copy
-import sys
-from dataclasses import dataclass
+"""
+AI-Economist Batch memory. It's used by `algorithm`.
+"""
 
-import torch
+# pylint: disable=no-name-in-module
+# pylint: disable=import-error
+
+from dataclasses import dataclass
 from utils.timeit import timeit
-import numpy as np
 
 
 @dataclass
@@ -14,7 +16,6 @@ class BatchMemory:
         policy_mapping_function,
         policy_config: dict,
         available_agent_id: list,
-        env,
     ):
         self.policy_config = policy_config
         self.policy_mapping_function = policy_mapping_function
@@ -26,7 +27,7 @@ class BatchMemory:
         self.policy_probability = {key: [] for key in self.available_agent_ids}
         self.vf_action = {key: [] for key in self.available_agent_ids}
         self.reward = {key: [] for key in self.available_agent_ids}
-        
+
         """
         Internal structure is like this:
         self.observation = {
@@ -55,10 +56,10 @@ class BatchMemory:
     # @timeit
     def update_memory(
         self,
-        observation: dict, 
-        policy_action: dict, 
-        policy_probability: dict, 
-        vf_action: dict, 
+        observation: dict,
+        policy_action: dict,
+        policy_probability: dict,
+        vf_action: dict,
         reward: dict
     ):
         """
@@ -115,4 +116,5 @@ class BatchMemory:
         epochs = self.policy_config[mapped_key].agents_per_possible_policy
         steps_per_epoch = len(observations)/epochs
 
-        return observations, policy_actions, policy_probabilitiess, value_functions, rewards, epochs, steps_per_epoch
+        return (observations, policy_actions, policy_probabilitiess,
+            value_functions, rewards, epochs, steps_per_epoch)

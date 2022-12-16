@@ -14,7 +14,7 @@ from utils.timeit import timeit
 
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
-from PPO.policy.ppo_policy import PPOAgent
+from policy.ppo_policy import PPOAgent
 
 
 class PpoAlgorithm(object):
@@ -55,7 +55,6 @@ class PpoAlgorithm(object):
             self.algorithm_config.policy_mapping_function,
             self.algorithm_config.policies_configs,
             self.algorithm_config.agents_name,
-            self.algorithm_config.env,
         )
 
     def train_one_step(
@@ -80,7 +79,7 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         self.batch(env)
-
+        sys.exit()
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
             self.training_policies[key].learn(*self.memory.get_memory(key))
@@ -122,7 +121,7 @@ class PpoAlgorithm(object):
                 observation=observation,
                 policy_action=policy_actions,
                 policy_probability=policy_probabilities,
-                vf_actions=vf_actions,
+                vf_action=vf_actions,
                 reward=reward
             )
 
@@ -194,12 +193,16 @@ class PpoAlgorithm(object):
                     ...
                 }
         """
-        observation_tensored = dict()
+        # observation_tensored = observation
+
+
+        observation_tensored = {}
 
         for key in observation:
             # Agents: '0', '1', '2', '3', 'p'
+            observation_tensored[key] = {}
             for data_key in observation[key]:
                 # Accessing to specific data like 'world-map', 'flat', 'time', ...
-                observation_tensored[key][data_key] = torch.FloatTensor(observation[key][data_key]).unsqueeze(0)
+                observation_tensored[key][data_key] = torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
 
         return observation_tensored

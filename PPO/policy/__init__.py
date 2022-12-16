@@ -1,1 +1,1 @@
-from .policy import PPOAgent
+from .ppo_policy import PPOAgent

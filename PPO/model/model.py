@@ -18,16 +18,35 @@ ACTION_MASK = "action_mask"
 
 
 def apply_logit_mask(logits, mask):
-    """Mask values of 1 are valid actions."
-    " Add huge negative values to logits with 0 mask values."""
+    """
+    Apply mask to logits, gets an action and calculates its log_probability.
+    Mask values of 1 are valid actions.
+
+    Args:
+        logits: actions probability distribution
+        mask: action_mask (consists of a tensor of N boolean [0,1] values)
+
+    Returns:
+        action: predicted action
+        probs: this `action` log_probability
+    """
+
+
+    # Add huge negative values to logits with 0 mask values.
     logit_mask = torch.ones(logits.shape) * -10000000
     logit_mask = logit_mask * (1 - mask)
     logit_mask = logits + logit_mask
 
-    ## Softmax:
+    ## Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     logit_mask = torch.softmax(logit_mask, dim=1)
+    ## Makes a Categorical distribution
+    dist = torch.distributions.Categorical(logit_mask)
+    # Gets the action
+    action = dist.sample()
+    # Gets action log_probability
+    probs = torch.squeeze(dist.log_prob(action)).item()
 
-    return logit_mask
+    return action, probs
 
 
 class LSTMModel(nn.Module):
@@ -152,8 +171,9 @@ class LSTMModel(nn.Module):
             observation: agent observation
 
         Returns:
-            logits: actions probability distribution
-            value: value function prediction
+            policy_action: action taken by the actor, example: Tensor([2])
+            policy_probabiliy: `policy_action` log_probability
+            vf_prediction: value function action prediction
         """
         if isinstance(observation, dict):
             _world_map = observation[WORLD_MAP]
@@ -236,7 +256,7 @@ class LSTMModel(nn.Module):
                     layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p)
                 )
                 self.hidden_state_h_p, self.hidden_state_c_p = hidden
-                logits = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
+                policy_action, policy_probability = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
             else:
                 lstm_out, hidden = self.lstm(
                     layer_norm_out, (self.hidden_state_h_v, self.hidden_state_c_v)
@@ -244,7 +264,7 @@ class LSTMModel(nn.Module):
                 self.hidden_state_h_v, self.hidden_state_c_v = hidden
                 value = self.output_value(lstm_out)
 
-        return logits, value
+        return policy_action, policy_probability, value
 
     def fit(self, data, y_true, epochs: int, epochs_size: int):
         """

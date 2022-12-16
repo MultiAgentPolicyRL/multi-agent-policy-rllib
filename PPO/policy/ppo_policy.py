@@ -12,7 +12,7 @@ import numpy as np
 # import tensorflow as tf
 import torch
 from model.model import LSTMModel
-from PPO.policy.ppo_policy_config import PpoPolicyConfig
+from policy.ppo_policy_config import PpoPolicyConfig
 from utils.timeit import timeit
 
 
@@ -30,7 +30,7 @@ class PPOAgent:
 
         self.Model: LSTMModel = LSTMModel(policy_config.model_config)
 
-    @timeit
+    # @timeit
     def act(self, observation: dict):
         """
         Given an observation, returns `policy_action`, `policy_probability` and `vf_action` from the model.
@@ -49,7 +49,7 @@ class PPOAgent:
 
         # Get the prediction from the Actor network
         with torch.no_grad():
-            policy_action, policy_probability, vf_action = self.Model(
+            policy_action, policy_probability, vf_action = self.Model.forward(
                 observation)
 
         return policy_action, policy_probability, vf_action
@@ -99,7 +99,7 @@ class PPOAgent:
             nothing
 
         """
-        
+
         """
         Logic simplified:
             epochs = 4
@@ -113,6 +113,9 @@ class PPOAgent:
         # Set epochs order
         epochs_order = list(range(epochs))
         random.shuffle(epochs_order)
+
+        steps_per_epoch = int(steps_per_epoch)
+        # print(f"STEPS PER EPOCH: {steps_per_epoch}")
 
         for i in epochs_order:
             # Get it's data

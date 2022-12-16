@@ -4,14 +4,14 @@ import sys
 from algorithm.algorithm import PpoAlgorithm
 from algorithm.algorithm_config import AlgorithmConfig
 from env_wrapper import EnvWrapper
-from PPO.policy.ppo_policy_config import PpoPolicyConfig
+from policy.ppo_policy_config import PpoPolicyConfig
 import time
 
 # logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
 # logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s | %(name)s \t| %(levelname)s\t| %(message)s",
+    format="%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s",
 )
 
 env_config = {
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=2,
+        minibatch_size=1000,
         policies_configs=policy_config,
         env=env,
         seed=SEED,
@@ -120,10 +120,12 @@ if __name__ == "__main__":
         start = time.time()
         logging.debug(f"Training epoch {i}")
 
+        obs = algorithm.data_preprocess(obs)
         actions = algorithm.get_actions(obs)[0]
+
         obs, rew, done, info = env.step(actions)
-        logging.info(f"Actions: {actions}")
-        logging.info(f"Reward step {i}: {rew}")
+        # logging.info(f"Actions: {actions}")
+        # logging.info(f"Reward step {i}: {rew}")
 
         algorithm.train_one_step(env)
         sys.exit()
