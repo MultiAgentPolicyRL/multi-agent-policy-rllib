@@ -94,7 +94,7 @@ def get_environment():
 
 
 if __name__ == "__main__":
-    EPOCHS = 1
+    EPOCHS = 20
     SEED = 1
 
     env = get_environment()
@@ -124,12 +124,12 @@ if __name__ == "__main__":
         actions = algorithm.get_actions(obs)[0]
 
         obs, rew, done, info = env.step(actions)
-        # logging.info(f"Actions: {actions}")
-        # logging.info(f"Reward step {i}: {rew}")
+        logging.info(f"Actions: {actions['0']} {actions['1']} {actions['2']} {actions['3']} {actions['p']}")
+        logging.info(f"Reward step {i}: {rew['0']} {rew['1']} {rew['2']} {rew['3']} {rew['p']}")
 
         algorithm.train_one_step(env)
-        sys.exit()
-        # logging.info(f"Trained step {i} in {time.time()-start} seconds")
+        # sys.exit()
+        logging.info(f"Trained step {i} in {time.time()-start} seconds")
         # print(f"Trained step {i} in {time.time()-start} seconds")
 
     # Kill multi-processes

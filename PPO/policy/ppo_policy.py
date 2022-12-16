@@ -140,10 +140,18 @@ class PPOAgent:
             self.Model.fit(
                 observations=selected_observations,
                 policy_actions=selected_policy_actions,
-                policy_probabilitiess=selected_policy_probabilitiess,
-                value_functions=selected_value_functions,
+                policy_probabilities=selected_policy_probabilitiess,
+                vf_actions=selected_value_functions,
                 rewards=selected_rewards,
             )
+
+        # self.Model.fit(
+        #         observations=observations,
+        #         policy_actions=policy_actions,
+        #         policy_probabilities=policy_probabilitiess,
+        #         vf_actions=value_functions,
+        #         rewards=rewards,
+        #     )
 
         # y_true = [advantages, vf_predictions, policy_actions, target]
 

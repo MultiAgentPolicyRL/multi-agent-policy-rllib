@@ -7,6 +7,7 @@ Manages batching and multi-agent training.
 # pylint: disable=no-name-in-module
 # pylint: disable = consider-using-dict-items
 import copy
+import logging
 import sys
 
 import torch
@@ -79,12 +80,11 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         self.batch(env)
-        sys.exit()
         # Pass batch to the correct policy to perform training
         for key in self.training_policies:
             self.training_policies[key].learn(*self.memory.get_memory(key))
 
-    @timeit
+    # @timeit
     def batch(self, env):
         """
         Generates and memorizes a batch of `self.algorithm_config.batch_size` size.
@@ -98,6 +98,7 @@ class PpoAlgorithm(object):
         """
         observation = env.reset()
         steps = 0
+        total_actors_reward = 0
 
         while steps < self.algorithm_config.batch_size:
             # if steps % 100 == 0:
@@ -115,6 +116,7 @@ class PpoAlgorithm(object):
             # Retrieve new state, rew
             next_observation, reward, _, _ = env.step(policy_actions)
 
+            total_actors_reward += (reward['0'] + reward['1'] + reward['2'] + reward['3'])
             # FIXME (?): reward is still a np.array
 
             # Memorize (state, action, reward) for trainig
@@ -128,6 +130,8 @@ class PpoAlgorithm(object):
 
             observation = next_observation
             steps += 1
+        
+        logging.debug(f"TOTAL REWARD: {total_actors_reward}")
 
     # @timeit
     def get_actions(self, observation: dict) -> dict:

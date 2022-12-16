@@ -42,7 +42,7 @@ class BatchMemory:
         }
         """
 
-    @timeit
+    # @timeit
     def reset_memory(self):
         """
         Clears the memory keeping internal baseic data structure.
@@ -86,7 +86,7 @@ class BatchMemory:
             self.vf_action[key].append(vf_action[key])
             self.reward[key].append(reward[key])
 
-    @timeit
+    # @timeit
     def get_memory(self, mapped_key):
         """
         Each memorized input is retrived from the memory and merged by agent
