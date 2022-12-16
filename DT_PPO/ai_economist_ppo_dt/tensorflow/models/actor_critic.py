@@ -204,6 +204,7 @@ class LSTMModel:
 
         if log_level == logging.DEBUG:
             self.model.summary()
+            exit()
         
         self.logger.info("Model created successfully")
 

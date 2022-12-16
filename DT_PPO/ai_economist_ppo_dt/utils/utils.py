@@ -105,15 +105,15 @@ def ms_to_time(ms):
     
     return f"{hours}:{minutes}:{seconds}.{milliseconds}"
 
+time_logger = get_basic_logger("time_it")
 def time_it(func):
-    logger = get_basic_logger("time_it")
     def wrapper(*args, **kwargs):
         import time
         start = time.time()
         result = func(*args, **kwargs)
         end = time.time()
         if int((end-start)*1000) > 0:
-            logger.info(f"Time taken for {func.__name__} : {ms_to_time((end-start)*1000)}")
+            time_logger.info(f"Time taken for {func.__name__} : {ms_to_time((end-start)*1000)}")
         # logger.debug(f"Time taken for {func.__name__} : {ms_to_time((end-start)*1000)}")
         return result
     return wrapper

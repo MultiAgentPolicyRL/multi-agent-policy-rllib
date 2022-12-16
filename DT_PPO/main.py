@@ -1,9 +1,9 @@
 import os
 import sys
+import torch
 import random
 import logging
 import numpy as np
-import tensorflow as tf
 from datetime import datetime
 
 ### Helpful for type declarations and logs
@@ -12,9 +12,17 @@ from ai_economist.foundation.base.base_env import BaseEnvironment
 ###
 from ai_economist_ppo_dt.utils import create_environment, get_basic_logger
 from ai_economist_ppo_dt.torch import PPO
-# from ai_economist_ppo_dt.tensorflow import Actor, Critic, PPO
+# from ai_economist_ppo_dt.tensorflow import PPO
+# import tensorflow as tf
 
-os.environ["CUDA_VISIBLE_DEVICES"]="-1" if not tf.config.list_physical_devices('GPU') else len(tf.config.list_physical_devices('GPU'))
+# Check if tensorflow is imported
+if 'tf' in sys.modules:
+    os.environ["CUDA_VISIBLE_DEVICES"]="-1" if not tf.config.list_physical_devices('GPU') else len(tf.config.list_physical_devices('GPU'))
+    device = tf.config.list_physical_devices('GPU')[0] if tf.config.list_physical_devices('GPU') else 'cpu'
+
+if 'torch' in sys.modules:
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    torch.backends.cudnn.benchmark = True
 SEED = random.randrange(min(sys.maxsize, 2**32-1))
 
 if __name__ == "__main__":   
@@ -32,21 +40,27 @@ if __name__ == "__main__":
     
     # Init PPO
     algorithm = PPO(env, 50, batch_size=1000, log_level=logging.INFO, log_path=log_path)
-    iterations = 50
+
+    iterations = 1
 
     logger.warning(f"The 'p' agent is not considered for now! In future it must be fixed.")
     
     for it in range(iterations):
         logger.info(f"Starting iteration {it+1}/{iterations}")
 
-        states, actions, rewards, predictions, next_states, values, h_s = algorithm.populate_batch()
+        states, actions, rewards, predictions, next_states, values = algorithm.populate_batch() # Torch
+        # states, actions, rewards, predictions, next_states, values, _ = algorithm.populate_batch() # Tensorflow
 
-        exit()
         for agent in ['0', '1', '2', '3', 'p']:
-            logger.info(f"Agent {agent} rewards | mean: {round(np.mean(rewards[agent]), 3)}, std: {round(np.std(rewards[agent]), 3)}, min: {round(np.min(rewards[agent]), 3)}, max: {round(np.max(rewards[agent]), 3)}")
-
-        losses = algorithm.train(states, actions, rewards, predictions, next_states, values, h_s)
+            # rewards is a dict of agents
+            # rerwards[agent] is a list of tensor rewards for each agent
+            temp_rewards = [x.squeeze(0).item() for x in rewards[agent]]
+            logger.info(f"Agent {agent} rewards | mean: {round(np.mean(temp_rewards), 3)}, std: {round(np.std(temp_rewards), 3)}, min: {round(np.min(temp_rewards), 3)}, max: {round(np.max(temp_rewards), 3)}")
         
-        logger.info(f"Losses: {losses}")
+        losses = algorithm.train(states, actions, rewards, predictions, next_states, values,) # Torch
+        # losses = algorithm.train(states, actions, rewards, predictions, next_states, values, _) # Tensorflow
+        
+        # logger.info(f"Losses: {losses}")
         logger.info(f"{'#'*50}")
         
+    exit()
