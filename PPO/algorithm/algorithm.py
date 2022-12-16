@@ -2,8 +2,11 @@
 PPO's top level algorithm.
 Manages batching and multi-agent training.
 """
+# pylint: disable=no-member
+# pylint: disable=import-error
+# pylint: disable=no-name-in-module
+# pylint: disable = consider-using-dict-items
 import copy
-from multiprocessing import Pipe, Process
 import sys
 
 import torch
@@ -11,7 +14,7 @@ from utils.timeit import timeit
 
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
-from policy.policy import PPOAgent
+from policy.ppo_policy import PPOAgent
 
 
 class PpoAlgorithm(object):
@@ -52,112 +55,23 @@ class PpoAlgorithm(object):
             self.algorithm_config.policy_mapping_function,
             self.algorithm_config.policies_configs,
             self.algorithm_config.agents_name,
-            self.algorithm_config.env,
         )
-
-        # if self.algorithm_config.multiprocessing:
-        #     self.works, self.parent_conns, self.child_conns = [], [], []
-
-        #     for idx in range(self.algorithm_config.num_workers):
-        #         parent_conn, child_conn = Pipe()
-
-        #         work = Environment(
-        #             env=self.algorithm_config.env,
-        #             seed=self.algorithm_config.seed + idx,
-        #             child_conn=child_conn
-        #         )
-        #         work.start()
-        #         self.works.append(work)
-        #         self.parent_conns.append(parent_conn)
-        #         self.child_conns.append(child_conn)
-
-        #     self.memory_dictionary = {}  # use to pass it
-        #     # used for memory's step bf passing it to memory_dict
-        #     self.batch_memory_dictionary = {}
-        #     for idx, parent_conn in enumerate(self.parent_conns):
-        #         self.batch_memory_dictionary[idx] = {"state": parent_conn.recv()}
-
-        #         self.memory_dictionary[idx] = BatchMemory(
-        #             self.algorithm_config.policy_mapping_function,
-        #             self.algorithm_config.policies_configs,
-        #             self.algorithm_config.agents_name,
-        #         )
-
-    # def kill_processes(self):
-    #     for work in self.works:
-    #         work.terminate()
-    #         print("TERMINATED:", work)
-    #         work.join()
-
-    # @timeit
-    # def batch_multi_process(self):
-    #     for idx in range(self.algorithm_config.num_workers):
-    #         self.memory_dictionary[idx].reset_memory()
-
-    #     step = 0
-    #     while (
-    #         step < self.algorithm_config.batch_size // self.algorithm_config.num_workers
-    #     ):
-    #         # logging.debug(f"Batching step: {step}x{self.algorithm_config.num_workers}")
-    #         for idx in range(self.algorithm_config.num_workers):
-    #             (
-    #                 self.batch_memory_dictionary[idx]["action"],
-    #                 self.batch_memory_dictionary[idx]["action_onehot"],
-    #                 self.batch_memory_dictionary[idx]["prediction"],
-    #             ) = self.get_actions(self.batch_memory_dictionary[idx]["state"])
-
-    #         for worker_id, parent_conn in enumerate(self.parent_conns):
-    #             parent_conn.send(
-    #                 self.batch_memory_dictionary[worker_id]["action"])
-
-    #         # Retrieve new state, rew
-    #         for worker_id, parent_conn in enumerate(self.parent_conns):
-    #             (
-    #                 self.batch_memory_dictionary[worker_id]["next_state"],
-    #                 self.batch_memory_dictionary[worker_id]["reward"],
-    #             ) = parent_conn.recv()
-    #         # next_state, reward, _, _ = env.step(action)
-
-    #         # Memorize (state, action, reward) for trainig
-    #         for idx in range(self.algorithm_config.num_workers):
-    #             self.memory_dictionary
-    #         # self.memory.update_memory(
-    #         #     state, next_state, action_onehot, reward, prediction
-    #         # )
-
-    #         # update state for next step
-    #         for idx in range(self.algorithm_config.num_workers):
-    #             # state, next_state, action_onehot, reward, prediction
-    #             self.memory_dictionary[idx].update_memory(
-    #                 self.batch_memory_dictionary[idx]["state"],
-    #                 self.batch_memory_dictionary[idx]["next_state"],
-    #                 self.batch_memory_dictionary[idx]["action_onehot"],
-    #                 self.batch_memory_dictionary[idx]["reward"],
-    #                 self.batch_memory_dictionary[idx]["prediction"]
-    #             )
-
-    #             self.batch_memory_dictionary[idx][
-    #                 "state"
-    #             ] = self.batch_memory_dictionary[idx]["next_state"]
-
-    #         step += 1
-
-    #     # Get total memory
-    #     print("getting memory")
-    #     for idx in range(self.algorithm_config.num_workers):
-    #         self.memory += self.memory_dictionary[idx]
-
-    #     # self.kill_processes()
-    #     # sys.exit()
 
     def train_one_step(
         self,
         env,
     ):
         """
-        Train all Policys
-        Here PPO's Minibatch is generated and splitted to each policy, following
-        `policy_mapping_fun` rules
+        Train all Policys.
+        PPO's data batch is generated and splitted to each policy following
+        `self.policy_mapping_fun` rules. The environment is copied and resetted to avoid
+        problems with non-differentiable operations.
+        
+        Args:
+            env: environment where training is done
+
+        Returns:
+            nothing
         """
         # Resetting memory
         self.memory.reset_memory()
@@ -165,60 +79,57 @@ class PpoAlgorithm(object):
 
         # Collecting data for batching
         self.batch(env)
+        sys.exit()
         # Pass batch to the correct policy to perform training
-        for key in self.training_policies:  # pylint: disable = consider-using-dict-items
-            # logging.debug(f"Training policy {key}")
+        for key in self.training_policies:
             self.training_policies[key].learn(*self.memory.get_memory(key))
-
-        
 
     @timeit
     def batch(self, env):
+        """
+        Generates and memorizes a batch of `self.algorithm_config.batch_size` size.
+        Data is stored in `self.memory`
+
+        Args:
+            env: environment where batching is done
+
+        Returns:
+            nothing
+        """
         observation = env.reset()
         steps = 0
-
-        # FIXME: add correct data type
-        vf_prediction_old = {
-            "0": 0,
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "p": 0,
-        }
 
         while steps < self.algorithm_config.batch_size:
             # if steps % 100 == 0:
             #     logging.debug(f"    step: {steps}")
 
+            # Preprocess observation so that it's made of torch.tensors
+            observation = self.data_preprocess(observation=observation)
+
             # Actor picks an action
-            (
-                policy_action,
-                policy_action_onehot,
-                policy_prediction,
-                vf_prediction,
-            ) = self.get_actions(observation)
+            # Returned data are all torch.tensors
+            policy_actions, policy_probabilities, vf_actions = self.get_actions(
+                observation)
 
             # Retrieve new state, rew
-            next_observation, reward, _, _ = env.step(policy_action)
+            next_observation, reward, _, _ = env.step(policy_actions)
+
+            # FIXME (?): reward is still a np.array 
 
             # Memorize (state, action, reward) for trainig
             self.memory.update_memory(
                 observation=observation,
-                next_observation=next_observation,
-                policy_action_onehot=policy_action_onehot,
-                reward=reward,
-                policy_prediction=policy_prediction,
-                vf_prediction=vf_prediction,
-                vf_prediction_old=vf_prediction_old,
+                policy_action=policy_actions,
+                policy_probability=policy_probabilities,
+                vf_action=vf_actions,
+                reward=reward
             )
-            # sys.exit()
 
             observation = next_observation
-            vf_prediction_old = vf_prediction
             steps += 1
 
     # @timeit
-    def get_actions(self, obs: dict) -> dict:
+    def get_actions(self, observation: dict) -> dict:
         """
         Build action dictionary from env observations. Output has thi structure:
 
@@ -233,53 +144,65 @@ class PpoAlgorithm(object):
         FIXME: Planner
 
         Arguments:
-            obs: observation dictionary of the environment, it contains all observations for each agent
+            observation: observation dictionary of the environment, it contains all observations for each agent
 
         Returns:
-            actions dict: actions for each agent
+            policy_actions dict: predicted actions for each agent
+            policy_probability dict: action probabilities for each agent
+            vf_actions dict: value function action predicted for each agent
         """
 
-        actions, actions_onehot, predictions, values = {}, {}, {}, {}
-        for key in obs.keys():
+        # Define built memories
+        policy_actions, policy_probabilities, vf_actions = {}, {}, {}
+        
+        # Bad implementation that works only with agents.
+        # To work also with the planner it needs to know which agents are trained so that it can default 
+        # to something if they are not under a policy. (so 2 different default, one for 'a', one for 'p')
+        for key in observation.keys():
             if key != "p":
-                # print(self._policy_mapping_function(key))
-                (
-                    actions[key],
-                    actions_onehot[key],
-                    predictions[key],
-                    values[key],
-                ) = self.training_policies[
+                policy_actions[key], policy_probabilities[key], vf_actions[key] = self.training_policies[
                     self.algorithm_config.policy_mapping_function(key)
-                ].act(
-                    obs[key]
-                )
+                    ].act(observation[key])
             else:
                 # tmp to also feed the planner
-                actions[key], actions_onehot[key], predictions[key], values[key] = (
-                    [torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,))],
+                policy_actions[key], policy_probabilities[key], vf_actions[key] = (
+                    [torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros(
+                        (1,)), torch.zeros((1,)), torch.zeros((1,)), torch.zeros((1,))],
                     torch.zeros((1,)),
-                    torch.zeros((1,)),
-                    torch.zeros((1,)),
+                    torch.zeros((1,))
                 )
-        # logging.debug(actions)
-        return actions, actions_onehot, predictions, values
+
+        return policy_actions, policy_probabilities, vf_actions
+
+    def data_preprocess(self, observation: dict) -> dict:
+        """
+            Takes as an input a dict of np.arrays and trasforms them to Torch.tensors.
+
+            Args:
+                observation: observation of the environment
+
+            Returns:
+                observation_tensored: same structure of `observation`, but np.arrays are not 
+                    torch.tensors
+
+                observation_tensored: {
+                    '0': {
+                        'var': Tensor
+                        ...
+                    },
+                    ...
+                }
+        """
+        # observation_tensored = observation
 
 
-# class Environment(Process):
-#     def __init__(self, env, seed, child_conn):
-#         super(Environment, self).__init__()
-#         self.env = copy.deepcopy(env)
-#         self.env.seed(seed)
-#         self.child_conn = child_conn
-#         self.obs = self.env.reset()
+        observation_tensored = {}
 
-#     def run(self):
-#         super(Environment, self).run()
-#         self.child_conn.send(self.obs)
+        for key in observation:
+            # Agents: '0', '1', '2', '3', 'p'
+            observation_tensored[key] = {}
+            for data_key in observation[key]:
+                # Accessing to specific data like 'world-map', 'flat', 'time', ...
+                observation_tensored[key][data_key] = torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
 
-#         while True:
-#             action = self.child_conn.recv()
-
-#             state, reward, _, _ = self.env.step(action)
-
-#             self.child_conn.send([state, reward])
+        return observation_tensored

@@ -27,8 +27,8 @@ import os
 import sys
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # -1:cpu, 0:first gpu
-# tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
-tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
+tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
+# tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
 
 
 gpus = tf.config.experimental.list_physical_devices("GPU")
@@ -96,7 +96,8 @@ class Actor_Model:
 
         self.Actor = Model(inputs=X_input, outputs=output)
         self.Actor.compile(loss=self.ppo_loss, optimizer=optimizer(lr=lr))
-
+    
+    # @tf.function
     def ppo_loss(self, y_true, y_pred):
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, prediction_picks, actions = (
@@ -106,7 +107,14 @@ class Actor_Model:
         )
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
-
+        
+        print("actions:")
+        print(actions)
+        print("y_pred:")
+        print(y_pred)
+        print("prediction_picks")
+        print(prediction_picks)
+        
         prob = actions * y_pred
         old_prob = actions * prediction_picks
 
@@ -131,7 +139,7 @@ class Actor_Model:
         return total_loss
 
     def predict(self, state):
-        return self.Actor.predict(state)
+        return self.Actor.predict(state, verbose=0)
 
 
 class Critic_Model:
@@ -165,7 +173,7 @@ class Critic_Model:
         return loss
 
     def predict(self, state):
-        return self.Critic.predict([state, np.zeros((state.shape[0], 1))])
+        return self.Critic.predict([state, np.zeros((state.shape[0], 1))], verbose = 0)
 
 
 class PPOAgent:
@@ -277,6 +285,19 @@ class PPOAgent:
         values = self.Critic.predict(states)
         next_values = self.Critic.predict(next_states)
 
+        # print(states[0])
+        # print("\n\n ACTIONS:")
+        # print(actions[0])
+        # print("\n\n PREDICTIONS:")
+        # print(predictions[0])
+
+        # action, action_onehot, prediction = self.act(states[0])
+        # print("\n\n action:")
+        # print(action)
+        # print("\n\n prediction:")
+        # print(prediction)
+
+        # sys.exit()
         # Compute discounted rewards and advantages
         # discounted_r = self.discount_rewards(rewards)
         # advantages = np.vstack(discounted_r - values)
@@ -293,6 +314,8 @@ class PPOAgent:
         a_loss = self.Actor.Actor.fit(
             states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle
         )
+        sys.exit()
+
         c_loss = self.Critic.Critic.fit(
             [states, values],
             target,
@@ -300,7 +323,6 @@ class PPOAgent:
             verbose=0,
             shuffle=self.shuffle,
         )
-
         self.writer.add_scalar(
             "Data/actor_loss_per_replay",
             np.sum(a_loss.history["loss"]),

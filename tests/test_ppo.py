@@ -3,7 +3,7 @@ import tensorflow as tf
 import unittest
 import numpy as np
 from PPO.main_test import get_environment, dict_to_tensor_dict
-from PPO.policy.policy import ActorModel, CriticModel, PPOAgent
+from PPO.policy.ppo_policy import ActorModel, CriticModel, PPOAgent
 
 
 class ModelChecking(unittest.TestCase):

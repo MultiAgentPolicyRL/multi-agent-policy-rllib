@@ -1,11 +1,16 @@
-import os
-import torch
-import logging
+"""
+LSTM NN Model for AI-Economist RL environment
+"""
+# pylint: disable=import-error
+# pylint: disable=no-member
+# pylint: disable=unused-import
+
+import sys
+
 import numpy as np
+import torch
 import torch.nn as nn
 from model.model_config import ModelConfig
-from typing import Optional, Tuple, Union
-
 
 WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
@@ -13,34 +18,54 @@ ACTION_MASK = "action_mask"
 
 
 def apply_logit_mask(logits, mask):
-    """Mask values of 1 are valid actions."
-    " Add huge negative values to logits with 0 mask values."""
+    """
+    Apply mask to logits, gets an action and calculates its log_probability.
+    Mask values of 1 are valid actions.
+
+    Args:
+        logits: actions probability distribution
+        mask: action_mask (consists of a tensor of N boolean [0,1] values)
+
+    Returns:
+        action: predicted action
+        probs: this `action` log_probability
+    """
+
+
+    # Add huge negative values to logits with 0 mask values.
     logit_mask = torch.ones(logits.shape) * -10000000
     logit_mask = logit_mask * (1 - mask)
+    logit_mask = logits + logit_mask
 
-    return logits + logit_mask
+    ## Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
+    logit_mask = torch.softmax(logit_mask, dim=1)
+    ## Makes a Categorical distribution
+    dist = torch.distributions.Categorical(logit_mask)
+    # Gets the action
+    action = dist.sample()
+    # Gets action log_probability
+    probs = torch.squeeze(dist.log_prob(action)).item()
+
+    return action, probs
 
 
 class LSTMModel(nn.Module):
     """
-    Actor&Critic (Policy) Model.
+    policy&value_function (Actor-Critic) Model
     =====
-
-
-
     """
 
     def __init__(self, modelConfig: ModelConfig) -> None:
         """
-        Initialize the ActorCritic Model.
+        Initialize the policy&value_function Model.
         """
         super(LSTMModel, self).__init__()
-        self.ModelConfig = modelConfig
+        self.model_config = modelConfig
         # self.logger = get_basic_logger(name, level=log_level, log_path=log_path)
         self.shapes = dict()
 
         ### This is for managing all the possible inputs without having more networks
-        for key, value in self.ModelConfig.observation_space.items():
+        for key, value in self.model_config.observation_space.items():
             ### Check if the input must go through a Convolutional Layer
             if key == ACTION_MASK:
                 pass
@@ -51,13 +76,13 @@ class LSTMModel(nn.Module):
                     value.shape[0],
                 )
             elif key == WORLD_IDX_MAP:
-                self.conv_idx_channels = value.shape[0] * self.ModelConfig.emb_dim
+                self.conv_idx_channels = value.shape[0] * self.model_config.emb_dim
         ###
 
         self.embed_map_idx = nn.Embedding(
-            self.ModelConfig.input_emb_vocab,
-            self.ModelConfig.emb_dim,
-            device=self.ModelConfig.device,
+            self.model_config.input_emb_vocab,
+            self.model_config.emb_dim,
+            device=self.model_config.device,
             dtype=torch.float32,
         )
         self.conv_layers = nn.ModuleList()
@@ -67,102 +92,113 @@ class LSTMModel(nn.Module):
             self.conv_map_channels + self.conv_idx_channels,
         )
 
-        for i in range(1, self.ModelConfig.num_conv):
+        for i in range(1, self.model_config.num_conv):
             if i == 1:
                 self.conv_layers.append(
                     nn.Conv2d(
                         in_channels=self.conv_shape[1],
-                        out_channels=self.ModelConfig.filter[0],
-                        kernel_size=self.ModelConfig.kernel_size,
-                        stride=self.ModelConfig.strides,
+                        out_channels=self.model_config.filter[0],
+                        kernel_size=self.model_config.kernel_size,
+                        stride=self.model_config.strides,
                         # padding_mode='same',
                     )
                 )
             self.conv_layers.append(
                 nn.Conv2d(
-                    in_channels=self.ModelConfig.filter[0],
-                    out_channels=self.ModelConfig.filter[1],
-                    kernel_size=self.ModelConfig.kernel_size,
-                    stride=self.ModelConfig.strides,
+                    in_channels=self.model_config.filter[0],
+                    out_channels=self.model_config.filter[1],
+                    kernel_size=self.model_config.kernel_size,
+                    stride=self.model_config.strides,
                     # padding_mode='same',
                 )
             )
 
         self.conv_dims = (
-            self.ModelConfig.kernel_size[0]
-            * self.ModelConfig.strides
-            * self.ModelConfig.filter[1]
+            self.model_config.kernel_size[0]
+            * self.model_config.strides
+            * self.model_config.filter[1]
         )
         self.flatten_dims = (
             self.conv_dims
-            + self.ModelConfig.observation_space["flat"].shape[0]
-            + len(self.ModelConfig.observation_space["time"])
+            + self.model_config.observation_space["flat"].shape[0]
+            + len(self.model_config.observation_space["time"])
         )
         self.fc_layer_1 = nn.Linear(
-            in_features=self.flatten_dims, out_features=self.ModelConfig.fc_dim
+            in_features=self.flatten_dims, out_features=self.model_config.fc_dim
         )
         self.fc_layer_2 = nn.Linear(
-            in_features=self.ModelConfig.fc_dim, out_features=self.ModelConfig.fc_dim
+            in_features=self.model_config.fc_dim, out_features=self.model_config.fc_dim
         )
         self.lstm = nn.LSTM(
-            input_size=self.ModelConfig.fc_dim,
-            hidden_size=self.ModelConfig.cell_size,
+            input_size=self.model_config.fc_dim,
+            hidden_size=self.model_config.cell_size,
             num_layers=1,
         )
-        self.layer_norm = nn.LayerNorm(self.ModelConfig.fc_dim)
+        self.layer_norm = nn.LayerNorm(self.model_config.fc_dim)
         self.output_policy = nn.Linear(
-            in_features=self.ModelConfig.cell_size,
-            out_features=self.ModelConfig.output_size,
+            in_features=self.model_config.cell_size,
+            out_features=self.model_config.output_size,
         )
         self.output_value = nn.Linear(
-            in_features=self.ModelConfig.cell_size, out_features=1
+            in_features=self.model_config.cell_size, out_features=1
         )
 
         self.relu = nn.ReLU()
-
         self.hidden_state_h_p = torch.zeros(
-            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
         self.hidden_state_c_p = torch.zeros(
-            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
         self.hidden_state_h_v = torch.zeros(
-            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
         self.hidden_state_c_v = torch.zeros(
-            1, self.ModelConfig.cell_size, device=self.ModelConfig.device
+            1, self.model_config.cell_size, device=self.model_config.device
         )
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.ModelConfig.lr)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.model_config.lr)
 
         # self.logger.info("Model created successfully")
 
     # @time_it
-    def forward(self, input: dict):
-        if isinstance(input, dict):
-            _world_map = input[WORLD_MAP]
-            _world_idx_map = input[WORLD_IDX_MAP]
-            _flat = input["flat"]
-            _time = input["time"]
-            _action_mask = input[ACTION_MASK]
-        else:
-            _world_map = input[0]
-            _world_idx_map = input[1].long()
-            _flat = input[2]
-            _time = input[3]
-            _action_mask = input[4]
+    def forward(self, observation: dict):
+        """
+        Model's forward. Given an agent observation, action distribution and value function
+        prediction are returned.
 
-        if self.ModelConfig.name == "p":
-            _p0 = input["p0"]
-            _p1 = input["p1"]
-            _p2 = input["p2"]
-            _p3 = input["p3"]
+        Args:
+            observation: agent observation
+
+        Returns:
+            policy_action: action taken by the actor, example: Tensor([2])
+            policy_probabiliy: `policy_action` log_probability
+            vf_prediction: value function action prediction
+        """
+        if isinstance(observation, dict):
+            _world_map = observation[WORLD_MAP]
+            _world_idx_map = observation[WORLD_IDX_MAP]
+            _flat = observation["flat"]
+            _time = observation["time"]
+            _action_mask = observation[ACTION_MASK]
+        else:
+            _world_map = observation[0]
+            _world_idx_map = observation[1].long()
+            _flat = observation[2]
+            _time = observation[3]
+            _action_mask = observation[4]
+
+        if self.model_config.name == "p":
+            _p0 = observation["p0"]
+            _p1 = observation["p1"]
+            _p2 = observation["p2"]
+            _p3 = observation["p3"]
 
         conv_input_map = torch.permute(_world_map, (0, 2, 3, 1))
         conv_input_idx = torch.permute(_world_idx_map, (0, 2, 3, 1))
 
         # Concatenate the remainings of the input
-        if self.ModelConfig.name == "p":
+        if self.model_config.name == "p":
             non_convolutional_input = torch.cat(
                 [
                     _flat,
@@ -205,7 +241,7 @@ class LSTMModel(nn.Module):
             # Concatenate the convolutional output with the non convolutional input
             fc_in = torch.cat([flatten, non_convolutional_input], axis=-1)
             # Fully Connected Layers
-            for i in range(self.ModelConfig.num_fc):
+            for i in range(self.model_config.num_fc):
                 if i == 0:
                     fc_in = self.relu(self.fc_layer_1(fc_in))
                 else:
@@ -215,13 +251,12 @@ class LSTMModel(nn.Module):
             # LSTM
 
             # Project LSTM output to logits or value
-            #
             if tag == "_policy":
                 lstm_out, hidden = self.lstm(
                     layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p)
                 )
                 self.hidden_state_h_p, self.hidden_state_c_p = hidden
-                logits = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
+                policy_action, policy_probability = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
             else:
                 lstm_out, hidden = self.lstm(
                     layer_norm_out, (self.hidden_state_h_v, self.hidden_state_c_v)
@@ -229,27 +264,43 @@ class LSTMModel(nn.Module):
                 self.hidden_state_h_v, self.hidden_state_c_v = hidden
                 value = self.output_value(lstm_out)
 
-        return logits, value
+        return policy_action, policy_probability, value
 
-    def fit(self, input, y_true):
-        
-        
+    def fit(self, data, y_true, epochs: int, epochs_size: int):
+        """
+        Fits the model - at the moment not fully implemented
 
-        # Fit the Actor network
-        output = self.forward(input)
+        TODO: implement correctly
+
+        Args:
+            data:  agent(s) environment observations
+            y_true: data needed for fit and loss calculation
+        """
+
+        # Fit the policy network
+        output = self.forward(data)
         print(output)
 
-        # Calculate the loss for the Actor network
-        actor_loss = self.my_loss(output, y_true)
+        # Calculate the loss for the policy network
+        policy_loss = self.my_loss(output, y_true)
 
         # Backpropagate the loss
-        actor_loss.backward()
+        policy_loss.backward()
 
-        # Update the Actor network
+        # Update the policy network
         self.optimizer.step()
 
     def my_loss(self, output, y_true):
-        # Calculate the loss for the Actor network
-        actor_loss = torch.nn.functional.cross_entropy(output, y_true)
-        actor_loss._requires_grad = True
-        return actor_loss
+        """
+        PPO Loss
+
+        TODO: implement correctly
+
+        Args:
+            output:
+            y_true:
+        """
+        # Calculate the loss for the policy network
+        policy_loss = torch.nn.functional.cross_entropy(output, y_true)
+        policy_loss._requires_grad = True  # pylint: disable=protected-access
+        return policy_loss
