@@ -6,7 +6,7 @@ AI-Economist Batch memory. It's used by `algorithm`.
 # pylint: disable=import-error
 
 from dataclasses import dataclass
-from utils.timeit import timeit
+from utils.timeait import timeit
 
 
 @dataclass

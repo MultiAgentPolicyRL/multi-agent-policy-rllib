@@ -11,7 +11,7 @@ import logging
 import sys
 
 import torch
-from utils.timeit import timeit
+from utils.timeait import timeit
 
 from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
@@ -77,7 +77,8 @@ class PpoAlgorithm(object):
         """
         # Resetting memory
         self.memory.reset_memory()
-        env = copy.deepcopy(env)
+        env=env
+        # env = copy.deepcopy(env)
 
         # Collecting data for batching
         self.batch(env)

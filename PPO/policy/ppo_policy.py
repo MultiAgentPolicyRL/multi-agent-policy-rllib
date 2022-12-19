@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from model.model import LSTMModel
 from policy.ppo_policy_config import PpoPolicyConfig
-from utils.timeit import timeit
+from utils.timeait import timeit
 
 
 class PPOAgent:

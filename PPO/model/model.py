@@ -44,7 +44,7 @@ def apply_logit_mask(logits, mask):
 
     # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     # Addign 1e-3 to avoid zeros
-    logit_mask = torch.softmax(logit_mask, dim=1) + 1e-3
+    logit_mask = torch.softmax(logit_mask, dim=1) + 1e-6
 
     # Makes a Categorical distribution
     dist = torch.distributions.Categorical(probs=logit_mask)
@@ -53,7 +53,6 @@ def apply_logit_mask(logits, mask):
     action = dist.sample()
     # Gets action log_probability
     # probs = torch.squeeze(dist.log_prob(action)).item()
-
     return action, dist.probs
 
 
@@ -282,9 +281,11 @@ class LSTMModel(nn.Module):
         # Project LSTM output to logits 
         lstm_out, hidden = self.lstm_value(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
+
         if torch.isnan(lstm_out).any():
             logging.critical("NAN in lstm_out")
             raise ValueError("NAN in lstm_out")
+        
         value = self.output_value(lstm_out)
 
         return policy_action, policy_probability, value
@@ -312,8 +313,10 @@ class LSTMModel(nn.Module):
 
         # GAE Constants:
         gae_gamma = 0.99
-        gae_lambda = 0.9
+        gae_lambda = 0.95
         policy_clip = 0.2
+        c1 = 1
+        c2 = 0.01
 
         # 1. Get new policy forward results
         new_policy_action, new_policy_probability, new_vf_action = [],[],[]
@@ -324,11 +327,6 @@ class LSTMModel(nn.Module):
             new_policy_probability.append(pp)
             new_vf_action.append(vfp)
 
-        # for old_action, new_action in zip(policy_actions, new_policy_action):
-        #     print(f"OLD ACION: {old_action.item()}")
-        #     print(f"NEW ACTION: {new_action.item()}")
-        #     print("--------")
-
         # 2. Calculate GAE
         deltas = [
             r + gae_gamma * nv - v
@@ -336,38 +334,69 @@ class LSTMModel(nn.Module):
         ]
         deltas_len = len(deltas)
         deltas = torch.stack(deltas)
-        gaes = deltas
 
+        # By reversing deltas we have it from the nearest to the farthest
+        # Ât = δt + (γλ)δt+1 + · · · + · · · + (γλ)T −t+1 δT −1 ,
         for t in reversed(range(deltas_len -1)):
-            gaes[t] = gaes[t] + gae_gamma * gae_lambda * gaes[t+1]
+            deltas[t] = deltas[t] + gae_gamma * gae_lambda * deltas[t+1]
 
         # 2.1 Normalize gaes:
-        gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
-        advantage = gaes
+        deltas = (deltas - deltas.mean()) / (deltas.std() + 1e-8)
+        advantage = torch.squeeze(deltas)
+        # print(advantage)
 
         # 3. Calculate loss (for policy and vf)
         # prob_ratio = new_policy_probability.exp() / policy_probabilities.exp()
         # Equal to:
-        policy_probabilities = torch.stack(policy_probabilities)
-        new_policy_probability = torch.stack(new_policy_probability)
-
-        prob_ratio = torch.exp(torch.tensor(new_policy_probability)/torch.tensor(policy_probabilities))
+        #### NEW METHOD
+        policy_a = []
+        new_policy_a = []
+        for policy, new_policy, action in zip(policy_probabilities, new_policy_probability, policy_actions):
+            """
+            We don't have problems with action mask 'nones' because it's always the same, so it's impossibile
+            having a smth/0 or smth/-inf or smth like this.
+            """
+            policy_a.append(torch.squeeze(policy)[action.item()])
+            new_policy_a.append(torch.squeeze(new_policy)[action.item()])
+            
+            # prob_ratio.append(torch.exp(torch.log()/torch.log()))
+        policy_a = torch.tensor(policy_a)
+        new_policy_a = torch.tensor(new_policy_a)
+        
+        prob_ratio = torch.exp(torch.log(new_policy_a)/torch.log(policy_a))
+        #### NEW METHOD
+        
+        
+        #### OLD METHOD        
+        # policy_probabilities = torch.stack(policy_probabilities)
+        # new_policy_probability = torch.stack(new_policy_probability)
+        # prob_ratio = torch.exp((new_policy_probability)/(policy_probabilities))
         # prob_ratio = torch.nan_to_num(prob_ratio, 0)
+        #### OLD METHOD
 
         weighted_probs = advantage * prob_ratio
         weighted_clipped_probs = torch.clamp(prob_ratio, 1-policy_clip, 1+policy_clip) * advantage
-        actor_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
-
+        policy_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
+        
+        # ARRIVED HERE
+        # sys.exit()
+        # VALUE FUNCTION LOSS
         returns = advantage + torch.tensor(vf_actions)
-        critic_loss = (returns - torch.tensor(new_vf_action))**2
-        critic_loss = critic_loss.mean()
+        vf_loss = (returns - torch.tensor(new_vf_action))**2
+        vf_loss = vf_loss.mean()
 
-        total_loss = actor_loss + 0.5*critic_loss
+        # ENTROPY
+        # entropy = -(y_pred * K.log(y_pred + 1e-10))
+        # entropy = ENTROPY_LOSS * K.mean(entropy)
+        entropy = -(new_policy_a * torch.log(new_policy_a + 1e-10))
+        entropy = torch.mean(entropy)
+
+        # TOTAL LOSS
+        total_loss = policy_loss + c1*vf_loss - c2*entropy
 
         data_logger.info(f"total_loss,{total_loss}")
-        
+      
         # 4. Do backpropagation and optimizer step
         # total_loss=total_loss.detach()
         total_loss.backward()
         self.optimizer.step()
-
