@@ -1,0 +1,4 @@
+2022-12-19 20:52:21,816 | main.py 	| DEBUG	| Training epoch 0
+2022-12-19 20:52:21,823 | main.py 	| INFO	| Actions: 5 | 25 | 11 | 26 || [tensor([0.]), tensor([0.]), tensor([0.]), tensor([0.]), tensor([0.]), tensor([0.]), tensor([0.])]
+2022-12-19 20:52:21,823 | main.py 	| INFO	| Reward step 0: -0.2625000000000002 | -0.05250000000000021 | -0.2625000000000002 | -0.05250000000000021 || 0.0
+2022-12-19 20:52:26,271 | algorithm.py 	| DEBUG	| TOTAL REWARD: -423.0360

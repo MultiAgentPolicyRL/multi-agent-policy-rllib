@@ -44,7 +44,7 @@ def apply_logit_mask(logits, mask):
 
     # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     # Addign 1e-3 to avoid zeros
-    logit_mask = torch.softmax(logit_mask, dim=1) + 1e-6
+    logit_mask = torch.softmax(logit_mask, dim=1) # + 1e-6
 
     # Makes a Categorical distribution
     dist = torch.distributions.Categorical(probs=logit_mask)
@@ -349,29 +349,30 @@ class LSTMModel(nn.Module):
         # prob_ratio = new_policy_probability.exp() / policy_probabilities.exp()
         # Equal to:
         #### NEW METHOD
-        policy_a = []
-        new_policy_a = []
-        for policy, new_policy, action in zip(policy_probabilities, new_policy_probability, policy_actions):
-            """
-            We don't have problems with action mask 'nones' because it's always the same, so it's impossibile
-            having a smth/0 or smth/-inf or smth like this.
-            """
-            policy_a.append(torch.squeeze(policy)[action.item()])
-            new_policy_a.append(torch.squeeze(new_policy)[action.item()])
+        # policy_a = []
+        # new_policy_a = []
+        # for policy, new_policy, action in zip(policy_probabilities, new_policy_probability, policy_actions):
+        #     """
+        #     We don't have problems with action mask 'nones' because it's always the same, so it's impossibile
+        #     having a smth/0 or smth/-inf or smth like this.
+        #     """
+        #     policy_a.append(torch.squeeze(policy)[action.item()])
+        #     new_policy_a.append(torch.squeeze(new_policy)[action.item()])
             
-            # prob_ratio.append(torch.exp(torch.log()/torch.log()))
-        policy_a = torch.tensor(policy_a)
-        new_policy_a = torch.tensor(new_policy_a)
+        #     # prob_ratio.append(torch.exp(torch.log()/torch.log()))
+        # policy_a = torch.tensor(policy_a)
+        # new_policy_a = torch.tensor(new_policy_a)
         
-        prob_ratio = torch.exp(torch.log(new_policy_a)/torch.log(policy_a))
+        # prob_ratio = torch.exp(torch.log(new_policy_a)/torch.log(policy_a))
         #### NEW METHOD
         
         
         #### OLD METHOD        
-        # policy_probabilities = torch.stack(policy_probabilities)
-        # new_policy_probability = torch.stack(new_policy_probability)
-        # prob_ratio = torch.exp((new_policy_probability)/(policy_probabilities))
-        # prob_ratio = torch.nan_to_num(prob_ratio, 0)
+        policy_probabilities = torch.stack(policy_probabilities)
+        new_policy_probability = torch.stack(new_policy_probability)
+        prob_ratio = new_policy_probability/policy_probabilities
+        prob_ratio = torch.nan_to_num(prob_ratio, 0)
+        sys.exit()
         #### OLD METHOD
 
         weighted_probs = advantage * prob_ratio
