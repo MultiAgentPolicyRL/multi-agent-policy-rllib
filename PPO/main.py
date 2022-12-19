@@ -103,14 +103,14 @@ def get_environment():
 
 if __name__ == "__main__":
     # SETUP LOGGING
-    setup_logger('general', f'PPO/logs/general_{EXPERIMENT_NAME}.log', formatter=logging.Formatter("%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"))
-    setup_logger('data', f'PPO/logs/data_{EXPERIMENT_NAME}.log', formatter=logging.Formatter('%(message)s'))
+    setup_logger('general', f'PPO/logs/general_{EXPERIMENT_NAME}.csv', formatter=logging.Formatter("%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"))
+    setup_logger('data', f'PPO/logs/data_{EXPERIMENT_NAME}.csv', formatter=logging.Formatter('%(message)s'))
 
     general_logger = logging.getLogger('general')
     data_logger = logging.getLogger('data')
 
 
-    EPOCHS = 800
+    EPOCHS = 20
     SEED = 1
 
     env = get_environment()

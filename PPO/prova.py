@@ -84,16 +84,26 @@ import torch
 #     return EnvWrapper(env_config)
 
 if __name__ == "__main__":
-    
-    tensore = [-10000000, 1e-3, 1,2]
-    logit_mask = (torch.softmax(torch.tensor(tensore), dim=0)+1e-3)
-    dist = torch.distributions.Categorical(probs=logit_mask)
+    # torch.manual_seed(3)
+    # banan = [1,2,3,4,5,6]
+    # dist = torch.distributions.Categorical(logits=torch.tensor(banan))
+    # print(dist.probs)
+    # print(dist.sample())
+    # print(dist.sample())
+    # print(dist.sample())
 
-    # dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
-    # epochs = 4
-    # batch_size = 5
-    # # # for i in range(n_agents):
-    # # #     print(dati[:i:4])
+    
+    # tensore = [-10000000, 1e-3, 1,2]
+    # logit_mask = (torch.softmax(torch.tensor(tensore), dim=0)+1e-3)
+    # dist = torch.distributions.Categorical(probs=logit_mask)
+
+    dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
+    epochs = 4
+    batch_size = 5
+    for i in range(batch_size-1):
+        print(dati[i::epochs])
+
+    # print(dati[0::4])
 
     # # print(dati[:4])
     # # print(dati[::4])
