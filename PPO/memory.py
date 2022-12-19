@@ -11,6 +11,10 @@ from utils.timeit import timeit
 
 @dataclass
 class BatchMemory:
+    """
+    Batch memory. It manages all data useful for PPO and for DT+Q_learning
+    """
+
     def __init__(
         self,
         policy_mapping_function,
@@ -38,7 +42,7 @@ class BatchMemory:
         }
         """
 
-    @timeit
+    # @timeit
     def reset_memory(self):
         """
         Clears the memory keeping internal baseic data structure.
@@ -60,7 +64,7 @@ class BatchMemory:
         policy_action: dict,
         policy_probability: dict,
         vf_action: dict,
-        reward: dict
+        reward: dict,
     ):
         """
         Splits each input for each agent and appends its data to the correct structure
@@ -82,7 +86,7 @@ class BatchMemory:
             self.vf_action[key].append(vf_action[key])
             self.reward[key].append(reward[key])
 
-    @timeit
+    # @timeit
     def get_memory(self, mapped_key):
         """
         Each memorized input is retrived from the memory and merged by agent
@@ -114,7 +118,14 @@ class BatchMemory:
                 rewards.extend(self.reward[key])
 
         epochs = self.policy_config[mapped_key].agents_per_possible_policy
-        steps_per_epoch = len(observations)/epochs
+        steps_per_epoch = len(observations) / epochs
 
-        return (observations, policy_actions, policy_probabilitiess,
-            value_functions, rewards, epochs, steps_per_epoch)
+        return (
+            observations,
+            policy_actions,
+            policy_probabilitiess,
+            value_functions,
+            rewards,
+            epochs,
+            steps_per_epoch,
+        )
