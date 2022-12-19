@@ -44,7 +44,7 @@ def apply_logit_mask(logits, mask):
 
     # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     # Addign 1e-3 to avoid zeros
-    logit_mask = torch.softmax(logit_mask, dim=1) # + 1e-6
+    logit_mask = torch.softmax(logit_mask, dim=1) + 1e-6
 
     # Makes a Categorical distribution
     dist = torch.distributions.Categorical(probs=logit_mask)
@@ -249,7 +249,7 @@ class LSTMModel(nn.Module):
         lstm_out, hidden = self.lstm_policy(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
         if torch.isnan(lstm_out).any():
-            self.logger.critical("NAN in lstm_out")
+            general_logger.critical("NAN in lstm_out")
             raise ValueError("NAN in lstm_out")
         # lstm_out = self.output_policy(lstm_out)
         policy_action, policy_probability = apply_logit_mask(self.output_policy(lstm_out), _action_mask)
@@ -342,7 +342,7 @@ class LSTMModel(nn.Module):
 
         # 2.1 Normalize gaes:
         deltas = (deltas - deltas.mean()) / (deltas.std() + 1e-8)
-        advantage = torch.squeeze(deltas)
+        advantage = deltas
         # print(advantage)
 
         # 3. Calculate loss (for policy and vf)
@@ -371,14 +371,15 @@ class LSTMModel(nn.Module):
         policy_probabilities = torch.stack(policy_probabilities)
         new_policy_probability = torch.stack(new_policy_probability)
         prob_ratio = new_policy_probability/policy_probabilities
-        prob_ratio = torch.nan_to_num(prob_ratio, 0)
-        sys.exit()
+        # prob_ratio = torch.nan_to_num(prob_ratio, 0)
+        # print(prob_ratio)
         #### OLD METHOD
 
         weighted_probs = advantage * prob_ratio
         weighted_clipped_probs = torch.clamp(prob_ratio, 1-policy_clip, 1+policy_clip) * advantage
         policy_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
-        
+        # print(policy_loss)
+
         # ARRIVED HERE
         # sys.exit()
         # VALUE FUNCTION LOSS
@@ -389,7 +390,7 @@ class LSTMModel(nn.Module):
         # ENTROPY
         # entropy = -(y_pred * K.log(y_pred + 1e-10))
         # entropy = ENTROPY_LOSS * K.mean(entropy)
-        entropy = -(new_policy_a * torch.log(new_policy_a + 1e-10))
+        entropy = -(new_policy_probability * torch.log(new_policy_probability + 1e-10))
         entropy = torch.mean(entropy)
 
         # TOTAL LOSS
