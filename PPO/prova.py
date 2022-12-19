@@ -2,6 +2,7 @@
 # from env_wrapper import EnvWrapper
 import random
 import numpy as np
+import torch
 
 
 # env_config = {
@@ -83,20 +84,25 @@ import numpy as np
 #     return EnvWrapper(env_config)
 
 if __name__ == "__main__":
-    # dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
-    epochs = 4
-    batch_size = 5
-    # # for i in range(n_agents):
-    # #     print(dati[:i:4])
+    
+    tensore = [-10000000, 1e-3, 1,2]
+    logit_mask = (torch.softmax(torch.tensor(tensore), dim=0)+1e-3)
+    dist = torch.distributions.Categorical(probs=logit_mask)
 
-    # print(dati[:4])
-    # print(dati[::4])
-    # print(dati[0::4])
-    epochs_selected = list(range(epochs))
-    random.shuffle(epochs_selected)
-    dati: list = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
-    for i in epochs_selected:
-        print(dati[i * batch_size : batch_size + i * batch_size])
+    # dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
+    # epochs = 4
+    # batch_size = 5
+    # # # for i in range(n_agents):
+    # # #     print(dati[:i:4])
+
+    # # print(dati[:4])
+    # # print(dati[::4])
+    # # print(dati[0::4])
+    # epochs_selected = list(range(epochs))
+    # random.shuffle(epochs_selected)
+    # dati: list = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+    # for i in epochs_selected:
+    #     print(dati[i * batch_size : batch_size + i * batch_size])
 
 
 #     # env = get_environment()

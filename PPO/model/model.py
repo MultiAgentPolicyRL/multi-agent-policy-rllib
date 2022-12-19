@@ -43,7 +43,8 @@ def apply_logit_mask(logits, mask):
     # where logit_mask == -10.00.000 softmax puts that probability to 0.
 
     # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
-    logit_mask = torch.softmax(logit_mask, dim=1)
+    # Addign 1e-3 to avoid zeros
+    logit_mask = torch.softmax(logit_mask, dim=1) + 1e-3
 
     # Makes a Categorical distribution
     dist = torch.distributions.Categorical(probs=logit_mask)
@@ -53,7 +54,7 @@ def apply_logit_mask(logits, mask):
     # Gets action log_probability
     # probs = torch.squeeze(dist.log_prob(action)).item()
 
-    return action, logit_mask
+    return action, dist.probs
 
 
 class LSTMModel(nn.Module):
@@ -351,7 +352,7 @@ class LSTMModel(nn.Module):
         new_policy_probability = torch.stack(new_policy_probability)
 
         prob_ratio = torch.exp(torch.tensor(new_policy_probability)/torch.tensor(policy_probabilities))
-        prob_ratio = torch.nan_to_num(prob_ratio, 0)
+        # prob_ratio = torch.nan_to_num(prob_ratio, 0)
 
         weighted_probs = advantage * prob_ratio
         weighted_clipped_probs = torch.clamp(prob_ratio, 1-policy_clip, 1+policy_clip) * advantage

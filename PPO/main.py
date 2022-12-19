@@ -110,7 +110,7 @@ if __name__ == "__main__":
     data_logger = logging.getLogger('data')
 
 
-    EPOCHS = 20
+    EPOCHS = 800
     SEED = 1
 
     env = get_environment()

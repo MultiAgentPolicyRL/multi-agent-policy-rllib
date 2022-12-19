@@ -1,0 +1,4 @@
+torch
+numpy
+ai_economist
+gym==0.23.1
