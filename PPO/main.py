@@ -1,3 +1,4 @@
+import datetime
 import logging
 import sys
 
@@ -7,12 +8,19 @@ from env_wrapper import EnvWrapper
 from policy.ppo_policy_config import PpoPolicyConfig
 import time
 
-# logging.basicConfig(filename="tempi.txt",level=logging.DEBUG, format="")
-# logging.basicConfig(filename=f"experiment_{time.time()}.txt",level=logging.DEBUG, format="%(asctime)s %(message)s")
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s",
-)
+EXPERIMENT_NAME = datetime.datetime.now()
+
+def setup_logger(logger_name, log_file, formatter, level=logging.DEBUG):
+    l = logging.getLogger(logger_name)
+    formatter = formatter
+    fileHandler = logging.FileHandler(log_file, mode='w')
+    fileHandler.setFormatter(formatter)
+    streamHandler = logging.StreamHandler()
+    streamHandler.setFormatter(formatter)
+
+    l.setLevel(level)
+    l.addHandler(fileHandler)
+    l.addHandler(streamHandler)
 
 env_config = {
     "env_config_dict": {
@@ -94,6 +102,14 @@ def get_environment():
 
 
 if __name__ == "__main__":
+    # SETUP LOGGING
+    setup_logger('general', f'PPO/logs/general_{EXPERIMENT_NAME}.log', formatter=logging.Formatter("%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"))
+    setup_logger('data', f'PPO/logs/data_{EXPERIMENT_NAME}.log', formatter=logging.Formatter('%(message)s'))
+
+    general_logger = logging.getLogger('general')
+    data_logger = logging.getLogger('data')
+
+
     EPOCHS = 20
     SEED = 1
 
@@ -118,18 +134,20 @@ if __name__ == "__main__":
 
     for i in range(EPOCHS):
         start = time.time()
-        logging.debug(f"Training epoch {i}")
+        general_logger.debug(f"Training epoch {i}")
 
         obs = algorithm.data_preprocess(obs)
         actions = algorithm.get_actions(obs)[0]
 
         obs, rew, done, info = env.step(actions)
-        logging.info(f"Actions: {actions['0']} {actions['1']} {actions['2']} {actions['3']} {actions['p']}")
-        logging.info(f"Reward step {i}: {rew['0']} {rew['1']} {rew['2']} {rew['3']} {rew['p']}")
+        general_logger.info(f"Actions: {actions['0'].item()} | {actions['1'].item()} | {actions['2'].item()} | {actions['3'].item()} || {actions['p']}")
+        general_logger.info(f"Reward step {i}: {rew['0']} | {rew['1']} | {rew['2']} | {rew['3']} || {rew['p']}")
+        data_logger.info(f"'0',{rew['0']}\n'1',{rew['1']}\n'2',{rew['2']}\n'3',{rew['3']}")
+
 
         algorithm.train_one_step(env)
         # sys.exit()
-        logging.info(f"Trained step {i} in {time.time()-start} seconds")
+        general_logger.info(f"Trained step {i} in {time.time()-start} seconds")
         # print(f"Trained step {i} in {time.time()-start} seconds")
 
     # Kill multi-processes

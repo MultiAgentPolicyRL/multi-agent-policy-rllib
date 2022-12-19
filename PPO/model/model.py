@@ -6,6 +6,7 @@ LSTM NN Model for AI-Economist RL environment
 # pylint: disable=unused-import
 
 import copy
+import datetime
 import logging
 import sys
 
@@ -18,6 +19,8 @@ WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
 ACTION_MASK = "action_mask"
 
+general_logger = logging.getLogger('general')
+data_logger = logging.getLogger('data')
 
 def apply_logit_mask(logits, mask):
     """
@@ -32,7 +35,6 @@ def apply_logit_mask(logits, mask):
         action: predicted action
         probs: this `action` log_probability
     """
-
     # Add huge negative values to logits with 0 mask values.
     logit_mask = torch.ones(logits.shape) * -10000000
     logit_mask = logit_mask * (1 - mask)
@@ -42,16 +44,16 @@ def apply_logit_mask(logits, mask):
 
     # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     logit_mask = torch.softmax(logit_mask, dim=1)
-    
+
     # Makes a Categorical distribution
-    dist = torch.distributions.Categorical(logit_mask)
+    dist = torch.distributions.Categorical(probs=logit_mask)
+    
     # Gets the action
     action = dist.sample()
-    
     # Gets action log_probability
-    probs = torch.squeeze(dist.log_prob(action)).item()
+    # probs = torch.squeeze(dist.log_prob(action)).item()
 
-    return action, probs
+    return action, logit_mask
 
 
 class LSTMModel(nn.Module):
@@ -280,7 +282,7 @@ class LSTMModel(nn.Module):
         lstm_out, hidden = self.lstm_value(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
         if torch.isnan(lstm_out).any():
-            self.logger.critical("NAN in lstm_out")
+            logging.critical("NAN in lstm_out")
             raise ValueError("NAN in lstm_out")
         value = self.output_value(lstm_out)
 
@@ -321,6 +323,11 @@ class LSTMModel(nn.Module):
             new_policy_probability.append(pp)
             new_vf_action.append(vfp)
 
+        # for old_action, new_action in zip(policy_actions, new_policy_action):
+        #     print(f"OLD ACION: {old_action.item()}")
+        #     print(f"NEW ACTION: {new_action.item()}")
+        #     print("--------")
+
         # 2. Calculate GAE
         deltas = [
             r + gae_gamma * nv - v
@@ -340,8 +347,12 @@ class LSTMModel(nn.Module):
         # 3. Calculate loss (for policy and vf)
         # prob_ratio = new_policy_probability.exp() / policy_probabilities.exp()
         # Equal to:
-        prob_ratio = (torch.tensor(new_policy_probability)/torch.tensor(policy_probabilities)).exp()
-        
+        policy_probabilities = torch.stack(policy_probabilities)
+        new_policy_probability = torch.stack(new_policy_probability)
+
+        prob_ratio = torch.exp(torch.tensor(new_policy_probability)/torch.tensor(policy_probabilities))
+        prob_ratio = torch.nan_to_num(prob_ratio, 0)
+
         weighted_probs = advantage * prob_ratio
         weighted_clipped_probs = torch.clamp(prob_ratio, 1-policy_clip, 1+policy_clip) * advantage
         actor_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
@@ -351,7 +362,9 @@ class LSTMModel(nn.Module):
         critic_loss = critic_loss.mean()
 
         total_loss = actor_loss + 0.5*critic_loss
-        # logging.info(f"Total Loss: {total_loss}")
+
+        data_logger.info(f"total_loss,{total_loss}")
+        
         # 4. Do backpropagation and optimizer step
         # total_loss=total_loss.detach()
         total_loss.backward()

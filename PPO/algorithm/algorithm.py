@@ -17,7 +17,8 @@ from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
 from policy.ppo_policy import PPOAgent
 
-
+general_logger = logging.getLogger('general')
+data_logger = logging.getLogger('data')
 class PpoAlgorithm(object):
     """
     PPO's top level algorithm.
@@ -102,7 +103,7 @@ class PpoAlgorithm(object):
 
         while steps < self.algorithm_config.batch_size:
             # if steps % 100 == 0:
-            #     logging.debug(f"    step: {steps}")
+            #     general_logger.debug(f"    step: {steps}")
 
             # Preprocess observation so that it's made of torch.tensors
             observation = self.data_preprocess(observation=observation)
@@ -131,7 +132,8 @@ class PpoAlgorithm(object):
             observation = next_observation
             steps += 1
         
-        logging.debug(f"TOTAL REWARD: {total_actors_reward}")
+        general_logger.debug("TOTAL REWARD: %.4f", total_actors_reward)
+        data_logger.info(f"batch_total_actors_reward,{total_actors_reward}")
 
     # @timeit
     def get_actions(self, observation: dict) -> dict:
