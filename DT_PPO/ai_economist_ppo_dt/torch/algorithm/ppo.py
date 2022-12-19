@@ -274,7 +274,7 @@ class PPO():
     
     # @time_it
     @torch.no_grad()
-    def populate_batch(self, agents: list = ['0', '1', '2', '3', 'p'], total_rewards: int = 0) -> dict:
+    def populate_batch(self, agents: list = ['0', '1', '2', '3',], total_rewards: int = 0) -> dict:
         """
         Populate a batch.
         
@@ -302,7 +302,7 @@ class PPO():
         for key in values_dict.keys():
             values_dict[key].append(torch.zeros(1, 1).to(self.device))
 
-        self.logger.info(f"Creating a batch of size {self.batch_size}...")
+        self.logger.debug(f"Creating a batch of size {self.batch_size}...")
         state = self.env.reset()
         state = self.convert_state_to_tensor(state)
         
@@ -367,10 +367,10 @@ class PPO():
         next_states : list
             List of next states in the trajectory.
         """
-        losses = {'0': [], '1': [], '2': [], '3': []}
+        losses = {'0': [], '1': [], '2': [], '3': [], 'p': [0.0]}
 
         self.logger.info(f"Training on {self.batch_size} steps.")
-        
+
         start_timer = time.time()
         for agent in states.keys():
             if agent != 'p':
@@ -388,15 +388,15 @@ class PPO():
                 self.logger.debug(f"Target values: {[round(float(v), 3) for v in target_values]}")
 
                 # Fit the networks
-                loss = self.actor.fit(states=states[agent], epochs=self.epochs, batch_size=self.batch_size, predictions=predictions[agent], actions=actions[agent], gaes=gaes)
+                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], epochs=self.epochs, batch_size=self.batch_size, )
                 losses[agent] = loss
             else:
                 self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")
-            
+                losses[agent] = [0.0]
         # Should make checkpoint here
-        self.logger.info(f"Training took {round(time.time() - start_timer, 2)} seconds.")
+        self.logger.info(f"Training took {round(time.time() - start_timer, 2)} seconds. Losses: '0': {round(losses['0'][-1], 3)}, '1': {round(losses['1'][-1], 3)}, '2': {round(losses['2'][-1], 3)}, '3': {round(losses['3'][-1], 3)}, 'p': {round(losses['p'][-1], 3)}")
         for key, value in losses.items():
-            self.logger.info(f"Loss for agent {key}: {round(value[-1], 3)} with min: {round(min(value),3)}, max: {round(max(value),3)} and mean: {round(np.mean(value),3)}")
+            self.logger.debug(f"Loss for agent {key}: {round(value[-1], 3)} with min: {round(min(value),3)}, max: {round(max(value),3)} and mean: {round(np.mean(value),3)}")
         self.checkpoint()
 
         return losses
@@ -407,7 +407,7 @@ class PPO():
         """            
         # self.actor.save_weights(os.path.join(self.checkpoint_path, "actor.h5"))
         # self.critic.save_weights(os.path.join(self.checkpoint_path, "critic.h5"))
-        self.logger.info("Checkpoint saved.")
+        self.logger.debug("Checkpoint saved.")
 
     def test(self, episodes: int = 1) -> None:
         """

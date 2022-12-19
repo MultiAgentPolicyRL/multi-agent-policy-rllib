@@ -39,28 +39,45 @@ if __name__ == "__main__":
     state = env.reset()  
     
     # Init PPO
-    algorithm = PPO(env, 50, batch_size=1000, log_level=logging.INFO, log_path=log_path)
+    algorithm = PPO(env, action_space=50, batch_size=100, epochs=1, log_level=logging.INFO, log_path=log_path)
 
     iterations = 50
     total_rewards = 0
+    rewards_list = []
+    losses_list = {'0': [], '1': [], '2': [], '3': [], 'p': [],}
     
     for it in range(iterations):
-        logger.info(f"Starting iteration {it+1}/{iterations}")
+        logger.info(f"{'#'*50}")
+        logger.info(f"Starting iteration {it+1}/{iterations} | batch_size: {algorithm.batch_size} | total_rewards: {total_rewards}")
 
+        # Populate batch
         states, actions, rewards, predictions, next_states, values, total_rewards = algorithm.populate_batch(total_rewards=total_rewards) # Torch
         # states, actions, rewards, predictions, next_states, values, _ = algorithm.populate_batch() # Tensorflow
 
-        # for agent in ['0', '1', '2', '3', 'p']:
-        #     # rewards is a dict of agents
-        #     # rerwards[agent] is a list of tensor rewards for each agent
-        #     temp_rewards = [x.squeeze(0).item() for x in rewards[agent]]
-        #     logger.info(f"Agent {agent} rewards | mean: {round(np.mean(temp_rewards), 3)}, std: {round(np.std(temp_rewards), 3)}, min: {round(np.min(temp_rewards), 3)}, max: {round(np.max(temp_rewards), 3)}")
-        logger.info(f"Total rewards: {total_rewards}")
+        # Save total rewards
+        rewards_list.append(total_rewards)
 
+        # Train
         losses = algorithm.train(states, actions, rewards, predictions, next_states, values,) # Torch
         # losses = algorithm.train(states, actions, rewards, predictions, next_states, values, _) # Tensorflow
+
+        # Save losses
+        for key in losses.keys():
+            losses_list[key].append(losses[key][-1])
         
         # logger.info(f"Losses: {losses}")
         logger.info(f"{'#'*50}")
         
+    # Plot rewards
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    sns.lineplot(x=range(len(rewards_list)), y=rewards_list)
+    plt.show()
+
+    # Plot losses from losses_list and color by key
+    for key in losses_list.keys():
+        sns.lineplot(x=range(len(losses_list[key])), y=losses_list[key], label=key)
+    plt.show()
+    
+
     exit()
