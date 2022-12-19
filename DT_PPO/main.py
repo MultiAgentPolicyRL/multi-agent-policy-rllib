@@ -39,45 +39,50 @@ if __name__ == "__main__":
     state = env.reset()  
     
     # Init PPO
-    algorithm = PPO(env, action_space=50, batch_size=100, epochs=1, log_level=logging.INFO, log_path=log_path)
+    algorithm = PPO(env, action_space=50, batch_size=250, epochs=20, log_level=logging.INFO, log_path=log_path)
 
-    iterations = 50
+    iterations = 10
     total_rewards = 0
     rewards_list = []
     losses_list = {'0': [], '1': [], '2': [], '3': [], 'p': [],}
     
-    for it in range(iterations):
+    try:
+        for it in range(iterations):
+            logger.info(f"{'#'*50}")
+            logger.info(f"Starting iteration {it+1}/{iterations} | batch_size: {algorithm.batch_size} | total_rewards: {round(total_rewards, 2)}")
+
+            # Populate batch
+            states, actions, rewards, predictions, next_states, values, total_rewards = algorithm.populate_batch(total_rewards=total_rewards) # Torch
+            # states, actions, rewards, predictions, next_states, values, _ = algorithm.populate_batch() # Tensorflow
+
+            # Save total rewards
+            rewards_list.append(total_rewards)
+
+            # Train
+            losses = algorithm.train(states, actions, rewards, predictions, next_states, values,) # Torch
+            # losses = algorithm.train(states, actions, rewards, predictions, next_states, values, _) # Tensorflow
+
+            # Save losses
+            for key in losses.keys():
+                losses_list[key].append(losses[key][-1])
+            
+            # logger.info(f"Losses: {losses}")
         logger.info(f"{'#'*50}")
-        logger.info(f"Starting iteration {it+1}/{iterations} | batch_size: {algorithm.batch_size} | total_rewards: {total_rewards}")
 
-        # Populate batch
-        states, actions, rewards, predictions, next_states, values, total_rewards = algorithm.populate_batch(total_rewards=total_rewards) # Torch
-        # states, actions, rewards, predictions, next_states, values, _ = algorithm.populate_batch() # Tensorflow
+        # Plot rewards
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        sns.lineplot(x=range(len(rewards_list)), y=rewards_list)
+        plt.show()
 
-        # Save total rewards
-        rewards_list.append(total_rewards)
-
-        # Train
-        losses = algorithm.train(states, actions, rewards, predictions, next_states, values,) # Torch
-        # losses = algorithm.train(states, actions, rewards, predictions, next_states, values, _) # Tensorflow
-
-        # Save losses
-        for key in losses.keys():
-            losses_list[key].append(losses[key][-1])
-        
-        # logger.info(f"Losses: {losses}")
+        # Plot losses from losses_list and color by key
+        for key in losses_list.keys():
+            sns.lineplot(x=range(len(losses_list[key])), y=losses_list[key], label=key)
+        plt.show()
+    except KeyboardInterrupt:
+        logger.info(f"{'#'*50}")
+        logger.info(f"KeyboardInterrupt")
         logger.info(f"{'#'*50}")
         
-    # Plot rewards
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-    sns.lineplot(x=range(len(rewards_list)), y=rewards_list)
-    plt.show()
-
-    # Plot losses from losses_list and color by key
-    for key in losses_list.keys():
-        sns.lineplot(x=range(len(losses_list[key])), y=losses_list[key], label=key)
-    plt.show()
     
-
     exit()

@@ -60,110 +60,121 @@ class PPO():
         self.planner = LSTMModel(initial_state['0'], name="PlannerLSTM", output_size=self.action_space.get('p'), log_level=log_level, log_path=log_path, device=self.device).to(self.device)
         self.logger.info("PPO initialized.")
 
-    # def _generalized_advantage_estimation(values,
-    #                                  final_value,
-    #                                  discounts,
-    #                                  rewards,
-    #                                  td_lambda=1.0,
-    #                                  time_major=True):
-    #     """Computes generalized advantage estimation (GAE).
-    #     For theory, see
-    #     "High-Dimensional Continuous Control Using Generalized Advantage Estimation"
-    #     by John Schulman, Philipp Moritz et al.
-    #     See https://arxiv.org/abs/1506.02438 for full paper.
-    #     Define abbreviations:
-    #         (B) batch size representing number of trajectories
-    #         (T) number of steps per trajectory
-    #     Args:
-    #         values: Tensor with shape `[T, B]` representing value estimates.
-    #         final_value: Tensor with shape `[B]` representing value estimate at t=T.
-    #         discounts: Tensor with shape `[T, B]` representing discounts received by
-    #         following the behavior policy.
-    #         rewards: Tensor with shape `[T, B]` representing rewards received by
-    #         following the behavior policy.
-    #         td_lambda: A float32 scalar between [0, 1]. It's used for variance reduction
-    #         in temporal difference.
-    #         time_major: A boolean indicating whether input tensors are time major.
-    #         False means input tensors have shape `[B, T]`.
-    #     Returns:
-    #         A tensor with shape `[T, B]` representing advantages. Shape is `[B, T]` when
-    #         `not time_major`.
-    #     """
-
-    #     if not time_major:
-    #         with tf.name_scope("to_time_major_tensors"):
-    #         discounts = tf.transpose(discounts)
-    #         rewards = tf.transpose(rewards)
-    #         values = tf.transpose(values)
-
-    #     with tf.name_scope("gae"):
-
-    #         next_values = tf.concat(
-    #             [values[1:], tf.expand_dims(final_value, 0)], axis=0)
-    #         delta = rewards + discounts * next_values - values
-    #         weighted_discounts = discounts * td_lambda
-
-    #         def weighted_cumulative_td_fn(accumulated_td, reversed_weights_td_tuple):
-    #         weighted_discount, td = reversed_weights_td_tuple
-    #         return td + weighted_discount * accumulated_td
-
-    #         advantages = tf.nest.map_structure(
-    #             tf.stop_gradient,
-    #             tf.scan(
-    #                 fn=weighted_cumulative_td_fn,
-    #                 elems=(weighted_discounts, delta),
-    #                 initializer=tf.zeros_like(final_value),
-    #                 reverse=True))
-
-    #     if not time_major:
-    #         with tf.name_scope("to_batch_major_tensors"):
-    #         advantages = tf.transpose(advantages)
-
-    #     return tf.stop_gradient(advantages)
-
     @torch.no_grad()
     def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.998, lamda:float=0.98, normalize:bool=True,) -> np.ndarray:
+        """Computes generalized advantage estimation (GAE).
+        For theory, see
+        "High-Dimensional Continuous Control Using Generalized Advantage Estimation"
+        by John Schulman, Philipp Moritz et al.
+        See https://arxiv.org/abs/1506.02438 for full paper.
+        Define abbreviations:
+            (B) batch size representing number of trajectories
+            (T) number of steps per trajectory
+        Args:
+            values: Tensor with shape `[T, B]` representing value estimates.
+            final_value: Tensor with shape `[B]` representing value estimate at t=T.
+            discounts: Tensor with shape `[T, B]` representing discounts received by
+            following the behavior policy.
+            rewards: Tensor with shape `[T, B]` representing rewards received by
+            following the behavior policy.
+            td_lambda: A float32 scalar between [0, 1]. It's used for variance reduction
+            in temporal difference.
+            time_major: A boolean indicating whether input tensors are time major.
+            False means input tensors have shape `[B, T]`.
+        Returns:
+            A tensor with shape `[T, B]` representing advantages. Shape is `[B, T]` when
+            `not time_major`.
         """
-        Calculate Generalized Advantage Estimation (GAE) for a batch of trajectories.
-        ---
 
-        Parameters
-        ----------
-        rewards : list
-            List of rewards for each step in the trajectory.
-        values : list
-            List of values for each step in the trajectory.
-        next_values : list
-            List of values for each step in the trajectory.
-        gamma : float (default=0.998)
-            Discount factor.
-        lamda : float (default=0.98)
-            GAE parameter.
-        normalize : bool (default=True)
-            Whether to normalize the GAEs.
+        # Calculate next values and delta
+        # next_values = torch.cat([values[1:], final_value.unsqueeze(0)], dim=0)
+        delta = []
+        for i in range(len(rewards)):
+            delta.append(rewards[i] + gamma * next_values[i] - values[i])
+        delta = torch.stack(delta)
+
+        # Calculate weighted gamma and advantages
+        weighted_gamma = torch.tensor([gamma * lamda for i in range(len(rewards))])
+        advantages = []
+        targets = []
+        gae = 0
+        for i in reversed(range(len(rewards))):
+            gae = delta[i] + weighted_gamma[i] * gae
+            advantages.insert(0, gae)
+            targets.insert(0, gae + values[i])
+            
+
+        return torch.stack(advantages), torch.stack(targets)
+
+    # @torch.no_grad()
+    # def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.998, lamda:float=0.98, normalize:bool=True,) -> np.ndarray:
+    #     """
+    #     Calculate Generalized Advantage Estimation (GAE) for a batch of trajectories.
+    #     ---
+
+    #     Parameters
+    #     ----------
+    #     rewards : list
+    #         List of rewards for each step in the trajectory.
+    #     values : list
+    #         List of values for each step in the trajectory.
+    #     next_values : list
+    #         List of values for each step in the trajectory.
+    #     gamma : float (default=0.998)
+    #         Discount factor.
+    #     lamda : float (default=0.98)
+    #         GAE parameter.
+    #     normalize : bool (default=True)
+    #         Whether to normalize the GAEs.
         
-        Returns
-        -------
-        gaes : np.ndarray
-            List of GAEs for each step in the trajectory.
-        target_values : Tensor
-            List of target values for each step in the trajectory.
-        """
-        deltas = [r + gamma * nv - v for r, nv, v in zip(rewards, next_values, values)]
-        # deltas = torch.stack(deltas)
-        gaes = copy.deepcopy(deltas)
+    #     Returns
+    #     -------
+    #     gaes : np.ndarray
+    #         List of GAEs for each step in the trajectory.
+    #     target_values : Tensor
+    #         List of target values for each step in the trajectory.
+    #     """
+    #     deltas = [r + gamma * nv - v for r, nv, v in zip(rewards, next_values, values)]
+    #     deltas = torch.stack(deltas)
+    #     gaes = copy.deepcopy(deltas)
 
-        for t in reversed(range(len(deltas) - 1)):
-            gaes[t] = gaes[t] + gamma * lamda * gaes[t + 1]
+    #     for t in reversed(range(len(deltas) - 1)):
+    #         gaes[t] = gaes[t] + gamma * lamda * gaes[t + 1]
 
-        target = gaes + values
+    #     target = gaes + values
 
-        gaes = torch.stack(gaes).to(self.device)
+    #     # gaes = torch.stack(gaes).to(self.device)
 
-        if normalize:
-            gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
+    #     if normalize:
+    #         gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
 
-        return [x for x in gaes], target
+    #     return [x for x in gaes], target
+
+    # @torch.no_grad()
+    # def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.99, lamda:float=0.95, normalize:bool=True,) -> np.ndarray:
+    #     """
+    #     Calculate the Generalized Advantage Estimation (GAE) and the target values.
+        
+    #     Args:
+    #         rewards (list): A list of rewards, where each element is a tensor.
+    #         values (list): A list of values, where each element is a tensor.
+    #         next_values (list): A list of next-values, where each element is a tensor.
+    #         gamma (float): The discount factor.
+    #         lambda_ (float): The GAE lambda parameter.
+        
+    #     Returns:
+    #         A tuple containing the GAE and the target values, both as tensors.
+    #     """
+    #     gaes = []
+    #     targets = []
+    #     gae = 0
+    #     for i in reversed(range(len(rewards))):
+    #         delta = rewards[i] + gamma * next_values[i] - values[i]
+    #         gae = delta + gamma * lamda * gae
+    #         gaes.insert(0, gae)
+    #         targets.insert(0, gae + values[i])
+
+    #     return torch.stack(gaes), torch.stack(targets)
 
     # @time_it
     @torch.no_grad()
@@ -305,7 +316,7 @@ class PPO():
         self.logger.debug(f"Creating a batch of size {self.batch_size}...")
         state = self.env.reset()
         state = self.convert_state_to_tensor(state)
-        
+
         start_timer = time.time()
         for iteration in range(self.batch_size):
             # Get actions, one-hot encoded actions, and predictions
@@ -314,7 +325,7 @@ class PPO():
             self.logger.debug(f"Actions: {actions}")
 
             # Step the environment with the actions
-            step_actions = {agent: action.cpu().numpy() for agent, action in actions.items()}
+            step_actions = {agent: action.detach().numpy() for agent, action in actions.items()}
             next_state, rewards, _, _ = self.env.step(step_actions)
             next_state = self.convert_state_to_tensor(next_state)
             # Log
@@ -346,6 +357,12 @@ class PPO():
         for agent, values in rewards_dict.items():
             r_temp.append(round((np.count_nonzero(values)/len(values))*100,2))
         self.logger.info(f"Rewards neq zero: '0' {r_temp[0]}%, '1' {r_temp[1]}%, '2' {r_temp[2]}%, '3' {r_temp[3]}%")
+
+        # Print maximum, minimum and mean rewards for each agent
+        for agent, rewards in rewards_dict.items():
+            rewards = [reward.item() for reward in rewards]
+            self.logger.info(f"Rewards for agent {agent}: max {max(rewards)}, min {min(rewards)}, mean {round(np.mean(rewards), 2)}")
+
         del r_temp, actions, predictions, rewards, next_state, state
 
         return states_dict, actions_dict, rewards_dict, predictions_dict, next_states_dict, values_dict, total_rewards
@@ -369,14 +386,14 @@ class PPO():
         """
         losses = {'0': [], '1': [], '2': [], '3': [], 'p': [0.0]}
 
-        self.logger.info(f"Training on {self.batch_size} steps.")
+        self.logger.info(f"Training {len(states.keys())} agents for {self.epochs} epochs.")
 
         start_timer = time.time()
         for agent in states.keys():
             if agent != 'p':
                 # Initialize lists for storing the values and next values
-                _values = values[agent][:-1]
-                _next_values = values[agent][1:]
+                _values = torch.stack(values[agent][:-1])
+                _next_values = torch.stack(values[agent][1:])
                 # Log
                 self.logger.debug(f"Values: {(len(_values), _values[0].shape)}")
                 self.logger.debug(f"Next values: {(len(_next_values), _next_values[0].shape)}")
@@ -388,7 +405,7 @@ class PPO():
                 self.logger.debug(f"Target values: {[round(float(v), 3) for v in target_values]}")
 
                 # Fit the networks
-                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], epochs=self.epochs, batch_size=self.batch_size, )
+                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], rewards=rewards[agent], epochs=self.epochs, batch_size=self.batch_size, )
                 losses[agent] = loss
             else:
                 self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")
