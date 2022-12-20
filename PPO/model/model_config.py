@@ -25,7 +25,7 @@ class ModelConfig:
         kernel_size: Tuple[int, int] = (3, 3),
         strides: int = 2,
         output_size: int = 50,
-        lr: float = 0.0003,
+        lr: float = 0.001 ,# was 0.0003
         device: str = "cpu",
     ):
         self.action_space = action_space

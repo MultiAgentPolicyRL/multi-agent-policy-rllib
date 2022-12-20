@@ -22,6 +22,14 @@ ACTION_MASK = "action_mask"
 general_logger = logging.getLogger('general')
 data_logger = logging.getLogger('data')
 
+def safe_ratio(num, den):
+    """
+    Returns 0 if nan, else value
+
+    -G
+    """
+    return num/(den+1e-10) * (torch.abs(den)>0)
+
 def apply_logit_mask(logits, mask):
     """
     Apply mask to logits, gets an action and calculates its log_probability.
@@ -44,11 +52,11 @@ def apply_logit_mask(logits, mask):
 
     # Softmax is used to have sum(logit_mask) == 1 -> so it's a probability distibution
     # Addign 1e-3 to avoid zeros
-    logit_mask = torch.softmax(logit_mask, dim=1) + 1e-6
+    logit_mask = torch.softmax(logit_mask, dim=1)
 
     # Makes a Categorical distribution
     dist = torch.distributions.Categorical(probs=logit_mask)
-    
+
     # Gets the action
     action = dist.sample()
     # Gets action log_probability
@@ -363,14 +371,16 @@ class LSTMModel(nn.Module):
         # policy_a = torch.tensor(policy_a)
         # new_policy_a = torch.tensor(new_policy_a)
         
-        # prob_ratio = torch.exp(torch.log(new_policy_a)/torch.log(policy_a))
+        # prob_ratio = torch.exp(torch.log(new_policy_a) - torch.log(policy_a))
         #### NEW METHOD
         
-        
+        ## https://math.stackexchange.com/questions/4328736/critic-loss-in-ppo
+        ## https://keras.io/api/callbacks/learning_rate_scheduler/
+
         #### OLD METHOD        
         policy_probabilities = torch.stack(policy_probabilities)
         new_policy_probability = torch.stack(new_policy_probability)
-        prob_ratio = new_policy_probability/policy_probabilities
+        prob_ratio = safe_ratio(new_policy_probability, policy_probabilities)
         # prob_ratio = torch.nan_to_num(prob_ratio, 0)
         # print(prob_ratio)
         #### OLD METHOD
@@ -383,9 +393,10 @@ class LSTMModel(nn.Module):
         # ARRIVED HERE
         # sys.exit()
         # VALUE FUNCTION LOSS
-        returns = advantage + torch.tensor(vf_actions)
-        vf_loss = (returns - torch.tensor(new_vf_action))**2
-        vf_loss = vf_loss.mean()
+        returns = torch.squeeze(advantage) + torch.tensor(vf_actions)
+        vf_loss = torch.nn.functional.mse_loss(torch.tensor(new_vf_action), returns)
+        # vf_loss = (returns - torch.tensor(new_vf_action))**2
+        # vf_loss = vf_loss.mean()
 
         # ENTROPY
         # entropy = -(y_pred * K.log(y_pred + 1e-10))
@@ -394,11 +405,12 @@ class LSTMModel(nn.Module):
         entropy = torch.mean(entropy)
 
         # TOTAL LOSS
-        total_loss = policy_loss + c1*vf_loss - c2*entropy
+        total_loss = policy_loss - c1*vf_loss + c2*entropy
 
         data_logger.info(f"total_loss,{total_loss}")
       
         # 4. Do backpropagation and optimizer step
         # total_loss=total_loss.detach()
+        # self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()

@@ -53,7 +53,7 @@ class PPOAgent:
                 observation
             )
 
-        return policy_action, policy_probability, vf_action
+        return policy_action.item(), policy_probability, vf_action
 
     def learn(
         self,
@@ -112,10 +112,14 @@ class PPOAgent:
                 print(data[i*batch_size:batch_size+i*batch_size])
         """
         # Set epochs order
+        # epochs_order = list(range(10))
+        # steps_per_epoch = int(400)
+
         epochs_order = list(range(epochs))
+        steps_per_epoch = int(steps_per_epoch)
         random.shuffle(epochs_order)
 
-        steps_per_epoch = int(steps_per_epoch)
+
         # print(f"STEPS PER EPOCH: {steps_per_epoch}")
 
         for i in epochs_order:

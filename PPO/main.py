@@ -110,7 +110,7 @@ if __name__ == "__main__":
     data_logger = logging.getLogger('data')
 
 
-    EPOCHS = 20
+    EPOCHS = 100
     SEED = 1
 
     env = get_environment()
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=1000,
+        minibatch_size=250,
         policies_configs=policy_config,
         env=env,
         seed=SEED,
@@ -138,9 +138,8 @@ if __name__ == "__main__":
 
         obs = algorithm.data_preprocess(obs)
         actions = algorithm.get_actions(obs)[0]
-
         obs, rew, done, info = env.step(actions)
-        general_logger.info(f"Actions: {actions['0'].item()} | {actions['1'].item()} | {actions['2'].item()} | {actions['3'].item()} || {actions['p']}")
+        general_logger.info(f"Actions: {actions['0']} | {actions['1']} | {actions['2']} | {actions['3']} || {actions['p']}")
         general_logger.info(f"Reward step {i}: {rew['0']} | {rew['1']} | {rew['2']} | {rew['3']} || {rew['p']}")
         data_logger.info(f"'0',{rew['0']}\n'1',{rew['1']}\n'2',{rew['2']}\n'3',{rew['3']}")
 
