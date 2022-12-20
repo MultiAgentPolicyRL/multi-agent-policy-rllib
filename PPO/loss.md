@@ -168,3 +168,7 @@ The idea behind `data preproces` is that the input of the nn must be Torch.tenso
 
 ## `train_one_step` - `batch`
 All we need to do is merge the two functions and have everything easier to understand.
+
+
+# Stuff for thesis
+- Rllib always uses clipping in value function loss: https://github.com/ray-project/ray/issues/19291

@@ -103,14 +103,24 @@ def get_environment():
 
 if __name__ == "__main__":
     # SETUP LOGGING
-    setup_logger('general', f'PPO/logs/general_{EXPERIMENT_NAME}.csv', formatter=logging.Formatter("%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"))
-    setup_logger('data', f'PPO/logs/data_{EXPERIMENT_NAME}.csv', formatter=logging.Formatter('%(message)s'))
+    setup_logger('general', f'PPO/logs/{EXPERIMENT_NAME}_general.csv', formatter=logging.Formatter("%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"))
+    setup_logger('actors_rew', f'PPO/logs/{EXPERIMENT_NAME}_actors_rew.csv', formatter=logging.Formatter('%(message)s'))
+    setup_logger('total_rew', f'PPO/logs/{EXPERIMENT_NAME}_total_rew.csv', formatter=logging.Formatter('%(message)s'))
+    setup_logger('loss', f'PPO/logs/{EXPERIMENT_NAME}_loss.csv', formatter=logging.Formatter('%(message)s'))
+
+
 
     general_logger = logging.getLogger('general')
-    data_logger = logging.getLogger('data')
+    data_logger = logging.getLogger('actors_rew')
+    total_rew = logging.getLogger('total_rew')
+    loss = logging.getLogger('loss')
 
 
-    EPOCHS = 100
+    data_logger.info("agent0,agent1,agent2,agent3")
+    total_rew.info("totalreward")
+    loss.info("totalloss,policyloss,vfloss,entropy")
+
+    EPOCHS = 10
     SEED = 1
 
     env = get_environment()
@@ -141,8 +151,8 @@ if __name__ == "__main__":
         obs, rew, done, info = env.step(actions)
         general_logger.info(f"Actions: {actions['0']} | {actions['1']} | {actions['2']} | {actions['3']} || {actions['p']}")
         general_logger.info(f"Reward step {i}: {rew['0']} | {rew['1']} | {rew['2']} | {rew['3']} || {rew['p']}")
-        data_logger.info(f"'0',{rew['0']}\n'1',{rew['1']}\n'2',{rew['2']}\n'3',{rew['3']}")
 
+        data_logger.info(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']}")
 
         algorithm.train_one_step(env)
         # sys.exit()

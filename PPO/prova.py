@@ -84,6 +84,14 @@ import torch
 #     return EnvWrapper(env_config)
 
 if __name__ == "__main__":
+    
+    a = [[1],[2],[3],[4]]
+    b = [[5],[6],[7],[8]]
+    c = [a,b]
+    print(c)
+    random.shuffle(c)
+    print(c)
+
     # torch.manual_seed(3)
     # banan = [1,2,3,4,5,6]
     # dist = torch.distributions.Categorical(logits=torch.tensor(banan))
@@ -97,11 +105,11 @@ if __name__ == "__main__":
     # logit_mask = (torch.softmax(torch.tensor(tensore), dim=0)+1e-3)
     # dist = torch.distributions.Categorical(probs=logit_mask)
 
-    dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
-    epochs = 4
-    batch_size = 5
-    for i in range(batch_size-1):
-        print(dati[i::epochs])
+    # dati = [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4]
+    # epochs = 4
+    # batch_size = 5
+    # for i in range(batch_size-1):
+    #     print(dati[i::epochs])
 
     # print(dati[0::4])
 

@@ -18,7 +18,8 @@ from memory import BatchMemory
 from policy.ppo_policy import PPOAgent
 
 general_logger = logging.getLogger('general')
-data_logger = logging.getLogger('data')
+data_logger = logging.getLogger('total_rew')
+
 class PpoAlgorithm(object):
     """
     PPO's top level algorithm.
@@ -134,7 +135,7 @@ class PpoAlgorithm(object):
             steps += 1
         
         general_logger.debug("TOTAL REWARD: %.4f", total_actors_reward)
-        data_logger.info(f"batch_total_actors_reward,{total_actors_reward}")
+        data_logger.info(f"{total_actors_reward}")
 
     # @timeit
     def get_actions(self, observation: dict) -> dict:

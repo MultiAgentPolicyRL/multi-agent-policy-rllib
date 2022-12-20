@@ -20,7 +20,7 @@ WORLD_IDX_MAP = "world-idx_map"
 ACTION_MASK = "action_mask"
 
 general_logger = logging.getLogger('general')
-data_logger = logging.getLogger('data')
+data_logger = logging.getLogger('loss')
 
 def safe_ratio(num, den):
     """
@@ -326,7 +326,7 @@ class LSTMModel(nn.Module):
         c1 = 1
         c2 = 0.01
 
-        # 1. Get new policy forward results
+        # 1. Get new policy FORWARD results
         new_policy_action, new_policy_probability, new_vf_action = [],[],[]
 
         for observation in observations:
@@ -334,6 +334,10 @@ class LSTMModel(nn.Module):
             new_policy_action.append(pa)
             new_policy_probability.append(pp)
             new_vf_action.append(vfp)
+
+        # TMP TRYING TO FIX STUFF
+        new_vf_action = new_vf_action[1:]
+        new_vf_action.append(torch.tensor([[0.0]]))
 
         # 2. Calculate GAE
         deltas = [
@@ -348,69 +352,75 @@ class LSTMModel(nn.Module):
         for t in reversed(range(deltas_len -1)):
             deltas[t] = deltas[t] + gae_gamma * gae_lambda * deltas[t+1]
 
+        notnormalized_deltas = torch.squeeze(deltas)
         # 2.1 Normalize gaes:
         deltas = (deltas - deltas.mean()) / (deltas.std() + 1e-8)
-        advantage = deltas
+        advantage = torch.squeeze(deltas)
         # print(advantage)
 
         # 3. Calculate loss (for policy and vf)
-        # prob_ratio = new_policy_probability.exp() / policy_probabilities.exp()
-        # Equal to:
         #### NEW METHOD
-        # policy_a = []
-        # new_policy_a = []
-        # for policy, new_policy, action in zip(policy_probabilities, new_policy_probability, policy_actions):
-        #     """
-        #     We don't have problems with action mask 'nones' because it's always the same, so it's impossibile
-        #     having a smth/0 or smth/-inf or smth like this.
-        #     """
-        #     policy_a.append(torch.squeeze(policy)[action.item()])
-        #     new_policy_a.append(torch.squeeze(new_policy)[action.item()])
+        # TODO: optimize this shit.
+        policy_a = []
+        new_policy_a = []
+        for policy, new_policy, action in zip(policy_probabilities, new_policy_probability, policy_actions):
+            """
+            We don't have problems with action mask 'nones' because it's always the same, so it's impossibile
+            having a smth/0 or smth/-inf or smth like this.
+            """
+            policy_a.append(torch.squeeze(policy)[action])
+            new_policy_a.append(torch.squeeze(new_policy)[action])
             
-        #     # prob_ratio.append(torch.exp(torch.log()/torch.log()))
-        # policy_a = torch.tensor(policy_a)
-        # new_policy_a = torch.tensor(new_policy_a)
-        
+        policy_probabilities = torch.tensor(policy_a)
+        new_policy_probability = torch.tensor(new_policy_a)
+
+        # Alternative 1: prob_ratio made with safe_ratio
+        prob_ratio = safe_ratio(new_policy_probability, policy_probabilities)
+
+        # Alternative 2: prob_ratio exponential made with log_prob.
         # prob_ratio = torch.exp(torch.log(new_policy_a) - torch.log(policy_a))
+        
         #### NEW METHOD
         
-        ## https://math.stackexchange.com/questions/4328736/critic-loss-in-ppo
         ## https://keras.io/api/callbacks/learning_rate_scheduler/
 
-        #### OLD METHOD        
-        policy_probabilities = torch.stack(policy_probabilities)
-        new_policy_probability = torch.stack(new_policy_probability)
-        prob_ratio = safe_ratio(new_policy_probability, policy_probabilities)
-        # prob_ratio = torch.nan_to_num(prob_ratio, 0)
-        # print(prob_ratio)
+        #### OLD METHOD   
+        # policy_probabilities = torch.stack(policy_probabilities)
+        # new_policy_probability = torch.stack(new_policy_probability)
+        # prob_ratio = safe_ratio(new_policy_probability, policy_probabilities)
+        # # prob_ratio = torch.nan_to_num(prob_ratio, 0)
+        # # print(prob_ratio)
         #### OLD METHOD
 
         weighted_probs = advantage * prob_ratio
         weighted_clipped_probs = torch.clamp(prob_ratio, 1-policy_clip, 1+policy_clip) * advantage
-        policy_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
-        # print(policy_loss)
+        policy_loss = torch.min(weighted_probs, weighted_clipped_probs).mean()
 
         # ARRIVED HERE
-        # sys.exit()
         # VALUE FUNCTION LOSS
-        returns = torch.squeeze(advantage) + torch.tensor(vf_actions)
-        vf_loss = torch.nn.functional.mse_loss(torch.tensor(new_vf_action), returns)
+        ## https://math.stackexchange.com/questions/4328736/critic-loss-in-ppo
+        returns = notnormalized_deltas + torch.tensor(vf_actions)
+        vf_loss = torch.nn.functional.mse_loss(returns, torch.tensor(new_vf_action))
+        
+        # It's the same.
         # vf_loss = (returns - torch.tensor(new_vf_action))**2
         # vf_loss = vf_loss.mean()
-
+        
         # ENTROPY
-        # entropy = -(y_pred * K.log(y_pred + 1e-10))
-        # entropy = ENTROPY_LOSS * K.mean(entropy)
+        # Shannon entropy where SUM -> MEAN so that it doesn't depend on "batch size"
+        # FIXME: 1e-10 ?
         entropy = -(new_policy_probability * torch.log(new_policy_probability + 1e-10))
         entropy = torch.mean(entropy)
 
         # TOTAL LOSS
-        total_loss = policy_loss - c1*vf_loss + c2*entropy
+        total_loss = -(policy_loss - c1*vf_loss + c2*entropy)
+        # total_loss = -(vf_loss)
+        # data_logger.info("agent0, agent1, agent2, agent3, total_loss, policy_loss, vf_loss, entropy, total_reward")
 
-        data_logger.info(f"total_loss,{total_loss}")
+        data_logger.info(f"{total_loss},{policy_loss},{vf_loss},{entropy}")
       
         # 4. Do backpropagation and optimizer step
         # total_loss=total_loss.detach()
-        # self.optimizer.zero_grad()
+        self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()
