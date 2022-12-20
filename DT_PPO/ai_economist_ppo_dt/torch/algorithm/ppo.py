@@ -88,23 +88,22 @@ class PPO():
 
         # Calculate next values and delta
         # next_values = torch.cat([values[1:], final_value.unsqueeze(0)], dim=0)
-        delta = []
+        deltas = []
         for i in range(len(rewards)):
-            delta.append(rewards[i] + gamma * next_values[i] - values[i])
-        delta = torch.stack(delta)
+            deltas.append(rewards[i] + gamma * next_values[i] - values[i])
+        deltas = torch.stack(deltas)
 
         # Calculate weighted gamma and advantages
-        weighted_gamma = torch.tensor([gamma * lamda for i in range(len(rewards))])
-        advantages = []
-        targets = []
-        gae = 0
-        for i in reversed(range(len(rewards))):
-            gae = delta[i] + weighted_gamma[i] * gae
-            advantages.insert(0, gae)
-            targets.insert(0, gae + values[i])
+        gaes = copy.deepcopy(deltas)
+        for i in reversed(range(len(deltas) - 1)):
+            gaes[i] = gaes[i] + gamma * lamda * gaes[i + 1]
             
+        targets = gaes + values
+        
+        if normalize:
+            gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
 
-        return torch.stack(advantages), torch.stack(targets)
+        return gaes, targets
 
     # @torch.no_grad()
     # def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.998, lamda:float=0.98, normalize:bool=True,) -> np.ndarray:
@@ -405,7 +404,7 @@ class PPO():
                 self.logger.debug(f"Target values: {[round(float(v), 3) for v in target_values]}")
 
                 # Fit the networks
-                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], rewards=rewards[agent], epochs=self.epochs, batch_size=self.batch_size, )
+                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], rewards=target_values, epochs=self.epochs, batch_size=self.batch_size, )
                 losses[agent] = loss
             else:
                 self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")

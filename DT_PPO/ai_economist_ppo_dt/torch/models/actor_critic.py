@@ -81,7 +81,7 @@ class LSTMModel(nn.Module):
         self.filter = filter
         self.kernel_size = kernel_size
         self.strides = strides
-        self.lr = 0.01 # lr
+        self.lr = lr
         # self.weight_decay = 0.01
         self.momentum = 0.9
         self.output_size = output_size
@@ -172,14 +172,29 @@ class LSTMModel(nn.Module):
         # self.fc_layer_3_value = nn.Linear(in_features=fc_dim, out_features=output_size)
         self.softmax = nn.Softmax()
 
-        # self.hidden_state_h_p = torch.ones(1, self.cell_size, device=self.device)
-        # self.hidden_state_c_p = torch.ones(1, self.cell_size, device=self.device)
-        # self.hidden_state_h_v = torch.ones(1, self.cell_size, device=self.device)
-        # self.hidden_state_c_v = torch.ones(1, self.cell_size, device=self.device)
+        self.hidden_state_h_p = torch.ones(1, self.cell_size, device=self.device)
+        self.hidden_state_c_p = torch.ones(1, self.cell_size, device=self.device)
+        self.hidden_state_h_v = torch.ones(1, self.cell_size, device=self.device)
+        self.hidden_state_c_v = torch.ones(1, self.cell_size, device=self.device)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)#, weight_decay=self.weight_decay)
         # self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
         # self.optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
+
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer,
+            mode='min',
+            factor=0.1,
+            patience=10,
+            verbose=True,
+            threshold=0.0001,
+            threshold_mode='rel',
+            cooldown=0,
+            min_lr=0,
+            eps=1e-08,
+        )
+
+        self.mse_loss = nn.MSELoss()
 
         # Initialize the weights
         for param in self.parameters():
@@ -269,7 +284,7 @@ class LSTMModel(nn.Module):
         # LSTM
         
         # Project LSTM output to logits 
-        lstm_out, hidden = self.lstm_policy(layer_norm_out)#, (self.hidden_state_h_p, self.hidden_state_c_p))
+        lstm_out, hidden = self.lstm_policy(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
         lstm_out = self.output_policy(lstm_out)
         # Check that 'lstm_out' is not NaN
@@ -304,7 +319,7 @@ class LSTMModel(nn.Module):
         # LSTM
         
         # Project LSTM output to logits 
-        lstm_out, hidden = self.lstm_value(layer_norm_out)#, (self.hidden_state_h_p, self.hidden_state_c_p))
+        lstm_out, hidden = self.lstm_value(layer_norm_out, (self.hidden_state_h_p, self.hidden_state_c_p))
         self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
         value = self.output_value(lstm_out)
 
@@ -369,7 +384,7 @@ class LSTMModel(nn.Module):
                 self.logger.setLevel(logging.DEBUG) 
 
         losses = []
-        mini_batches = self.get_minibatches(states, gaes, predictions, actions, rewards, batch_size//10, shuffle=True)
+        mini_batches = self.get_minibatches(states, gaes, predictions, actions, rewards, 100, shuffle=True)
 
         bar = tqdm(range(epochs), desc="Epoch", disable=not verbose)
         for epoch in bar:
@@ -389,7 +404,7 @@ class LSTMModel(nn.Module):
                 self.logger.debug(f"Value: {_out_value}")
 
                 # Calculate the loss
-                loss = self.custom_loss(_out_logits, _out_value, gae, prediction, reward)
+                loss, loss_actor, loss_critic = self.custom_loss(_out_logits, _out_value, gae, prediction, reward)
                 losses.append(loss.item())
                 # Log
                 self.logger.debug(f"Loss: {loss}")
@@ -406,7 +421,7 @@ class LSTMModel(nn.Module):
 
         return losses
 
-    def custom_loss(self, out_logits: torch.FloatTensor, out_value: torch.FloatTensor, gaes: torch.FloatTensor, predictions: torch.FloatTensor, returns: torch.FloatTensor) -> torch.Tensor:
+    def custom_loss(self, out_logits: torch.FloatTensor, out_values: torch.FloatTensor, gaes: torch.FloatTensor, predictions: torch.FloatTensor, returns: torch.FloatTensor) -> torch.Tensor:
         r"""
         Custom loss function for PPO [arxiv:1707.06347](https://arxiv.org/abs/1707.06347).
         """
@@ -460,21 +475,17 @@ class LSTMModel(nn.Module):
             Returns:
                 A scalar value representing the actor loss.
             """
+            def safe_ratio(num, den):
+                """
+                Returns 0 if nan, else value
+
+                -G
+                """
+                return num/(den+1e-10) * (torch.abs(den)>0)
             # Calculate the ratio of the new to the old policy
             # r_t = torch.exp(torch.sub(out_logits, predictions))
             # r_t = torch.exp(torch.sub(torch.log(out_logits), torch.log(predictions)))
-            # r_t = torch.divide(out_logits, predictions)
-            r_t = []
-            _out_logits = out_logits.detach().numpy()
-            _predictions = predictions.detach().numpy().squeeze(1)
-            for i in range(_out_logits.shape[0]):
-                for j in range(_out_logits.shape[1]):
-                    if _predictions[i][j] == 0 and _out_logits[i][j] == 0:
-                        r_t.append(1.0)
-                    else:
-                        r_t.append(_predictions[i][j] / _out_logits[i][j])
-            r_t = torch.tensor(r_t).view(out_logits.shape)
-            # r_t = torch.nan_to_num(r_t, nan=0.0, posinf=0.0, neginf=0.0)
+            r_t = safe_ratio(out_logits, predictions)
 
             # Calculate the surrogate loss
             surr_loss = torch.minimum(r_t * gaes, 
@@ -503,7 +514,8 @@ class LSTMModel(nn.Module):
                 A scalar value representing the critic loss.
             """
             # Calculate the value loss
-            value_loss = torch.mean(torch.square(out_value - returns)) # 0.5 * (out_value - returns).pow(2).mean()
+            # value_loss = nn.functional.mse_loss(out_values, returns.squeeze(-1))# torch.mean(torch.square(out_value - returns)) # 0.5 * (out_value - returns).pow(2).mean()
+            value_loss = self.mse_loss(out_values, returns.squeeze(-1))
 
             # Return the critic loss
             return value_loss
@@ -513,12 +525,18 @@ class LSTMModel(nn.Module):
 
         # Calculate the critic loss
         loss_critic = critic_loss()
+        
+        # self.logger.info(f"Actor loss: {round(loss_actor.item(),3)}")
+        # self.logger.info(f"Critic loss: {round(loss_critic.item(),3)}")
 
         # Calculate the entropy loss
         loss_entropy = torch.mean(-out_logits * torch.exp(out_logits))
 
+        c1 = 0.1
+        c2 = 0.01
+
         # Calculate the total loss
-        loss = loss_actor + loss_critic - self._entropy * loss_entropy
+        loss = loss_actor + c1 * loss_critic - c2 * loss_entropy
 
         # Check for NaNs
         if torch.isnan(loss):
@@ -529,7 +547,7 @@ class LSTMModel(nn.Module):
             sys.exit(1)
 
         # Return the total loss
-        return loss
+        return loss, loss_actor, loss_critic
 
     
     def save(self, path: str):

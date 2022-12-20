@@ -39,7 +39,7 @@ if __name__ == "__main__":
     state = env.reset()  
     
     # Init PPO
-    algorithm = PPO(env, action_space=50, batch_size=250, epochs=20, log_level=logging.INFO, log_path=log_path)
+    algorithm = PPO(env, action_space=50, batch_size=1000, epochs=30, log_level=logging.INFO, log_path=log_path)
 
     iterations = 10
     total_rewards = 0
