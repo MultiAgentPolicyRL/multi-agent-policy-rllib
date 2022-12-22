@@ -177,14 +177,20 @@ class LSTMModel(nn.Module):
         self.hidden_state_h_v = torch.ones(1, self.cell_size, device=self.device)
         self.hidden_state_c_v = torch.ones(1, self.cell_size, device=self.device)
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)#, weight_decay=self.weight_decay)
+        # self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)#, weight_decay=self.weight_decay)
+        # Adagrad
+        _initial_accumulator_value = 0.1
+        _lr_decay = 0.01
+        _weight_decay = 0
+        _lr = 0.01
+        self.optimizer = torch.optim.Adagrad(self.parameters(), lr=_lr, lr_decay=_lr_decay, weight_decay=_weight_decay, initial_accumulator_value=_initial_accumulator_value)
         # self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
         # self.optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
 
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer,
             mode='min',
-            factor=0.1,
+            factor=0.01,
             patience=10,
             verbose=True,
             threshold=0.0001,
@@ -200,17 +206,17 @@ class LSTMModel(nn.Module):
         for param in self.parameters():
             param.grad = None
 
-        if log_level == logging.DEBUG:
-            from torchinfo import summary
-            input_array = [[
-                torch.IntTensor(obs['world-map']).unsqueeze(0).to(self.device),
-                torch.IntTensor(obs['world-idx_map']).unsqueeze(0).to(self.device),
-                torch.FloatTensor(obs['flat']).unsqueeze(0).to(self.device),
-                torch.FloatTensor(obs['time']).unsqueeze(0).to(self.device),
-                torch.IntTensor(obs['action_mask']).unsqueeze(0).to(self.device),
-            ]]
-            summary(self, input_data=input_array, depth=25, verbose=1)
-            sys.exit()
+        # if log_level == logging.DEBUG:
+        #     from torchinfo import summary
+        #     input_array = [[
+        #         torch.IntTensor(obs['world-map']).unsqueeze(0).to(self.device),
+        #         torch.IntTensor(obs['world-idx_map']).unsqueeze(0).to(self.device),
+        #         torch.FloatTensor(obs['flat']).unsqueeze(0).to(self.device),
+        #         torch.FloatTensor(obs['time']).unsqueeze(0).to(self.device),
+        #         torch.IntTensor(obs['action_mask']).unsqueeze(0).to(self.device),
+        #     ]]
+        #     summary(self, input_data=input_array, depth=25, verbose=1)
+        #     sys.exit()
         
         self.logger.info("Model created successfully")
 
@@ -383,8 +389,15 @@ class LSTMModel(nn.Module):
                 temp_level = self.logger.level
                 self.logger.setLevel(logging.DEBUG) 
 
-        losses = []
-        mini_batches = self.get_minibatches(states, gaes, predictions, actions, rewards, 100, shuffle=True)
+        ### DEBUG ###
+        gettrace = getattr(sys, 'gettrace', None)
+        temp = 50
+        if gettrace is not None and gettrace():
+            temp = 2
+        ### DEBUG ###
+
+        losses = {'Total': 0, 'Action': 0, 'Value': 0, }
+        mini_batches = self.get_minibatches(states, gaes, predictions, actions, rewards, temp, shuffle=True)
 
         bar = tqdm(range(epochs), desc="Epoch", disable=not verbose)
         for epoch in bar:
@@ -405,7 +418,6 @@ class LSTMModel(nn.Module):
 
                 # Calculate the loss
                 loss, loss_actor, loss_critic = self.custom_loss(_out_logits, _out_value, gae, prediction, reward)
-                losses.append(loss.item())
                 # Log
                 self.logger.debug(f"Loss: {loss}")
 
@@ -413,8 +425,13 @@ class LSTMModel(nn.Module):
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+            # self.scheduler.step(metrics=loss.item())
 
-                bar.set_postfix(loss=loss.item())
+            bar.set_postfix(loss=loss.item())
+        
+        losses['Total'] = loss.item()
+        losses['Action'] = loss_actor.item()
+        losses['Value'] = loss_critic.item()
 
         if verbose:
             self.logger.setLevel(temp_level)
@@ -485,11 +502,24 @@ class LSTMModel(nn.Module):
             # Calculate the ratio of the new to the old policy
             # r_t = torch.exp(torch.sub(out_logits, predictions))
             # r_t = torch.exp(torch.sub(torch.log(out_logits), torch.log(predictions)))
-            r_t = safe_ratio(out_logits, predictions)
+            # r_t = safe_ratio(out_logits, predictions)
+            #
+            # Substitute values in out_logits and predictions that are equal to 0 with 1.0
+            _out_logits = torch.where(out_logits == 0, torch.ones((1,1)), out_logits)
+            _predictions = torch.where(predictions == 0, torch.ones((1,1)), predictions).squeeze(1)
+            _gaes = gaes.squeeze(1)
+            # Log
+            self.logger.debug(f"out_logits: {_out_logits}")
+            self.logger.debug(f"predictions: {_predictions}")
+            r_t = torch.exp(torch.sub(torch.log(_out_logits),torch.log(_predictions)))
+            self.logger.debug(f"r_t: {r_t}")
 
             # Calculate the surrogate loss
-            surr_loss = torch.minimum(r_t * gaes, 
-                                torch.clamp(r_t, 1-self._epsilon, 1+self._epsilon) * gaes)
+            surr_loss = torch.minimum(r_t * _gaes, 
+                                torch.clamp(r_t, 1-self._epsilon, 1+self._epsilon) * _gaes)
+            self.logger.debug(f"r_t * gaes: {r_t * _gaes}")
+            self.logger.debug(f"torch.clamp(r_t, 1-self._epsilon, 1+self._epsilon) * gaes: {torch.clamp(r_t, 1-self._epsilon, 1+self._epsilon) * _gaes}")
+            self.logger.debug(f"surr_loss: {surr_loss}")
             
             # Return the mean surrogate loss
             return torch.mean(-surr_loss)
@@ -515,7 +545,10 @@ class LSTMModel(nn.Module):
             """
             # Calculate the value loss
             # value_loss = nn.functional.mse_loss(out_values, returns.squeeze(-1))# torch.mean(torch.square(out_value - returns)) # 0.5 * (out_value - returns).pow(2).mean()
-            value_loss = self.mse_loss(out_values, returns.squeeze(-1))
+            self.logger.debug(f"out_values: {[round(v.item(), 3) for v in out_values]}")
+            self.logger.debug(f"returns: {[round(r.item(), 3) for r in returns.squeeze(-1)]}")
+            value_loss = self.mse_loss(out_values, returns.squeeze(-1)) 
+            self.logger.debug(f"value_loss: {round(value_loss.item(), 3)}")
 
             # Return the critic loss
             return value_loss
@@ -531,12 +564,15 @@ class LSTMModel(nn.Module):
 
         # Calculate the entropy loss
         loss_entropy = torch.mean(-out_logits * torch.exp(out_logits))
+        self.logger.debug(f"Loss Entropy: {round(loss_entropy.item(),3)}")
 
-        c1 = 0.1
+        c1 = 1.0
         c2 = 0.01
 
         # Calculate the total loss
+        # Sum the actor, critic, and entropy losses with torch.sum
         loss = loss_actor + c1 * loss_critic - c2 * loss_entropy
+        self.logger.debug(f"Loss: {round(loss.item(), 3)}")
 
         # Check for NaNs
         if torch.isnan(loss):

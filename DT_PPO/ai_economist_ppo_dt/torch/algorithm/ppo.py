@@ -61,7 +61,7 @@ class PPO():
         self.logger.info("PPO initialized.")
 
     @torch.no_grad()
-    def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.998, lamda:float=0.98, normalize:bool=True,) -> np.ndarray:
+    def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.998, lamda:float=0.98, normalize:bool=True,) -> torch.FloatTensor:
         """Computes generalized advantage estimation (GAE).
         For theory, see
         "High-Dimensional Continuous Control Using Generalized Advantage Estimation"
@@ -85,23 +85,27 @@ class PPO():
             A tensor with shape `[T, B]` representing advantages. Shape is `[B, T]` when
             `not time_major`.
         """
-
         # Calculate next values and delta
         # next_values = torch.cat([values[1:], final_value.unsqueeze(0)], dim=0)
         deltas = []
         for i in range(len(rewards)):
+            self.logger.debug(f"\t{round(rewards[i].item(),3)} + {gamma} * {round(next_values[i].item(),3)} ({round(gamma*next_values[i].item(),3)}) - {round(values[i].item(), 2)} = {round((rewards[i] + gamma * next_values[i] - values[i]).item(),3)}")
             deltas.append(rewards[i] + gamma * next_values[i] - values[i])
         deltas = torch.stack(deltas)
 
         # Calculate weighted gamma and advantages
+        self.logger.debug(f"Gaes before: {[round(_d.item(),3) for _d in deltas]}")
         gaes = copy.deepcopy(deltas)
         for i in reversed(range(len(deltas) - 1)):
+            self.logger.debug(f"\t[{i}]{round(gaes[i].item(),3)} + {gamma} * {lamda} * [{i+1}]{round(gaes[i + 1].item(),3)} = {round((gaes[i] + gamma * lamda * gaes[i + 1]).item(),3)}")
             gaes[i] = gaes[i] + gamma * lamda * gaes[i + 1]
+        self.logger.debug(f"Gaes after: {[round(_g.item(),3) for _g in gaes]}")
             
         targets = gaes + values
+        self.logger.debug(f"Targets: {[round(_t.item(),3) for _t in targets]}")
         
-        if normalize:
-            gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
+        #if normalize:
+        #    gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
 
         return gaes, targets
 
@@ -197,7 +201,12 @@ class PPO():
         """
         if agent == 'a':
             # Log
-            self.logger.debug(f"Input state: {(x.shape[1:] for x in state)}")
+            self.logger.debug(f"Input state: ")
+            for k, v in state.items():
+                if v.shape[-1] == 1:
+                    self.logger.debug(f"\t{k}: {v}")
+                else:
+                    self.logger.debug(f"\t{k}: {v.shape}")
             # Get the prediction from the Actor network
             #with torch.no_grad():
             action, logits, value = self.actor(state)
@@ -208,7 +217,7 @@ class PPO():
             # Sample an action from the prediction distribution
             # action = torch.FloatTensor(random.choices(np.arange(self.action_space[agent]), weights=_prediction)).to(self.device)
             # Log
-            self.logger.debug(f"Action: {action}")
+            self.logger.debug(f"Action: {action.item()}")
         else:
             action = torch.IntTensor([random.randint(0,21) for _ in range(7)])
             logits = torch.zeros([self.action_space[agent]]).to(self.device)
@@ -244,7 +253,10 @@ class PPO():
             # Get the action, one-hot encoded action, and prediction
             action, prediction, value = self._act(states[agent], 'a' if agent != 'p' else 'p')
             # Log
-            self.logger.debug(f"Agent {agent} action: {action}")
+            if agent == 'p':
+                self.logger.debug(f"Agent '{agent}' action: {[p.item() for p in action]}")
+            else:    
+                self.logger.debug(f"Agent '{agent}' action: {action.item()}")
             
             # Store actions, one-hot encoded actions, and predictions
             actions[agent] = action
@@ -321,14 +333,16 @@ class PPO():
             # Get actions, one-hot encoded actions, and predictions
             actions, predictions, values = self.get_actions(state)
             # Log
-            self.logger.debug(f"Actions: {actions}")
+            _debug_actions = {agent: action.item() if agent != 'p' else [a.item() for a in action] for agent, action in actions.items()}
+            self.logger.debug(f"Actions: {_debug_actions}")
 
             # Step the environment with the actions
             step_actions = {agent: action.detach().numpy() for agent, action in actions.items()}
             next_state, rewards, _, _ = self.env.step(step_actions)
             next_state = self.convert_state_to_tensor(next_state)
             # Log
-            self.logger.debug(f"Rewards: {rewards}")
+            _debug_rewards = {agent: round(reward,3) for agent, reward in rewards.items()}
+            self.logger.debug(f"Rewards: {_debug_rewards}")
 
             # Append to the batch
             for agent in agents:
@@ -360,7 +374,7 @@ class PPO():
         # Print maximum, minimum and mean rewards for each agent
         for agent, rewards in rewards_dict.items():
             rewards = [reward.item() for reward in rewards]
-            self.logger.info(f"Rewards for agent {agent}: max {max(rewards)}, min {min(rewards)}, mean {round(np.mean(rewards), 2)}")
+            self.logger.info(f"Rewards for agent {agent}: max {round(max(rewards), 3)}, min {round(min(rewards), 3)}, mean {round(np.mean(rewards), 2)}")
 
         del r_temp, actions, predictions, rewards, next_state, state
 
@@ -383,7 +397,7 @@ class PPO():
         next_states : list
             List of next states in the trajectory.
         """
-        losses = {'0': [], '1': [], '2': [], '3': [], 'p': [0.0]}
+        losses = {'0': [], '1': [], '2': [], '3': [], 'p': {'Total': np.inf, 'Value': np.inf, 'Action': np.inf}}
 
         self.logger.info(f"Training {len(states.keys())} agents for {self.epochs} epochs.")
 
@@ -394,25 +408,27 @@ class PPO():
                 _values = torch.stack(values[agent][:-1])
                 _next_values = torch.stack(values[agent][1:])
                 # Log
-                self.logger.debug(f"Values: {(len(_values), _values[0].shape)}")
-                self.logger.debug(f"Next values: {(len(_next_values), _next_values[0].shape)}")
+                self.logger.debug(f"Values: {[round(_v.item(),3) for _v in _values]}")
+                self.logger.debug(f"Next values: {[round(_v.item(),3) for _v in _next_values]}")
 
                 # Calculate GAEs and target values
                 gaes, target_values = self._get_gaes(rewards[agent], _values, _next_values)
                 # Log
-                self.logger.debug(f"GAEs: {[round(float(v), 3) for v in gaes]}")
-                self.logger.debug(f"Target values: {[round(float(v), 3) for v in target_values]}")
+                self.logger.debug(f"GAEs: {[round(v.item(), 3) for v in gaes]}")
+                self.logger.debug(f"Target values: {[round(v.item(), 3) for v in target_values]}")
 
                 # Fit the networks
                 loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], rewards=target_values, epochs=self.epochs, batch_size=self.batch_size, )
                 losses[agent] = loss
             else:
                 self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")
-                losses[agent] = [0.0]
+                losses[agent] = {'Total': np.inf, 'Value': np.inf, 'Action': np.inf}
         # Should make checkpoint here
-        self.logger.info(f"Training took {round(time.time() - start_timer, 2)} seconds. Losses: '0': {round(losses['0'][-1], 3)}, '1': {round(losses['1'][-1], 3)}, '2': {round(losses['2'][-1], 3)}, '3': {round(losses['3'][-1], 3)}, 'p': {round(losses['p'][-1], 3)}")
+        #self.logger.info(f"Training took {round(time.time() - start_timer, 2)} seconds. Losses: '0': {round(losses['0'][-1], 3)}, '1': {round(losses['1'][-1], 3)}, '2': {round(losses['2'][-1], 3)}, '3': {round(losses['3'][-1], 3)}, 'p': {round(losses['p'][-1], 3)}")
+        self.logger.info(f"Training took {round(time.time() - start_timer, 2)} seconds.")
         for key, value in losses.items():
-            self.logger.debug(f"Loss for agent {key}: {round(value[-1], 3)} with min: {round(min(value),3)}, max: {round(max(value),3)} and mean: {round(np.mean(value),3)}")
+            self.logger.info(f"Loss agent {key}: {round(value['Total'], 3)}, Critic: {round(value['Value'], 3)}, Actor: {round(value['Action'], 3)}")
+            #self.logger.debug(f"Loss for agent {key}: {round(value[-1], 3)} with min: {round(min(value),3)}, max: {round(max(value),3)} and mean: {round(np.mean(value),3)}")
         self.checkpoint()
 
         return losses
