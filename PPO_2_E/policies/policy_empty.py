@@ -6,9 +6,12 @@ is not under a real policy. Every action is set to 0.
 # pylint: disable=no-member
 # pylint: disable=import-error
 
-from policies.policy_abs import Policy
-from utils.rollout_buffer import RolloutBuffer
+from typing import Tuple
+from policies import Policy
+from utils import RolloutBuffer
 import torch
+
+from utils import exec_time
 
 
 class EmptyPolicy(Policy):
@@ -38,7 +41,8 @@ class EmptyPolicy(Policy):
 
         return actions, torch.zeros((1,))
 
-    def learn(self, rollout_buffer: RolloutBuffer, epochs: int, steps_per_epoch: int):
+    def learn(self, rollout_buffer: RolloutBuffer) -> Tuple[float, float]:
         """
         This policy doesn't have to learn anything. It will just do nothing.
         """
+        return 0.0, 0.0

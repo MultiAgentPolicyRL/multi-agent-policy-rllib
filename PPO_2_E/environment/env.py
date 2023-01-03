@@ -10,7 +10,9 @@ import numpy as np
 from ai_economist import foundation
 from gym import spaces
 from gym.utils import seeding
-from environment.env_config import env_config
+from environment import env_config
+import torch
+# from tensordict import TensorDict
 
 _BIG_NUMBER = 1e20
 
@@ -160,6 +162,40 @@ class EnvWrapper:
                 raise TypeError
         return spaces.Dict(dict_of_spaces)
 
+    def data_preprocess(self, observation: dict) -> dict:
+        """
+        Takes as an input a dict of np.arrays and trasforms them to Torch.tensors.
+
+        Args:
+            observation: observation of the environment
+
+        Returns:
+            observation_tensored: same structure of `observation`, but np.arrays are not
+                torch.tensors
+
+            observation_tensored: {
+                '0': {
+                    'var': Tensor
+                    ...
+                },
+                ...
+            }
+        """
+        # observation_tensored = observation
+
+        observation_tensored = {}
+
+        for key in observation:
+            # Agents: '0', '1', '2', '3', 'p'
+            observation_tensored[key] = {}
+            for data_key in observation[key]:
+                # Accessing to specific data like 'world-map', 'flat', 'time', ...
+                observation_tensored[key][data_key] = (
+                    torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
+                )
+        # observation_tensored = TensorDict(observation, batch_size=[1, 2, 136, 7, 50])
+        return observation_tensored
+
     @property
     def pickle_file(self):
         if self.env_id is None:
@@ -216,10 +252,10 @@ class EnvWrapper:
 
     def reset(self, *args, **kwargs):
         obs = self.env.reset(*args, **kwargs)
-        return recursive_list_to_np_array(obs)
+        return self.data_preprocess(recursive_list_to_np_array(obs))
 
     def step(self, action_dict):
         obs, rew, done, info = self.env.step(action_dict)
         assert isinstance(obs[self.sample_agent_idx]["action_mask"], np.ndarray)
 
-        return recursive_list_to_np_array(obs), rew, done, info
+        return self.data_preprocess(recursive_list_to_np_array(obs)), rew, done, info

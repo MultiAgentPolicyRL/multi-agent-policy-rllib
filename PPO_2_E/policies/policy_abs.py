@@ -3,8 +3,8 @@ Abstract policy class
 """
 
 from abc import ABC, abstractmethod
+from typing import Tuple
 from utils.rollout_buffer import RolloutBuffer
-
 
 class Policy(ABC):
     """
@@ -33,9 +33,7 @@ class Policy(ABC):
     def learn(
         self,
         rollout_buffer: RolloutBuffer,
-        epochs: int,
-        steps_per_epoch: int,
-    ):
+    ) -> Tuple[float, float]:
         """
         Update the policy
         """

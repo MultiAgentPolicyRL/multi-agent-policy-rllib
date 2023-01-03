@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from gym.spaces import Box, Dict
 import numpy as np
+from tensordict import TensorDict
+
 
 # pylint: disable=no-member
 
@@ -40,45 +42,43 @@ def apply_logit_mask1(logits, mask):
 class PytorchLinear(nn.Module):
     """A linear (feed-forward) model."""
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+    def __init__(self, obs_space, action_space):
         super().__init__()
         self.MASK_NAME = "action_mask"
-        self.num_outputs = num_outputs
-        # mask = obs_space.original_space.spaces[self.MASK_NAME]
-        # self.mask_input = nn.Linear(mask.shape[0], mask.shape[1])
+        self.num_outputs = action_space
 
         mask = obs_space[self.MASK_NAME]
         self.mask_input = mask.shape
 
         # Fully connected values:
-        self.fc_dim = 128
+        self.fc_dim = 136
         self.num_fc = 2
 
         self.actor = nn.Sequential(
             nn.Linear(
-                get_flat_obs_size(obs_space["flat"]), self.fc_dim, dtype=torch.float32
+                get_flat_obs_size(obs_space["flat"]), 50  # , dtype=torch.float32
             ),
             nn.ReLU(),
-            nn.Linear(self.fc_dim, self.num_outputs),
+            # nn.Linear(32, self.num_outputs),
         )
         # self.actor = apply_logit_mask1(self.logits, self.mask_input)
 
         # self.actor = apply_logit_mask1(self.actor, self.mask_input)
 
         # Fully connected Value Function
-        # self.fc_layers_val_layers = []# nn.Sequential()
+        self.fc_layers_val_layers = []  # nn.Sequential()
 
-        # for i in range(self.num_fc):
-        #     self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
-        #     self.fc_layers_val_layers.append(nn.ReLU())
+        for _ in range(self.num_fc):
+            self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
+            self.fc_layers_val_layers.append(nn.ReLU())
 
-        # self.fc_layers_val_layers.append(nn.Linear(1, self.fc_dim))
-        # self.critic = nn.Sequential(*self.fc_layers_val_layers)
+        self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
+        self.critic = nn.Sequential(*self.fc_layers_val_layers)
 
-        # # self.h_val = self.fc_layers_val
+        # self.h_val = self.fc_layers_val
 
-        # # # self.critic = nn.Linear(1, activation=nn.ReLU(), name="critic")(self.h_val)
-        # # self.critic = nn.Linear(1, self.h_val)
+        # # self.critic = nn.Linear(1, activation=nn.ReLU(), name="critic")(self.h_val)
+        # self.critic = nn.Linear(1, self.h_val)
 
     def act(self, obs):
         """
@@ -90,11 +90,9 @@ class PytorchLinear(nn.Module):
             action_logprob: log probability of that action
         """
         obs1 = obs["flat"].squeeze().float()
-        # obs = obs.long()
         action_probs = self.actor(obs1)
-        # print(action_probs.shape)
-        # print(obs['action_mask'].shape)
-        # sys.exit()
+
+        # Apply logits mask
         logit_mask = torch.ones(action_probs.shape) * -10000000
         logit_mask = logit_mask * (1 - obs["action_mask"].squeeze(0))
         action_probs = action_probs + logit_mask
@@ -117,12 +115,14 @@ class PytorchLinear(nn.Module):
             state_values: value function reward prediction
             dist_entropy: entropy of actions distribution
         """
-        action_probs = self.actor(obs)
+        obs = torch.stack([TensorDict(o, batch_size=1) for o in obs])
+
+        action_probs = self.actor(obs["flat"].squeeze().float())
         dist = torch.distributions.Categorical(action_probs)
 
         action_logprobs = dist.log_prob(act)
         dist_entropy = dist.entropy()
-        state_values = self.critic(obs)
+        state_values = self.critic(obs["flat"].squeeze().float())
 
         return action_logprobs, state_values, dist_entropy
 

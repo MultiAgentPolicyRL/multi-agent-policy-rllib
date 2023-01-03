@@ -1,11 +1,15 @@
 import random
+import sys
+from typing import Tuple
 import torch
-from models.models import PytorchLinear
-from policies.policy_abs import Policy
-from utils.rollout_buffer import RolloutBuffer
+from models import PytorchLinear
+from policies import Policy
+from utils import RolloutBuffer
+from utils import exec_time
+# from tensordict import TensorDict
 
 
-class PPOAgent(Policy):
+class PpoPolicy(Policy):
     """
     PPO Main Optimization Algorithm
     """
@@ -16,14 +20,28 @@ class PPOAgent(Policy):
             action_space=action_space,
         )
 
+        ## TMP: parameters
+        lr_actor = 0.0003  # learning rate for actor network
+        lr_critic = 0.001  # learning rate for critic network
+
+        self.K_epochs = 4     # update policy for K epochs in one PPO update
+        self.eps_clip = 0.2  # clip parameter for PPO
+        self.gamma = 0.99  # discount factor
+
         # Environment and PPO parameters
         self.Model: PytorchLinear = PytorchLinear(
             obs_space=self.observation_space,
             action_space=self.action_space,
-            num_outputs=self.action_space,
-            model_config=None,
-            name=None,
         )
+
+        self.optimizer = torch.optim.Adam(
+            [
+                {"params": self.Model.actor.parameters(), "lr": lr_actor},
+                {"params": self.Model.critic.parameters(), "lr": lr_critic},
+            ]
+        )
+
+        self.MseLoss = torch.nn.MSELoss()
 
     def act(self, observation: dict):
         """
@@ -39,20 +57,17 @@ class PPOAgent(Policy):
             policy_probability: action probabilities
             vf_action: value function action predicted
         """
-        # torch.squeeze(logits)
-
         # Get the prediction from the Actor network
         with torch.no_grad():
-            policy_action, policy_probability, vf_action = self.Model.act(observation)
+            policy_action, policy_probability = self.Model.act(observation)
 
-        return policy_action.item(), policy_probability, vf_action
+        return policy_action.item(), policy_probability
 
+    @exec_time
     def learn(
         self,
         rollout_buffer: RolloutBuffer,
-        epochs: int,
-        steps_per_epoch: int,
-    ):
+    ) -> Tuple[float, float]:
         """
         Train Policy networks
         Takes as input the batch with N epochs of M steps_per_epoch. As we are using an LSTM
@@ -65,24 +80,8 @@ class PPOAgent(Policy):
 
         It calls `self.Model.fit` passing the shuffled epoch.
 
-        INFO: edit this function to modify how minibatch creation is managed.
-        INFO: there's a simpler way to do the same, but memory need to be adapted for it to work.
-
-            data = [0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3]
-            epochs = 4
-            steps_per_epoch = 5
-            for i in range(epochs):
-                print(dati[:i:steps_per_epoch])
-
         Args:
-            observations: Agent ordered, time listed observations per agent
-            policy_actions: Agent ordered, time listed policy_actions per agent
-            policy_probabilitiess: Agent ordered, time listed policy_probabilitiess per agent
-            value_functions: Agent ordered, time listed observalue_functionsvations per agent
-            rewards: Agent ordered, time listed rewards per agent
-            epochs: how many epochs in the given batch (it is equal to n_agents in the selected
-            batch)
-            steps_per_epoch: how long is the epoch (it's equal to algorithm_config.batch_size)
+            rollout_buffer: RolloutBuffer for this specific policy.
         """
 
         """
@@ -96,50 +95,41 @@ class PPOAgent(Policy):
                 print(data[i*batch_size:batch_size+i*batch_size])
         """
         # Set epochs order
-        # epochs_order = list(range(10))
-        # steps_per_epoch = int(400)
-
-        epochs_order = list(range(epochs))
-        steps_per_epoch = int(steps_per_epoch)
+        # FIXME: make it work with a list of RolloutBuffers or a single RolloutBuffer
+        epochs_order = list(range(rollout_buffer.n_agents))
+        steps_per_epoch = rollout_buffer.batch_size
         random.shuffle(epochs_order)
 
-        temp = list(
-            zip(
-                observations,
-                policy_actions,
-                policy_probabilitiess,
-                value_functions,
-                rewards,
-            )
+        minibatch_rollout = RolloutBuffer(
+            batch_size=rollout_buffer.batch_size, n_agents=1
         )
-        random.shuffle(temp)
-        (
-            observations,
-            policy_actions,
-            policy_probabilitiess,
-            value_functions,
-            rewards,
-        ) = zip(*temp)
-
+        a_loss, c_loss = [], []
         for i in epochs_order:
-            # Get it's data
-            selected_observations = observations[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            selected_policy_actions = policy_actions[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            selected_policy_probabilitiess = policy_probabilitiess[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            selected_value_functions = value_functions[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            selected_rewards = rewards[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
 
-            self.__update(rollout_buffer)
+            minibatch_rollout.actions = rollout_buffer.actions[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            minibatch_rollout.logprobs = rollout_buffer.logprobs[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            minibatch_rollout.states = rollout_buffer.states[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            minibatch_rollout.rewards = rollout_buffer.rewards[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            minibatch_rollout.is_terminals = rollout_buffer.is_terminals[
+                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
+            ]
+            a, c = self.__update(minibatch_rollout)
+
+            a_loss.append(a)
+            c_loss.append(c)
+
+        a_loss = torch.mean(torch.tensor(a_loss))
+        c_loss = torch.mean(torch.tensor(c_loss))
+
+        return a_loss.float(), c_loss.float()
 
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
@@ -159,9 +149,18 @@ class PPOAgent(Policy):
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
         # convert list to tensor
-        old_states = torch.squeeze(torch.stack(buffer.states, dim=0)).detach()
-        old_actions = torch.squeeze(torch.stack(buffer.actions, dim=0)).detach()
-        old_logprobs = torch.squeeze(torch.stack(buffer.logprobs, dim=0)).detach()
+        # old_states = torch.squeeze(torch.stack(buffer.states, dim=0)).detach()
+        # old_actions = torch.squeeze(torch.stack(buffer.actions, dim=0)).detach()
+        # old_logprobs = torch.squeeze(torch.stack(buffer.logprobs, dim=0)).detach()
+        # print(old_actions)
+        # print(old_logprobs)
+        # sys.exit()
+        old_states = buffer.states
+        old_actions = torch.tensor(buffer.actions)
+        old_logprobs = torch.stack(buffer.logprobs, dim=0)
+
+        # sys.exit()
+        a_loss, c_loss = [], []
 
         # Optimize policy for K epochs
         for _ in range(self.K_epochs):
@@ -169,7 +168,6 @@ class PPOAgent(Policy):
             logprobs, state_values, dist_entropy = self.Model.evaluate(
                 old_states, old_actions
             )
-
             # match state_values tensor dimensions with rewards tensor
             state_values = torch.squeeze(state_values)
 
@@ -183,14 +181,20 @@ class PPOAgent(Policy):
                 torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             )
 
+            critic_loss = self.MseLoss(state_values, rewards)
             # final loss of clipped objective PPO
-            loss = (
-                -torch.min(surr1, surr2)
-                + 0.5 * self.MseLoss(state_values, rewards)
-                - 0.01 * dist_entropy
-            )
+
+            loss = -torch.min(surr1, surr2) + 0.5 * critic_loss - 0.01 * dist_entropy
 
             # take gradient step
-            self.Model.optimizer.zero_grad()
+            self.optimizer.zero_grad()
             loss.mean().backward()
-            self.Model.optimizer.step()
+            self.optimizer.step()
+
+            c_loss.append(torch.mean(loss))
+            a_loss.append(torch.mean(loss))
+
+        a_loss = torch.mean(torch.tensor(a_loss))
+        c_loss = torch.mean(torch.tensor(c_loss))
+
+        return a_loss, c_loss

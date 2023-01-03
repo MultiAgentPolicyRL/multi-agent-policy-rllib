@@ -6,9 +6,10 @@ It manages:
 - giving actions to the environment
 - each policy singularly so that it has all the required (correct) inputs
 """
-from policies.policy_abs import Policy
 from typing import Dict, Tuple
-from utils.rollout_buffer import Memory
+
+from policies import Policy
+from utils import exec_time, Memory
 
 
 class Algorithm(object):
@@ -55,6 +56,7 @@ class Algorithm(object):
             return "a"
         return "p"
 
+    @exec_time
     def train_one_step(self, env):
         """
         Train all policies.
@@ -68,17 +70,24 @@ class Algorithm(object):
         """
         self.memory.clear()
 
-        self.batch(env)
+        a_rew, a0, a1, a2, a3, p_rew = self.batch(env)
 
-        # FIXME: add management to get correct batch from the rollout_buffer
-        # TODO: add logging -> can be done with returns
+        losses = {
+            "a": {"actor": 0, "critic": 0, "rew": a_rew,
+            'a0': a0, 'a1':a1, 'a2':a2, 'a3':a3},
+            "p": {"actor": 0, "critic": 0, "rew": p_rew},
+        }
+
         for key in self.policies:
-            self.policies[key].learn(
-                rollout_buffer=self.memory.get[key],
-                epochs=self.policies_size[key],
-                steps_per_epoch=self.batch_size,
+            a_loss, c_loss = self.policies[key].learn(
+                rollout_buffer=self.memory.get(key)
             )
 
+            losses[key]["actor"] = a_loss
+            losses[key]["critic"] = c_loss
+
+        return losses
+    @exec_time
     def batch(self, env):
         """
         Creates a batch of `self.batch_size` steps, save in `self.rollout_buffer`.
@@ -89,14 +98,21 @@ class Algorithm(object):
 
         obs = env.reset()
 
-        # TODO: here is possible getting average reward and stuff like that
+        a_rew, a0, a1, a2, a3, p_rew = 0, 0, 0, 0, 0, 0
 
-        for i in range(self.batch_size):
+        for _ in range(self.batch_size):
             # Policies pick actions
             policy_action, policy_logprob = self.get_actions(obs)
 
             # Retrieve new state and reward
             next_obs, rew, done, _ = env.step(policy_action)
+
+            a_rew += rew["0"] + rew["1"] + rew["2"] + rew["3"]
+            a0 += rew['0']
+            a1 += rew['1']
+            a2 += rew['2']
+            a3 += rew['3']
+            p_rew += rew["p"]
 
             self.memory.update(
                 state=obs,
@@ -107,6 +123,8 @@ class Algorithm(object):
             )
 
             obs = next_obs
+
+        return a_rew, a0, a1, a2, a3, p_rew
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """

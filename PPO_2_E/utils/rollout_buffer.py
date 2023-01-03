@@ -1,10 +1,9 @@
 """
     Buffer used to store batched data
 """
-# FIXME: doesn't work with multi-agent ('a', 'p')
-# FIXME: doesn't work with lstm (multi-agent data is shuffled)
-from typing import Dict
-
+# FIXME: all of this can be improved preallocating all the
+# memory and stuff like that.
+from utils import exec_time
 
 class RolloutBuffer:
     """
@@ -34,6 +33,8 @@ class RolloutBuffer:
 class Memory:
     """
     Batch memory used during batching and training
+    FIXME: we can simplify this memory just by creating `n_agents` `RolloutBuffers`.
+    FIXME: when 'get' is called a list of RolloutBuffers is returned (simpler than that is impossible.)
     """
 
     def __init__(
@@ -96,8 +97,9 @@ class Memory:
             self.logprob[key].append(logprob[key])
             self.state[key].append(state[key])
             self.reward[key].append(reward[key])
-            self.is_terminal[key].append(is_terminal[key])
+            self.is_terminal[key].append(is_terminal)
 
+    @exec_time
     def get(self, mapped_key) -> RolloutBuffer:
         """
         Each memorized input is retrived from the memory and merged by agent.
@@ -112,7 +114,7 @@ class Memory:
         Returns:
             RolloutBuffer filled with the selected batch
         """
-        self.rollout_buffer[mapped_key].reset_memory()
+        self.rollout_buffer[mapped_key].clear()
 
         action, logprob, state, reward, is_terminal = [], [], [], [], []
 
