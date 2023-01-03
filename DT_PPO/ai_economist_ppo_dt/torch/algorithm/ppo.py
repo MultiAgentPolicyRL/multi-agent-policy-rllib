@@ -8,7 +8,7 @@ from tqdm import tqdm
 from typing import List, Union, Dict, Tuple
 
 ###
-from ai_economist_ppo_dt.torch import LSTMModel
+from ai_economist_ppo_dt.torch import LSTMModel, LinearModel
 from ai_economist_ppo_dt.utils import get_basic_logger, ms_to_time, time_it
 from ai_economist.foundation.base.base_env import BaseEnvironment
 
@@ -20,7 +20,7 @@ random = SystemRandom()
 #import random
 
 class PPO():
-    def __init__(self, env: BaseEnvironment, action_space: int, seed: int = None, epochs: int = 1, batch_size: int = 32, device: str = 'cpu', log_level: int = logging.INFO, log_path: str = None) -> None:
+    def __init__(self, env: BaseEnvironment, action_space: int, seed: int = None, epochs: int = 1, buffer_size: int = 32, device: str = 'cpu', log_level: int = logging.INFO, log_path: str = None) -> None:
         """
         
         Parameters
@@ -29,7 +29,7 @@ class PPO():
             Dictionary of environment configuration.
         action_space : int
             Number of actions in the environment.
-        batch_size : int (default=32)
+        buffer_size : int (default=32)
             Batch size for training.
         """
         if seed is not None:
@@ -40,11 +40,11 @@ class PPO():
         self.env = env
         initial_state = self.env.reset()
         self.action_space = action_space
-        self.batch_size = batch_size
+        self.buffer_size = buffer_size
         self.epochs = epochs
 
-        if batch_size > 1000:
-            self.logger.warning(f"Batch size is very large: {batch_size}. This may cause memory issues (in particular exponential storage time).")
+        if buffer_size > 1000:
+            self.logger.warning(f"Batch size is very large: {buffer_size}. This may cause memory issues (in particular exponential storage time).")
 
         datetime = log_path.split("/")[-1][:-4]
         self.checkpoint_path = os.path.join(os.getcwd(), "checkpoints", datetime,)
@@ -56,8 +56,11 @@ class PPO():
 
         ### Initialize Actor and Critic networks
         self.device = device
-        self.actor = LSTMModel(initial_state['0'], name="AgentLSTM", output_size=self.action_space.get('a'), log_level=log_level, log_path=log_path, device=self.device).to(self.device)
-        self.planner = LSTMModel(initial_state['0'], name="PlannerLSTM", output_size=self.action_space.get('p'), log_level=log_level, log_path=log_path, device=self.device).to(self.device)
+        # self.actor = LSTMModel(initial_state['0'], name="AgentLSTM", output_size=self.action_space.get('a'), log_level=log_level, log_path=log_path, device=self.device).to(self.device)
+        # self.planner = LSTMModel(initial_state['0'], name="PlannerLSTM", output_size=self.action_space.get('p'), log_level=log_level, log_path=log_path, device=self.device).to(self.device)
+        self.actor = LinearModel(initial_state['0']['flat'].size, action_space=self.action_space.get('a'), num_fc=0).to(self.device)
+        self.planner = LinearModel(initial_state['p']['flat'].size, action_space=self.action_space.get('p'), num_fc=0).to(self.device)
+        
         self.logger.info("PPO initialized.")
 
     @torch.no_grad()
@@ -108,76 +111,6 @@ class PPO():
         #    gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
 
         return gaes, targets
-
-    # @torch.no_grad()
-    # def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.998, lamda:float=0.98, normalize:bool=True,) -> np.ndarray:
-    #     """
-    #     Calculate Generalized Advantage Estimation (GAE) for a batch of trajectories.
-    #     ---
-
-    #     Parameters
-    #     ----------
-    #     rewards : list
-    #         List of rewards for each step in the trajectory.
-    #     values : list
-    #         List of values for each step in the trajectory.
-    #     next_values : list
-    #         List of values for each step in the trajectory.
-    #     gamma : float (default=0.998)
-    #         Discount factor.
-    #     lamda : float (default=0.98)
-    #         GAE parameter.
-    #     normalize : bool (default=True)
-    #         Whether to normalize the GAEs.
-        
-    #     Returns
-    #     -------
-    #     gaes : np.ndarray
-    #         List of GAEs for each step in the trajectory.
-    #     target_values : Tensor
-    #         List of target values for each step in the trajectory.
-    #     """
-    #     deltas = [r + gamma * nv - v for r, nv, v in zip(rewards, next_values, values)]
-    #     deltas = torch.stack(deltas)
-    #     gaes = copy.deepcopy(deltas)
-
-    #     for t in reversed(range(len(deltas) - 1)):
-    #         gaes[t] = gaes[t] + gamma * lamda * gaes[t + 1]
-
-    #     target = gaes + values
-
-    #     # gaes = torch.stack(gaes).to(self.device)
-
-    #     if normalize:
-    #         gaes = (gaes - torch.mean(gaes)) / (torch.std(gaes) + 1e-8)
-
-    #     return [x for x in gaes], target
-
-    # @torch.no_grad()
-    # def _get_gaes(self, rewards: List[torch.FloatTensor], values: List[torch.FloatTensor], next_values: List[torch.FloatTensor], gamma:float=0.99, lamda:float=0.95, normalize:bool=True,) -> np.ndarray:
-    #     """
-    #     Calculate the Generalized Advantage Estimation (GAE) and the target values.
-        
-    #     Args:
-    #         rewards (list): A list of rewards, where each element is a tensor.
-    #         values (list): A list of values, where each element is a tensor.
-    #         next_values (list): A list of next-values, where each element is a tensor.
-    #         gamma (float): The discount factor.
-    #         lambda_ (float): The GAE lambda parameter.
-        
-    #     Returns:
-    #         A tuple containing the GAE and the target values, both as tensors.
-    #     """
-    #     gaes = []
-    #     targets = []
-    #     gae = 0
-    #     for i in reversed(range(len(rewards))):
-    #         delta = rewards[i] + gamma * next_values[i] - values[i]
-    #         gae = delta + gamma * lamda * gae
-    #         gaes.insert(0, gae)
-    #         targets.insert(0, gae + values[i])
-
-    #     return torch.stack(gaes), torch.stack(targets)
 
     # @time_it
     @torch.no_grad()
@@ -316,7 +249,7 @@ class PPO():
         # Append first values for the critic network
         # This is done because when computing the gaes we need the value of the next state
         # We can't get the value of the next state because we don't have the next state if 
-        # we consider only the `self.batch_size` steps
+        # we consider only the `self.buffer_size` steps
         # So we append the first value of the next state to the values list in order to obtain in training:
         # `values = [0, value_1, value_2, ..., value_{n-1}]` and
         # `next_values = [value_1, value_2, ..., value_n]`
@@ -324,12 +257,12 @@ class PPO():
         for key in values_dict.keys():
             values_dict[key].append(torch.zeros(1, 1).to(self.device))
 
-        self.logger.debug(f"Creating a batch of size {self.batch_size}...")
+        self.logger.debug(f"Creating a batch of size {self.buffer_size}...")
         state = self.env.reset()
         state = self.convert_state_to_tensor(state)
 
         start_timer = time.time()
-        for iteration in range(self.batch_size):
+        for iteration in range(self.buffer_size):
             # Get actions, one-hot encoded actions, and predictions
             actions, predictions, values = self.get_actions(state)
             # Log
@@ -357,24 +290,22 @@ class PPO():
             # # Remove Log - info since it's very fast
             # if iteration % 100 == 0 and iteration:
             #     elapsed = ms_to_time((time.time() - start_timer)*1000)
-            #     timer = (((time.time() - start_timer)/(iteration+1))*(self.batch_size - iteration -1))*1000
+            #     timer = (((time.time() - start_timer)/(iteration+1))*(self.buffer_size - iteration -1))*1000
             #     eta = ms_to_time(timer)
             #
-            #     self.logger.info(f"Batch creation: {iteration}/{self.batch_size}, Elapsed: {elapsed}, ETA: {eta} [mm:]ss.ms")
+            #     self.logger.info(f"Batch creation: {iteration}/{self.buffer_size}, Elapsed: {elapsed}, ETA: {eta} [mm:]ss.ms")
  
             state = copy.deepcopy(next_state)
 
-        self.logger.info(f"Batch of size {self.batch_size} created in {ms_to_time((time.time() - start_timer)*1000)}. [mm:]ss.ms")
+        self.logger.info(f"Buffer of size {self.buffer_size} created in {ms_to_time((time.time() - start_timer)*1000)}. [mm:]ss.ms")
 
         r_temp = []
         for agent, values in rewards_dict.items():
             r_temp.append(round((np.count_nonzero(values)/len(values))*100,2))
         self.logger.info(f"Rewards neq zero: '0' {r_temp[0]}%, '1' {r_temp[1]}%, '2' {r_temp[2]}%, '3' {r_temp[3]}%")
 
-        # Print maximum, minimum and mean rewards for each agent
-        for agent, rewards in rewards_dict.items():
-            rewards = [reward.item() for reward in rewards]
-            self.logger.info(f"Rewards for agent {agent}: max {round(max(rewards), 3)}, min {round(min(rewards), 3)}, mean {round(np.mean(rewards), 2)}")
+        # Print sum of rewards for the batch
+        self.logger.info(f"Sum of rewards for the batch: {np.sum([np.sum(rewards_dict[agent]) for agent in agents])}")
 
         del r_temp, actions, predictions, rewards, next_state, state
 
@@ -418,7 +349,7 @@ class PPO():
                 self.logger.debug(f"Target values: {[round(v.item(), 3) for v in target_values]}")
 
                 # Fit the networks
-                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], rewards=target_values, epochs=self.epochs, batch_size=self.batch_size, )
+                loss = self.actor.fit(states=states[agent], gaes=gaes, predictions=predictions[agent], actions=actions[agent], rewards=rewards[agent], epochs=self.epochs, buffer_size=self.buffer_size, )
                 losses[agent] = loss
             else:
                 self.logger.warning("For now removing the 'p' agent from the training. In future THIS MUST BE FIXED.")
@@ -451,7 +382,7 @@ class PPO():
             state = self.env.reset()
             done = {'__all__': False}
             step = 0
-            while not done.get('__all__') or step < self.batch_size:
+            while not done.get('__all__') or step < self.buffer_size:
                 actions, _, _ = self.get_actions(state)
                 state, rewards, done, _ = self.env.step(actions)
                 for agent in ['0', '1', '2', '3']:

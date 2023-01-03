@@ -3,7 +3,7 @@ try:
 except ImportError:
     pass
 finally:
-    __all__ = ['LSTMModel', 'PPO']
+    __all__ = ['LSTMModel', 'LinearModel', 'PPO']
 
-    from .models import LSTMModel
+    from .models import LSTMModel, LinearModel
     from .algorithm import PPO

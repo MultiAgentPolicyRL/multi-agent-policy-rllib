@@ -8,6 +8,7 @@ import numpy as np
 import torch.nn as nn
 from tqdm import tqdm
 from torch.autograd import Variable
+from torch.utils.data import DataLoader, TensorDataset
 from typing import Dict, List, Tuple, Union
 
 from ai_economist_ppo_dt.utils import get_basic_logger, time_it
@@ -220,7 +221,7 @@ class LSTMModel(nn.Module):
         
         self.logger.info("Model created successfully")
 
-    def forward(self, x: dict, training: bool = False):
+    def forward(self, x: dict):
         if isinstance(x, dict):
             _world_map = x[WORLD_MAP].int()
             _world_idx_map = x[WORLD_IDX_MAP].int()
@@ -228,11 +229,11 @@ class LSTMModel(nn.Module):
             _time = x["time"].int()
             _action_mask = x[ACTION_MASK].int()
         else:
-            _world_map = x[0]
-            _world_idx_map = x[1].long()
+            _world_map = x[0].int()
+            _world_idx_map = x[1].int()
             _flat = x[2]
-            _time = x[3]
-            _action_mask = x[4]
+            _time = x[3].int()
+            _action_mask = x[4].int()
 
         if self.name == 'p':
             _p0 = x["p0"]
@@ -379,10 +380,12 @@ class LSTMModel(nn.Module):
 
         return new_states
 
-    def fit(self, states: List[dict], gaes: List[torch.FloatTensor], predictions: List[torch.FloatTensor], actions: List[torch.FloatTensor], rewards: List[torch.FloatTensor], epochs: int, batch_size: int, verbose: Union[bool, int] = 0) -> torch.Tensor:
+    def fit(self, states: List[dict], gaes: List[torch.FloatTensor], predictions: List[torch.FloatTensor], actions: List[torch.FloatTensor], rewards: List[torch.FloatTensor], epochs: int, buffer_size: int, verbose: Union[bool, int] = 0) -> torch.Tensor:
         """
         Function to fit the model.
         """
+        self.train()
+
         if self.logger.level == logging.DEBUG or verbose:
             torch.autograd.set_detect_anomaly(True)
             if verbose:
@@ -397,22 +400,63 @@ class LSTMModel(nn.Module):
         ### DEBUG ###
 
         losses = {'Total': 0, 'Action': 0, 'Value': 0, }
+        
+        ### Pytorch way to prepapre the dataloader ###
+
+        # _world_map = Variable(torch.stack([state['world-map'].squeeze(0) for state in states]))
+        # _world_idx_map = Variable(torch.stack([state['world-idx_map'].squeeze(0) for state in states]))
+        # _flat = Variable(torch.stack([state['flat'].squeeze(0) for state in states]))
+        # _time = Variable(torch.stack([state['time'].squeeze(0) for state in states]))
+        # _action_mask = Variable(torch.stack([state['action_mask'].squeeze(0) for state in states]))
+
+        # dataset = TensorDataset(
+        #     _world_map, 
+        #     _world_idx_map, 
+        #     _flat, 
+        #     _time, 
+        #     _action_mask, 
+        #     Variable(gaes), 
+        #     Variable(torch.stack(predictions)), 
+        #     Variable(torch.stack(actions)), 
+        #     Variable(torch.stack(rewards))) 
+
+        # mini_batches = DataLoader(dataset, batch_size=temp, shuffle=True)
+        
+        ### Can also use the custom one below ###
+
         mini_batches = self.get_minibatches(states, gaes, predictions, actions, rewards, temp, shuffle=True)
+
+        ###
 
         bar = tqdm(range(epochs), desc="Epoch", disable=not verbose)
         for epoch in bar:
             bar.set_description(f"Epoch {epoch+1}/{epochs}")
             mini_batches_iter = copy.deepcopy(mini_batches)
             for batch in mini_batches_iter:
-                gae = batch.pop('gaes')
-                action = batch.pop('actions')
-                prediction = batch.pop('predictions')
-                reward = batch.pop('rewards')
+                # Get the batch
+                if isinstance(batch, dict):
+                    gae = batch.pop('gaes')
+                    action = batch.pop('actions')
+                    prediction = batch.pop('predictions')
+                    reward = batch.pop('rewards')
 
-                # Get the logits and value
-                _out_action, _out_logits, _out_value = self.forward(batch)
+                    # Get the logits and value
+                    _out_action, _out_logits, _out_value = self.forward(batch)
+                elif isinstance(batch, DataLoader):
+                    _world_map = batch[0]
+                    _world_idx_map = batch[1]
+                    _flat = batch[2]
+                    _time = batch[3]
+                    _action_mask = batch[4]
+                    gae = batch[5]
+                    prediction = batch[6]
+                    action = batch[7]
+                    reward = batch[8]
+                    
+                    # Get the logits and value
+                    _out_action, _out_logits, _out_value = self.forward([_world_map, _world_idx_map, _flat, _time, _action_mask])
                 # Log
-                self.logger.debug(f"Action: {_out_action}")
+                self.logger.debug(f"Action: {_out_action} [Not needed in training]")
                 self.logger.debug(f"Logits: {_out_logits}")
                 self.logger.debug(f"Value: {_out_value}")
 
@@ -435,6 +479,8 @@ class LSTMModel(nn.Module):
 
         if verbose:
             self.logger.setLevel(temp_level)
+
+        self.eval()
 
         return losses
 
@@ -492,26 +538,29 @@ class LSTMModel(nn.Module):
             Returns:
                 A scalar value representing the actor loss.
             """
-            def safe_ratio(num, den):
-                """
-                Returns 0 if nan, else value
+            # def safe_ratio(num, den):
+            #     """
+            #     Returns 0 if nan, else value
 
-                -G
-                """
-                return num/(den+1e-10) * (torch.abs(den)>0)
-            # Calculate the ratio of the new to the old policy
-            # r_t = torch.exp(torch.sub(out_logits, predictions))
-            # r_t = torch.exp(torch.sub(torch.log(out_logits), torch.log(predictions)))
-            # r_t = safe_ratio(out_logits, predictions)
-            #
-            # Substitute values in out_logits and predictions that are equal to 0 with 1.0
-            _out_logits = torch.where(out_logits == 0, torch.ones((1,1)), out_logits)
-            _predictions = torch.where(predictions == 0, torch.ones((1,1)), predictions).squeeze(1)
+            #     -G
+            #     """
+            #     return num/(den+1e-10) * (torch.abs(den)>0)
             _gaes = gaes.squeeze(1)
-            # Log
+            # Calculate the ratio of the new to the old policy
+            # # # OLD
+            # # p = returns * out_logits
+            # # old_p = returns * predictions
+
+            # # p = torch.clamp(p, 1e-10, 1.0)
+            # # old_p = torch.clamp(old_p, 1e-10, 1.0)
+
+            # # r_t = torch.exp(torch.log(p) - torch.log(old_p))
+            _out_logits = out_logits + 1e-10
+            _predictions = predictions + 1e-10
+            # # Log
             self.logger.debug(f"out_logits: {_out_logits}")
             self.logger.debug(f"predictions: {_predictions}")
-            r_t = torch.exp(torch.sub(torch.log(_out_logits),torch.log(_predictions)))
+            r_t = torch.exp(torch.sub(torch.log(_out_logits), torch.log(_predictions)))
             self.logger.debug(f"r_t: {r_t}")
 
             # Calculate the surrogate loss
@@ -544,7 +593,7 @@ class LSTMModel(nn.Module):
                 A scalar value representing the critic loss.
             """
             # Calculate the value loss
-            # value_loss = nn.functional.mse_loss(out_values, returns.squeeze(-1))# torch.mean(torch.square(out_value - returns)) # 0.5 * (out_value - returns).pow(2).mean()
+            
             self.logger.debug(f"out_values: {[round(v.item(), 3) for v in out_values]}")
             self.logger.debug(f"returns: {[round(r.item(), 3) for r in returns.squeeze(-1)]}")
             value_loss = self.mse_loss(out_values, returns.squeeze(-1)) 
@@ -574,18 +623,9 @@ class LSTMModel(nn.Module):
         loss = loss_actor + c1 * loss_critic - c2 * loss_entropy
         self.logger.debug(f"Loss: {round(loss.item(), 3)}")
 
-        # Check for NaNs
-        if torch.isnan(loss):
-            self.logger.error(f"Loss is NaN: {round(loss.item(),3)}")
-            self.logger.error(f"Actor loss: {round(loss_actor.item(),3)}")
-            self.logger.error(f"Critic loss: {round(loss_critic.item(),3)}")
-            self.logger.error(f"Entropy loss: {round(loss_entropy.item(),3)}")
-            sys.exit(1)
-
         # Return the total loss
         return loss, loss_actor, loss_critic
 
-    
     def save(self, path: str):
         """
         Function to save the model.
@@ -602,3 +642,169 @@ class LSTMModel(nn.Module):
         """
         self.load_state_dict(torch.load(path))
                 
+class LinearModel(nn.Module):
+    """ 
+    Linear model for the policy and value functions.
+
+    Takes in a state (composed of (world_idx, world_idx_map, flat, time, action_mask) and outputs the action probabilities and state values.
+
+    """
+    def __init__(self, obs_space, action_space, num_fc=0):
+        super(LinearModel, self).__init__()
+
+        self.num_fc = num_fc
+        self._epsilon = 0.2
+
+        self.logits = nn.Linear(obs_space, action_space)
+
+        # Convolutional layers
+        if num_fc > 0:
+            self.fc = nn.ModuleList([nn.Linear(obs_space, obs_space) for _ in range(num_fc)])
+
+        self.value = nn.Linear(obs_space, 1)
+
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
+        self.action_mask = torch.zeros(action_space)
+
+        self.mse_loss = nn.MSELoss()
+        
+        
+    def forward(self, x):
+        if isinstance(x, dict):
+            x = x['flat']
+
+        if self.num_fc > 0:
+            for fc in self.fc:
+                x = torch.nn.functional.relu(fc(x))
+
+        logits, values = self.logits(x), self.value(x)
+
+        action, _ = apply_logit_mask(logits, self.action_mask)
+
+        return action, logits, values
+
+    def custom_loss(self, out_logits: torch.FloatTensor, out_values: torch.FloatTensor, gaes: torch.FloatTensor, predictions: torch.FloatTensor, returns: torch.FloatTensor) -> torch.Tensor:
+        def actor_loss():
+            _gaes = gaes.squeeze(1)
+
+            _out_logits = out_logits + 1e-10
+            _predictions = predictions.squeeze(1) + 1e-10
+            
+            r_t = _out_logits / _predictions
+            
+            surr_loss = torch.minimum(r_t * _gaes, 
+                                torch.clamp(r_t, 1-self._epsilon, 1+self._epsilon) * _gaes)
+            
+            return torch.mean(-surr_loss)
+
+        def critic_loss():
+            value_loss = self.mse_loss(out_values, returns.squeeze(-1)) 
+            
+            return value_loss
+        
+        loss_actor = actor_loss()
+        loss_critic = critic_loss()
+        
+        loss_entropy = torch.mean(-out_logits * torch.exp(out_logits))
+        
+        c1 = 1.0
+        c2 = 0.01
+        loss = loss_actor + c1 * loss_critic - c2 * loss_entropy
+        
+        return loss, loss_actor, loss_critic
+
+    def get_minibatches(self, states: List[dict], gaes: List[torch.FloatTensor], predictions: List[torch.FloatTensor], rewards: List[torch.FloatTensor], mini_batch_size: int, shuffle: bool = True):
+        """
+        Build a list of minibatches from the states.
+        """
+        state_size = len(states)
+        new_states = []
+        for i in range(state_size//mini_batch_size):
+            _flat = Variable(torch.stack([state['flat'].squeeze(0) for state in states[i * mini_batch_size : (i + 1) * mini_batch_size]]))
+            
+            _gae = Variable(torch.stack([gae for gae in gaes[i * mini_batch_size : (i + 1) * mini_batch_size]]))
+            _predictions = Variable(torch.stack([prediction for prediction in predictions[i * mini_batch_size : (i + 1) * mini_batch_size]]))
+            _rewards = Variable(torch.stack([reward for reward in rewards[i * mini_batch_size : (i + 1) * mini_batch_size]]))
+            
+            x = {
+                'flat': _flat,
+                'gaes': _gae,
+                'predictions': _predictions,
+                'rewards': _rewards
+            }
+            new_states.append(x)
+        
+        if shuffle:
+            random.shuffle(new_states)
+
+        return new_states
+
+    def fit(self, states: List[dict], gaes: List[torch.FloatTensor], predictions: List[torch.FloatTensor], actions: List[torch.FloatTensor], rewards: List[torch.FloatTensor], epochs: int, buffer_size: int, verbose: Union[bool, int] = 0) -> torch.Tensor:
+        """
+        Function to fit the model.
+        """
+        self.train()
+
+        ### DEBUG ###
+        gettrace = getattr(sys, 'gettrace', None)
+        temp = 50
+        if gettrace is not None and gettrace():
+            temp = 2
+        ### DEBUG ###
+
+        losses = {'Total': 0, 'Action': 0, 'Value': 0, }
+        
+        ### Can also use the custom one below ###
+
+        mini_batches = self.get_minibatches(states, gaes, predictions, rewards, temp, shuffle=True)
+
+        ###
+
+        bar = tqdm(range(epochs), desc="Epoch", disable=not verbose)
+        for epoch in bar:
+            bar.set_description(f"Epoch {epoch+1}/{epochs}")
+            mini_batches_iter = copy.deepcopy(mini_batches)
+            for batch in mini_batches_iter:
+                flat = batch.pop('flat')
+                gae = batch.pop('gaes')
+                prediction = batch.pop('predictions')
+                reward = batch.pop('rewards')
+
+                # Get the logits and value
+                _, _out_logits, _out_value = self.forward(flat)
+                
+                # Calculate the loss
+                loss, loss_actor, loss_critic = self.custom_loss(_out_logits, _out_value, gae, prediction, reward)
+                
+                # Backprop
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+            # self.scheduler.step(metrics=loss.item())
+
+            bar.set_postfix(loss=loss.item())
+        
+        losses['Total'] = loss.item()
+        losses['Action'] = loss_actor.item()
+        losses['Value'] = loss_critic.item()
+
+        self.eval()
+
+        return losses
+
+    def save(self, path: str):
+        """
+        Function to save the model.
+        """
+        if not path.endswith('.pth'):
+            path += 'checkpoint.pth'
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+        torch.save(self.state_dict(), path)
+
+    def load(self, path: str):
+        """
+        Function to load the model.
+        """
+        self.load_state_dict(torch.load(path))
+          

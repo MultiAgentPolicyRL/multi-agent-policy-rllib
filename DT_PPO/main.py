@@ -39,15 +39,15 @@ if __name__ == "__main__":
     state = env.reset()
 
     ## DEBUG ONLY
-    batch_size = 1000
+    buffer_size = 1000
     log_level = logging.INFO
     gettrace = getattr(sys, 'gettrace', None)
     if gettrace is not None and gettrace():
-        batch_size = 6
+        buffer_size = 6
         log_level = logging.DEBUG
 
     # Init PPO
-    algorithm = PPO(env, action_space=50, batch_size=batch_size, epochs=10, log_level=log_level, log_path=log_path)
+    algorithm = PPO(env, action_space=50, buffer_size=buffer_size, epochs=10, log_level=log_level, log_path=log_path)
 
     iterations = 50
     total_rewards = 0
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     try:
         for it in range(iterations):
             logger.info(f"{'#'*50}")
-            logger.info(f"Starting iteration {it+1}/{iterations} | batch_size: {algorithm.batch_size} | total_rewards: {round(total_rewards, 2)}")
+            logger.info(f"Starting iteration {it+1}/{iterations} | buffer_size: {algorithm.buffer_size} | total_rewards: {round(total_rewards, 2)}")
 
             # Populate batch
             states, actions, rewards, predictions, next_states, values, total_rewards = algorithm.populate_batch(total_rewards=total_rewards) # Torch
