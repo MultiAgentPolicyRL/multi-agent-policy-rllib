@@ -99,7 +99,7 @@ class Memory:
             self.reward[key].append(reward[key])
             self.is_terminal[key].append(is_terminal)
 
-    @exec_time
+    # @exec_time
     def get(self, mapped_key) -> RolloutBuffer:
         """
         Each memorized input is retrived from the memory and merged by agent.

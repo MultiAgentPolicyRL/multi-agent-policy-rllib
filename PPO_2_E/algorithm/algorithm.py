@@ -56,7 +56,7 @@ class Algorithm(object):
             return "a"
         return "p"
 
-    @exec_time
+    # @exec_time
     def train_one_step(self, env):
         """
         Train all policies.
@@ -87,7 +87,8 @@ class Algorithm(object):
             losses[key]["critic"] = c_loss
 
         return losses
-    @exec_time
+    
+    # @exec_time
     def batch(self, env):
         """
         Creates a batch of `self.batch_size` steps, save in `self.rollout_buffer`.

@@ -14,7 +14,7 @@ class PpoPolicy(Policy):
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, observation_space, action_space):
+    def __init__(self, observation_space, action_space, K_epochs):
         super().__init__(
             observation_space=observation_space,
             action_space=action_space,
@@ -24,7 +24,7 @@ class PpoPolicy(Policy):
         lr_actor = 0.0003  # learning rate for actor network
         lr_critic = 0.001  # learning rate for critic network
 
-        self.K_epochs = 4     # update policy for K epochs in one PPO update
+        self.K_epochs = K_epochs     # update policy for K epochs in one PPO update
         self.eps_clip = 0.2  # clip parameter for PPO
         self.gamma = 0.99  # discount factor
 
@@ -63,7 +63,7 @@ class PpoPolicy(Policy):
 
         return policy_action.item(), policy_probability
 
-    @exec_time
+    # @exec_time
     def learn(
         self,
         rollout_buffer: RolloutBuffer,
