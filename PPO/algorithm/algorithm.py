@@ -17,8 +17,9 @@ from algorithm.algorithm_config import AlgorithmConfig
 from memory import BatchMemory
 from policy.ppo_policy import PPOAgent
 
-general_logger = logging.getLogger('general')
-data_logger = logging.getLogger('total_rew')
+general_logger = logging.getLogger("general")
+data_logger = logging.getLogger("total_rew")
+
 
 class PpoAlgorithm(object):
     """
@@ -78,7 +79,7 @@ class PpoAlgorithm(object):
         """
         # Resetting memory
         self.memory.reset_memory()
-        env=env
+        env = env
         # env = copy.deepcopy(env)
 
         # Collecting data for batching
@@ -112,14 +113,14 @@ class PpoAlgorithm(object):
 
             # Actor picks an action
             # Returned data are all torch.tensors
-            policy_actions, policy_probabilities, vf_actions = self.get_actions(
+            policy_actions, policy_probabilities = self.get_actions(
                 observation
             )
 
             # Retrieve new state, rew
             next_observation, reward, _, _ = env.step(policy_actions)
 
-            total_actors_reward += (reward['0'] + reward['1'] + reward['2'] + reward['3'])
+            total_actors_reward += reward["0"] + reward["1"] + reward["2"] + reward["3"]
             # FIXME (?): reward is still a np.array
 
             # Memorize (state, action, reward) for trainig
@@ -127,13 +128,12 @@ class PpoAlgorithm(object):
                 observation=observation,
                 policy_action=policy_actions,
                 policy_probability=policy_probabilities,
-                vf_action=vf_actions,
                 reward=reward,
             )
 
             observation = next_observation
             steps += 1
-        
+
         general_logger.debug("TOTAL REWARD: %.4f", total_actors_reward)
         data_logger.info(f"{total_actors_reward}")
 
@@ -162,7 +162,7 @@ class PpoAlgorithm(object):
         """
 
         # Define built memories
-        policy_actions, policy_probabilities, vf_actions = {}, {}, {}
+        policy_actions, policy_probabilities = {}, {}
 
         # Bad implementation that works only with agents.
         # To work also with the planner it needs to know which agents are trained so that it can default
@@ -172,7 +172,6 @@ class PpoAlgorithm(object):
                 (
                     policy_actions[key],
                     policy_probabilities[key],
-                    vf_actions[key],
                 ) = self.training_policies[
                     self.algorithm_config.policy_mapping_function(key)
                 ].act(
@@ -180,7 +179,7 @@ class PpoAlgorithm(object):
                 )
             else:
                 # tmp to also feed the planner
-                policy_actions[key], policy_probabilities[key], vf_actions[key] = (
+                policy_actions[key], policy_probabilities[key]= (
                     [
                         torch.zeros((1,)),
                         torch.zeros((1,)),
@@ -191,10 +190,9 @@ class PpoAlgorithm(object):
                         torch.zeros((1,)),
                     ],
                     torch.zeros((1,)),
-                    torch.zeros((1,)),
                 )
 
-        return policy_actions, policy_probabilities, vf_actions
+        return policy_actions, policy_probabilities
 
     def data_preprocess(self, observation: dict) -> dict:
         """
@@ -227,5 +225,4 @@ class PpoAlgorithm(object):
                 observation_tensored[key][data_key] = (
                     torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
                 )
-
         return observation_tensored

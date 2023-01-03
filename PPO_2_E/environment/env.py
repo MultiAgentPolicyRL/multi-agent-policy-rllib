@@ -1,14 +1,6 @@
-# Copyright (c) 2021, salesforce.com, inc.
-# All rights reserved.
-# SPDX-License-Identifier: BSD-3-Clause
-# For full license text, see the LICENSE file in the repo root
-# or https://opensource.org/licenses/BSD-3-Clause
-
 """
 Wrapper for making the gather-trade-build environment an OpenAI compatible environment.
-This can then be used with reinforcement learning frameworks such as RLlib.
 """
-
 import os
 import pickle
 import random
@@ -18,8 +10,18 @@ import numpy as np
 from ai_economist import foundation
 from gym import spaces
 from gym.utils import seeding
+from environment.env_config import env_config
 
 _BIG_NUMBER = 1e20
+
+# TODO: linting and cleaning
+
+
+def get_environment():
+    """
+    Returns builded environment with `env_config` config
+    """
+    return EnvWrapper(env_config=env_config)
 
 
 def recursive_list_to_np_array(d):

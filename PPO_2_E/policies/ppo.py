@@ -1,39 +1,31 @@
-"""
-docs about this file
-"""
-import copy
-import logging
 import random
-import sys
-import time
-
-import numpy as np
-
-# import tensorflow as tf
 import torch
-# from model.model import LSTMModel
-from model.model import PytorchLinear as LSTMModel
-from policy.ppo_policy_config import PpoPolicyConfig
-from utils.timeait import timeit
-from memory import RolloutBuffer
+from models.models import PytorchLinear
+from policies.policy_abs import Policy
+from utils.rollout_buffer import RolloutBuffer
 
 
-class PPOAgent:
+class PPOAgent(Policy):
     """
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, policy_config: PpoPolicyConfig):
-        # Initialization
-        # Environment and PPO parameters
-        self.policy_config = policy_config
-        self.action_space = self.policy_config.action_space  # self.env.action_space.n
-        self.batch_size = self.policy_config.batch_size  # training epochs
+    def __init__(self, observation_space, action_space, batch_size):
+        super().__init__(
+            observation_space=observation_space,
+            action_space=action_space,
+            batch_size=batch_size,
+        )
 
-        # self.Model: LSTMModel = LSTMModel(policy_config.model_config)
-        self.Model: LSTMModel = LSTMModel(obs_space=policy_config.model_config.observation_space, action_space=policy_config.model_config.action_space,
-        num_outputs=policy_config.model_config.action_space, model_config=None, name=None)
-    # @timeit
+        # Environment and PPO parameters
+        self.Model: PytorchLinear = PytorchLinear(
+            obs_space=self.observation_space,
+            action_space=self.action_space,
+            num_outputs=self.action_space,
+            model_config=None,
+            name=None,
+        )
+
     def act(self, observation: dict):
         """
         Given an observation, returns `policy_action`, `policy_probability` and `vf_action` from the model.
@@ -58,7 +50,7 @@ class PPOAgent:
 
     def learn(
         self,
-        rolloutBuffer: RolloutBuffer,
+        rollout_buffer: RolloutBuffer,
         epochs: int,
         steps_per_epoch: int,
     ):
@@ -92,10 +84,6 @@ class PPOAgent:
             epochs: how many epochs in the given batch (it is equal to n_agents in the selected
             batch)
             steps_per_epoch: how long is the epoch (it's equal to algorithm_config.batch_size)
-
-        Returns:
-            nothing
-
         """
 
         """
@@ -152,17 +140,9 @@ class PPOAgent:
                 i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
             ]
 
-            self.update(rolloutBuffer)
-            # Fit the model
-            # self.Model.fit(
-            #     observations=selected_observations,
-            #     policy_actions=selected_policy_actions,
-            #     policy_probabilities=selected_policy_probabilitiess,
-            #     vf_actions=selected_value_functions,
-            #     rewards=selected_rewards,
-            # )
+            self.__update(rollout_buffer)
 
-    def update(self, buffer: RolloutBuffer):
+    def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
         rewards = []
         discounted_reward = 0

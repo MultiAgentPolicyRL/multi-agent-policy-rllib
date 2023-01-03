@@ -84,12 +84,12 @@ import torch
 #     return EnvWrapper(env_config)
 
 if __name__ == "__main__":
-    
-    a = [[1],[2],[3],[4]]
-    b = [[5],[6],[7],[8]]
-    c = [a,b]
+
+    a = [[1], [2], [3], [4]]
+    b = [[5], [6], [7], [8]]
+    c = [a, b]
     print(c)
-    random.shuffle(c)
+    random.shuffle([a, b])
     print(c)
 
     # torch.manual_seed(3)
@@ -100,7 +100,6 @@ if __name__ == "__main__":
     # print(dist.sample())
     # print(dist.sample())
 
-    
     # tensore = [-10000000, 1e-3, 1,2]
     # logit_mask = (torch.softmax(torch.tensor(tensore), dim=0)+1e-3)
     # dist = torch.distributions.Categorical(probs=logit_mask)

@@ -10,10 +10,11 @@ import time
 
 EXPERIMENT_NAME = datetime.datetime.now()
 
+
 def setup_logger(logger_name, log_file, formatter, level=logging.DEBUG):
     l = logging.getLogger(logger_name)
     formatter = formatter
-    fileHandler = logging.FileHandler(log_file, mode='w')
+    fileHandler = logging.FileHandler(log_file, mode="w")
     fileHandler.setFormatter(formatter)
     streamHandler = logging.StreamHandler()
     streamHandler.setFormatter(formatter)
@@ -21,6 +22,7 @@ def setup_logger(logger_name, log_file, formatter, level=logging.DEBUG):
     l.setLevel(level)
     l.addHandler(fileHandler)
     l.addHandler(streamHandler)
+
 
 env_config = {
     "env_config_dict": {
@@ -103,18 +105,33 @@ def get_environment():
 
 if __name__ == "__main__":
     # SETUP LOGGING
-    setup_logger('general', f'PPO/logs/{EXPERIMENT_NAME}_general.csv', formatter=logging.Formatter("%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"))
-    setup_logger('actors_rew', f'PPO/logs/{EXPERIMENT_NAME}_actors_rew.csv', formatter=logging.Formatter('%(message)s'))
-    setup_logger('total_rew', f'PPO/logs/{EXPERIMENT_NAME}_total_rew.csv', formatter=logging.Formatter('%(message)s'))
-    setup_logger('loss', f'PPO/logs/{EXPERIMENT_NAME}_loss.csv', formatter=logging.Formatter('%(message)s'))
+    setup_logger(
+        "general",
+        f"PPO/logs/{EXPERIMENT_NAME}_general.csv",
+        formatter=logging.Formatter(
+            "%(asctime)s | %(filename)s \t| %(levelname)s\t| %(message)s"
+        ),
+    )
+    setup_logger(
+        "actors_rew",
+        f"PPO/logs/{EXPERIMENT_NAME}_actors_rew.csv",
+        formatter=logging.Formatter("%(message)s"),
+    )
+    setup_logger(
+        "total_rew",
+        f"PPO/logs/{EXPERIMENT_NAME}_total_rew.csv",
+        formatter=logging.Formatter("%(message)s"),
+    )
+    setup_logger(
+        "loss",
+        f"PPO/logs/{EXPERIMENT_NAME}_loss.csv",
+        formatter=logging.Formatter("%(message)s"),
+    )
 
-
-
-    general_logger = logging.getLogger('general')
-    data_logger = logging.getLogger('actors_rew')
-    total_rew = logging.getLogger('total_rew')
-    loss = logging.getLogger('loss')
-
+    general_logger = logging.getLogger("general")
+    data_logger = logging.getLogger("actors_rew")
+    total_rew = logging.getLogger("total_rew")
+    loss = logging.getLogger("loss")
 
     data_logger.info("agent0,agent1,agent2,agent3")
     total_rew.info("totalreward")
@@ -126,14 +143,19 @@ if __name__ == "__main__":
     env = get_environment()
     env.seed(SEED)
     obs = env.reset()
+    env.observation_space
+    # policy_config = {
+        # "a": PpoPolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
+        # # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
+    # }
 
     policy_config = {
-        "a": PpoPolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
+        "a": PpoPolicyConfig(action_space=50, observation_space=env.observation_space, name="a"),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 
     algorithm_config = AlgorithmConfig(
-        minibatch_size=250,
+        minibatch_size=1000,
         policies_configs=policy_config,
         env=env,
         seed=SEED,
@@ -149,8 +171,12 @@ if __name__ == "__main__":
         obs = algorithm.data_preprocess(obs)
         actions = algorithm.get_actions(obs)[0]
         obs, rew, done, info = env.step(actions)
-        general_logger.info(f"Actions: {actions['0']} | {actions['1']} | {actions['2']} | {actions['3']} || {actions['p']}")
-        general_logger.info(f"Reward step {i}: {rew['0']} | {rew['1']} | {rew['2']} | {rew['3']} || {rew['p']}")
+        general_logger.info(
+            f"Actions: {actions['0']} | {actions['1']} | {actions['2']} | {actions['3']} || {actions['p']}"
+        )
+        general_logger.info(
+            f"Reward step {i}: {rew['0']} | {rew['1']} | {rew['2']} | {rew['3']} || {rew['p']}"
+        )
 
         data_logger.info(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']}")
 

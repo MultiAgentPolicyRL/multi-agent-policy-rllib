@@ -9,6 +9,22 @@ from dataclasses import dataclass
 from utils.timeait import timeit
 
 
+class RolloutBuffer:
+    def __init__(
+        self,
+        observations: list,
+        policy_actions: list,
+        policy_probabilitiess: list,
+        value_functions: list,
+        rewards: list,
+    ):
+        self.actions = policy_actions
+        self.states = value_functions
+        self.logprobs = policy_probabilitiess
+        self.rewards = rewards
+        self.is_terminals = []
+
+
 @dataclass
 class BatchMemory:
     """
@@ -31,7 +47,6 @@ class BatchMemory:
         self.policy_probability = {key: [] for key in self.available_agent_ids}
         self.vf_action = {key: [] for key in self.available_agent_ids}
         self.reward = {key: [] for key in self.available_agent_ids}
-
         """
         Internal structure is like this:
         self.observation = {
@@ -121,11 +136,13 @@ class BatchMemory:
         steps_per_epoch = len(observations) / epochs
 
         return (
-            observations,
-            policy_actions,
-            policy_probabilitiess,
-            value_functions,
-            rewards,
+            RolloutBuffer(
+                observations,
+                policy_actions,
+                policy_probabilitiess,
+                value_functions,
+                rewards,
+            ),
             epochs,
             steps_per_epoch,
         )

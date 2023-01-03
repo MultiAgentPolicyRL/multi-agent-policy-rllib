@@ -1,4 +1,18 @@
 # Multi-Agent PPO thoughts
+
+## TODO:
+- finire il network lineare per ai-economist e verificare che funziona
+- adattare memoria a nuovo setup
+- adattare batching
+- verificare che il resto funzioni
+
+tempo stimato 1.5h
+
+
+
+
+
+
 ### In Italian 
 TODO: in english
 
