@@ -10,17 +10,17 @@ import torch
 from algorithm import Algorithm
 from environment import get_environment
 from policies import EmptyPolicy, PpoPolicy
-from utils import setup_logger
 from tqdm import tqdm
+
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
     env = get_environment()
 
-    EPOCHS = 10
-    BATCH_SIZE = 1000
+    EPOCHS = 200
+    BATCH_SIZE = 3000
     SEED = 1
-    K_epochs = 16
+    K_epochs = 8
     plotting = True
 
     env = get_environment()
