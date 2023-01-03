@@ -15,14 +15,12 @@ class Policy(ABC):
         self,
         observation_space,
         action_space,
-        batch_size,
     ):
         super().__init__()
         # Initialization
         # Environment and PPO parameters
         self.observation_space = observation_space
         self.action_space = action_space  # self.env.action_space.n
-        self.batch_size = batch_size  # training epochs
 
     @abstractmethod
     def act(self, observation: dict):

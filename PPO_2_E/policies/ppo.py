@@ -10,11 +10,10 @@ class PPOAgent(Policy):
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, observation_space, action_space, batch_size):
+    def __init__(self, observation_space, action_space):
         super().__init__(
             observation_space=observation_space,
             action_space=action_space,
-            batch_size=batch_size,
         )
 
         # Environment and PPO parameters

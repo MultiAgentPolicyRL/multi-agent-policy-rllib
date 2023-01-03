@@ -8,7 +8,7 @@ It manages:
 """
 from policies.policy_abs import Policy
 from typing import Dict, Tuple
-from utils.rollout_buffer import RolloutBuffer
+from utils.rollout_buffer import Memory
 
 
 class Algorithm(object):
@@ -22,20 +22,25 @@ class Algorithm(object):
         policies: Dict[str, Policy],
         env,
     ):
-        # TODO: modify this so that policies are built here.
         self.policies = policies
         self.batch_size = batch_size
-        # env will be used in fixed RolloutBuffer setup
-        self.rollout_buffer = RolloutBuffer()
 
-        obs : Dict[str, _] = env.reset()
-        
+        obs: Dict[str, _] = env.reset()
+
         self.policies_size = {}
         for key in policies.keys():
             self.policies_size[key] = 0
-        
+        available_agent_id = []
         for key in obs.keys():
             self.policies_size[self.policy_mapping_function(key)] += 1
+            available_agent_id.append(key)
+
+        self.memory = Memory(
+            policy_mapping_fun=self.policy_mapping_function,
+            available_agent_id=available_agent_id,
+            batch_size=self.batch_size,
+            policy_size=self.policies_size,
+        )
 
     def policy_mapping_function(self, key: str) -> str:
         """
@@ -54,14 +59,14 @@ class Algorithm(object):
         """
         Train all policies.
         It creates a batch of size = `self.batch_size`, then
-        this RolloutBuffer is splitted between each policy following 
-        `self.policy_mapping_fun` and trained respectivly to the 
+        this RolloutBuffer is splitted between each policy following
+        `self.policy_mapping_fun` and trained respectivly to the
         corrisponding policy.
 
         Args:
             env: updated environment
         """
-        self.rollout_buffer.clear()
+        self.memory.clear()
 
         self.batch(env)
 
@@ -69,9 +74,10 @@ class Algorithm(object):
         # TODO: add logging -> can be done with returns
         for key in self.policies:
             self.policies[key].learn(
-                rollout_buffer=self.rollout_buffer,
+                rollout_buffer=self.memory.get[key],
                 epochs=self.policies_size[key],
-                steps_per_epoch=self.batch_size)
+                steps_per_epoch=self.batch_size,
+            )
 
     def batch(self, env):
         """
@@ -92,18 +98,17 @@ class Algorithm(object):
             # Retrieve new state and reward
             next_obs, rew, done, _ = env.step(policy_action)
 
-            self.rollout_buffer.states.append(obs)
-            self.rollout_buffer.actions.append(policy_action)
-            self.rollout_buffer.logprobs.append(policy_logprob)
-            self.rollout_buffer.rewards.append(rew)
-            self.rollout_buffer.is_terminals.append(done)
+            self.memory.update(
+                state=obs,
+                action=policy_action,
+                logprob=policy_logprob,
+                reward=rew,
+                is_terminal=done,
+            )
 
             obs = next_obs
 
-    def get_actions(
-        self,
-        obs: dict
-    ) -> Tuple[dict, dict]:
+    def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
         Build action dictionary using actions taken from all policies.
 
@@ -117,8 +122,9 @@ class Algorithm(object):
 
         policy_action, policy_logprob = {}, {}
 
-        for key in obs.keys():  
+        for key in obs.keys():
             (policy_action[key], policy_logprob[key]) = self.policies[
-                self.policy_mapping_function(key)].act(obs[key])
+                self.policy_mapping_function(key)
+            ].act(obs[key])
 
         return policy_action, policy_logprob

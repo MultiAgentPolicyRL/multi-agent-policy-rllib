@@ -11,18 +11,16 @@ from utils.rollout_buffer import RolloutBuffer
 import torch
 
 
-
 class EmptyPolicy(Policy):
     """
     Empty policy to manage an `unmanaged` policy. Used when an actor (or set of actors)
     is not under a real policy. Every action is set to 0.
     """
 
-    def __init__(self, observation_space, action_space, batch_size):
+    def __init__(self, observation_space, action_space):
         super().__init__(
             observation_space=observation_space,
             action_space=action_space,
-            batch_size=batch_size,
         )
 
     def act(self, observation: dict):
@@ -34,7 +32,7 @@ class EmptyPolicy(Policy):
 
         for _ in self.action_space:
             actions.append(torch.zeros((1,)))
-    
+
         if len(actions) == 1:
             actions = actions[0]
 

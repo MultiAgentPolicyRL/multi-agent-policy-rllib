@@ -8,6 +8,7 @@ from environment.env import get_environment
 from utils.setup_logger import setup_logger
 from policies.empty_policy import EmptyPolicy
 from algorithm.algorithm import Algorithm
+
 if __name__ == "__main__":
     EXPERIMENT_NAME = datetime.datetime.now()
 
@@ -21,11 +22,16 @@ if __name__ == "__main__":
     obs = env.reset()
 
     policies = {
-        'a': EmptyPolicy(observation_space=env.observation_space, action_space=[50], batch_size=0),
-        'p': EmptyPolicy(observation_space=env.observation_space_pl, action_space=[22,22,22,22,22,22,22], batch_size=0)
+        "a": EmptyPolicy(
+            observation_space=env.observation_space, action_space=[50]
+        ),
+        "p": EmptyPolicy(
+            observation_space=env.observation_space_pl,
+            action_space=[22, 22, 22, 22, 22, 22, 22]
+        ),
     }
 
-    algorithm : Algorithm = Algorithm(1, policies=policies, env=env)
+    algorithm: Algorithm = Algorithm(batch_size=1, policies=policies, env=env)
 
     for i in range(2):
         actions, _ = algorithm.get_actions(obs)
