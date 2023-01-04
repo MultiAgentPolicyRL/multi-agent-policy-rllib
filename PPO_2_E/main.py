@@ -15,8 +15,8 @@ from tqdm import tqdm
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
-    EPOCHS = 1
-    BATCH_SIZE = 2
+    EPOCHS = 100
+    BATCH_SIZE = 6000
     SEED = 1
     K_epochs = 8
     plotting = True
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         ),
     }
 
-    algorithm: Algorithm = Algorithm(batch_size=BATCH_SIZE, policies=policies, env=env)
+    algorithm: Algorithm = Algorithm(batch_size=BATCH_SIZE, policies=policies, env=env, device=device)
 
     returns = []
     for i in tqdm(range(EPOCHS)):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         # print(
         #     f"A: batch_rew: {losses['a']['rew']}, a_loss: {losses['a']['actor']}, c_loss: {losses['a']['critic']}, "
         # )
-    sys.exit()
+
     # Plotting
     if plotting:
         # Plotting only AGENTS

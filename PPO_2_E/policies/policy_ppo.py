@@ -1,12 +1,11 @@
 import random
 import sys
-from typing import Tuple
+from typing import List, Tuple
 import torch
 from models import PytorchLinear
 from policies import Policy
 from utils import RolloutBuffer
 from utils import exec_time
-# from tensordict import TensorDict
 
 
 class PpoPolicy(Policy):
@@ -49,10 +48,8 @@ class PpoPolicy(Policy):
         Given an observation, returns `policy_action`, `policy_probability` and `vf_action` from the model.
         In this case (PPO) it's just a reference to call the model's forward method ->
         it's an "exposed API": common named functions for each policy.
-
         Args:
             observation: single agent observation of the environment.
-
         Returns:
             policy_action: predicted action(s)
             policy_probability: action probabilities
@@ -64,23 +61,20 @@ class PpoPolicy(Policy):
 
         return policy_action.item(), policy_probability
 
-    # @exec_time
+    @exec_time
     def learn(
         self,
-        rollout_buffer: RolloutBuffer,
+        rollout_buffer: List[RolloutBuffer],
     ) -> Tuple[float, float]:
         """
         Train Policy networks
         Takes as input the batch with N epochs of M steps_per_epoch. As we are using an LSTM
         model we are not shuffling all the data to create the minibatch, but only shuffling
         each epoch.
-
         Example:
             Input epochs: 0,1,2,3
             Shuffled epochs: 2,0,1,3
-
         It calls `self.Model.fit` passing the shuffled epoch.
-
         Args:
             rollout_buffer: RolloutBuffer for this specific policy.
         """
@@ -97,13 +91,11 @@ class PpoPolicy(Policy):
         """
         # Set epochs order
         # FIXME: make it work with a list of RolloutBuffers or a single RolloutBuffer
-        epochs_order = list(range(rollout_buffer.n_agents))
-        steps_per_epoch = rollout_buffer.batch_size
+        epochs_order = list(range(rollout_buffer[0].n_agents))
+        steps_per_epoch = rollout_buffer[0].batch_size
         random.shuffle(epochs_order)
 
-        minibatch_rollout = RolloutBuffer(
-            batch_size=rollout_buffer.batch_size, n_agents=1
-        )
+
         a_loss, c_loss = [], []
         for i in epochs_order:
             
