@@ -22,13 +22,8 @@ if __name__ == "__main__":
     plotting = True
 
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-<<<<<<< HEAD
-    # device = 'cuda'
-    device = 'cpu'
-=======
     device = 'cuda'
-    # device = 'cpu'
->>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
+    device = 'cpu'
     print(device)
 
     env = get_environment(device)
