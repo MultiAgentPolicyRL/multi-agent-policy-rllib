@@ -106,27 +106,8 @@ class PpoPolicy(Policy):
         )
         a_loss, c_loss = [], []
         for i in epochs_order:
-<<<<<<< HEAD
-=======
-
-            minibatch_rollout.actions = torch.tensor(rollout_buffer.actions[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]).to(self.device)
-            minibatch_rollout.logprobs = torch.stack(rollout_buffer.logprobs[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]).to(self.device)
-            minibatch_rollout.states = torch.stack(rollout_buffer.states[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]).to(self.device)
-            minibatch_rollout.rewards = rollout_buffer.rewards[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            minibatch_rollout.is_terminals = rollout_buffer.is_terminals[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-
-            a, c = self.__update(minibatch_rollout)
->>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
+            
+            a, c = self.__update(rollout_buffer[i])
 
             a_loss.append(a)
             c_loss.append(c)

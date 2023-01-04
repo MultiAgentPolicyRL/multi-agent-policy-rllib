@@ -61,6 +61,7 @@ class Memory:
 =======
         self.rollout_buffer = {}
         for key in self.policy_size:
+        for key in self.policy_size:
             self.rollout_buffer[key] = RolloutBuffer(
                 batch_size=batch_size, n_agents=policy_size[key]
 >>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
@@ -94,8 +95,6 @@ class Memory:
             reward: agent's reward for this action
             is_terminal: if this is the last action for this environment
         """
-<<<<<<< HEAD
-=======
         for key in self.available_agent_ids:
             self.action[key].append(action[key])
             self.logprob[key].append(logprob[key])
@@ -122,10 +121,11 @@ class Memory:
         self.rollout_buffer[mapped_key].clear()
 
         action, logprob, state, reward, is_terminal = [], [], [], [], []
+        self.rollout_buffer[mapped_key].clear()
+
+        action, logprob, state, reward, is_terminal = [], [], [], [], []
 
         for key in self.available_agent_ids:
-<<<<<<< HEAD
-=======
             if self.policy_mapping_fun(key) == mapped_key:
                 action.extend(self.action[key])
                 logprob.extend(self.logprob[key])
@@ -133,11 +133,6 @@ class Memory:
                 reward.extend(self.reward[key])
                 is_terminal.extend(self.is_terminal[key])
 
-        self.rollout_buffer[mapped_key].actions = action
-        self.rollout_buffer[mapped_key].logprobs = logprob
-        self.rollout_buffer[mapped_key].states = state
-        self.rollout_buffer[mapped_key].rewards = reward
-        self.rollout_buffer[mapped_key].is_terminals = is_terminal
->>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
+                rollout_buffers.append(self.rollout_buffer[key])
 
         return self.rollout_buffer[mapped_key]
