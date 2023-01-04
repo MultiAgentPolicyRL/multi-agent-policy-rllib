@@ -3,8 +3,9 @@
 """
 # FIXME: all of this can be improved preallocating all the
 # memory and stuff like that.
+from typing import List
 from utils import exec_time
-
+import torch
 class RolloutBuffer:
     """
     Buffer used to store batched data
@@ -43,7 +44,9 @@ class Memory:
         available_agent_id: list,
         policy_size: dict,
         batch_size: int,
+        device: str,
     ):
+        self.device = device
         self.policy_mapping_fun = policy_mapping_fun
         # 0,1,2,3,p
         self.available_agent_ids = available_agent_id
@@ -58,9 +61,9 @@ class Memory:
 
         # self.rollout_buffer = Dict[str, RolloutBuffer]
         self.rollout_buffer = {}
-        for key in self.policy_size:
+        for key in self.available_agent_ids:
             self.rollout_buffer[key] = RolloutBuffer(
-                batch_size=batch_size, n_agents=policy_size[key]
+                batch_size=batch_size, n_agents=policy_size[self.policy_mapping_fun(key)]
             )
 
     def clear(self):
@@ -92,6 +95,11 @@ class Memory:
             reward: agent's reward for this action
             is_terminal: if this is the last action for this environment
         """
+        if is_terminal['__all__'] == False:
+            is_terminal=False
+        else:
+            is_terminal=True
+
         for key in self.available_agent_ids:
             self.action[key].append(action[key])
             self.logprob[key].append(logprob[key])
@@ -99,8 +107,8 @@ class Memory:
             self.reward[key].append(reward[key])
             self.is_terminal[key].append(is_terminal)
 
-    # @exec_time
-    def get(self, mapped_key) -> RolloutBuffer:
+    @exec_time
+    def get(self, mapped_key) -> List[RolloutBuffer]:
         """
         Each memorized input is retrived from the memory and merged by agent.
 
@@ -114,22 +122,18 @@ class Memory:
         Returns:
             RolloutBuffer filled with the selected batch
         """
-        self.rollout_buffer[mapped_key].clear()
 
-        action, logprob, state, reward, is_terminal = [], [], [], [], []
-
+        rollout_buffers = []
         for key in self.available_agent_ids:
+
             if self.policy_mapping_fun(key) == mapped_key:
-                action.extend(self.action[key])
-                logprob.extend(self.logprob[key])
-                state.extend(self.state[key])
-                reward.extend(self.reward[key])
-                is_terminal.extend(self.is_terminal[key])
+                self.rollout_buffer[key].clear()
+                self.rollout_buffer[key].actions = torch.Tensor(self.action[key]).to(self.device)
+                self.rollout_buffer[key].logprobs = torch.Tensor(self.logprob[key]).to(self.device)
+                self.rollout_buffer[key].states = torch.stack(self.state[key]).to(self.device)
+                self.rollout_buffer[key].rewards = torch.Tensor(self.reward[key]).to(self.device)
+                self.rollout_buffer[key].is_terminals = torch.Tensor(self.is_terminal[key]).to(self.device)
 
-        self.rollout_buffer[mapped_key].actions = action
-        self.rollout_buffer[mapped_key].logprobs = logprob
-        self.rollout_buffer[mapped_key].states = state
-        self.rollout_buffer[mapped_key].rewards = reward
-        self.rollout_buffer[mapped_key].is_terminals = is_terminal
+                rollout_buffers.append(self.rollout_buffer[key])
 
-        return self.rollout_buffer[mapped_key]
+        return rollout_buffers

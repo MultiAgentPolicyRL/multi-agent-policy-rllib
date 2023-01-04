@@ -41,6 +41,7 @@ class EmptyPolicy(Policy):
 
         return actions, torch.zeros((1,))
 
+    # @exec_time
     def learn(self, rollout_buffer: RolloutBuffer) -> Tuple[float, float]:
         """
         This policy doesn't have to learn anything. It will just do nothing.

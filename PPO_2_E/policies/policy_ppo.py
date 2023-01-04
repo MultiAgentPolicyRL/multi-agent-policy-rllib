@@ -1,12 +1,11 @@
 import random
 import sys
-from typing import Tuple
+from typing import List, Tuple
 import torch
 from models import PytorchLinear
 from policies import Policy
 from utils import RolloutBuffer
 from utils import exec_time
-# from tensordict import TensorDict
 
 
 class PpoPolicy(Policy):
@@ -64,10 +63,10 @@ class PpoPolicy(Policy):
 
         return policy_action.item(), policy_probability
 
-    # @exec_time
+    @exec_time
     def learn(
         self,
-        rollout_buffer: RolloutBuffer,
+        rollout_buffer: List[RolloutBuffer],
     ) -> Tuple[float, float]:
         """
         Train Policy networks
@@ -97,33 +96,15 @@ class PpoPolicy(Policy):
         """
         # Set epochs order
         # FIXME: make it work with a list of RolloutBuffers or a single RolloutBuffer
-        epochs_order = list(range(rollout_buffer.n_agents))
-        steps_per_epoch = rollout_buffer.batch_size
+        epochs_order = list(range(rollout_buffer[0].n_agents))
+        steps_per_epoch = rollout_buffer[0].batch_size
         random.shuffle(epochs_order)
 
-        minibatch_rollout = RolloutBuffer(
-            batch_size=rollout_buffer.batch_size, n_agents=1
-        )
+
         a_loss, c_loss = [], []
         for i in epochs_order:
-
-            minibatch_rollout.actions = torch.tensor(rollout_buffer.actions[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]).to(self.device)
-            minibatch_rollout.logprobs = torch.stack(rollout_buffer.logprobs[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]).to(self.device)
-            minibatch_rollout.states = torch.stack(rollout_buffer.states[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]).to(self.device)
-            minibatch_rollout.rewards = rollout_buffer.rewards[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            minibatch_rollout.is_terminals = rollout_buffer.is_terminals[
-                i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-
-            a, c = self.__update(minibatch_rollout)
+            
+            a, c = self.__update(rollout_buffer[i])
 
             a_loss.append(a)
             c_loss.append(c)
