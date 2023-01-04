@@ -15,15 +15,20 @@ from tqdm import tqdm
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
-    EPOCHS = 5
-    BATCH_SIZE = 6000
+    EPOCHS = 1
+    BATCH_SIZE = 2
     SEED = 1
     K_epochs = 8
     plotting = True
 
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+<<<<<<< HEAD
     # device = 'cuda'
     device = 'cpu'
+=======
+    device = 'cuda'
+    # device = 'cpu'
+>>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
     print(device)
 
     env = get_environment(device)
@@ -41,10 +46,10 @@ if __name__ == "__main__":
         ),
     }
 
-    algorithm: Algorithm = Algorithm(batch_size=BATCH_SIZE, policies=policies, env=env, device=device)
+    algorithm: Algorithm = Algorithm(batch_size=BATCH_SIZE, policies=policies, env=env)
 
     returns = []
-    for i in (range(EPOCHS)):
+    for i in tqdm(range(EPOCHS)):
         actions, _ = algorithm.get_actions(obs)
         # print(actions)
         obs, rew, done, info = env.step(actions)
@@ -52,7 +57,6 @@ if __name__ == "__main__":
         
         losses = algorithm.train_one_step(env=env)
         returns.append(losses)
-        print("\n\n")
 
         # print(
         #     f"A: batch_rew: {losses['a']['rew']}, a_loss: {losses['a']['actor']}, c_loss: {losses['a']['critic']}, "

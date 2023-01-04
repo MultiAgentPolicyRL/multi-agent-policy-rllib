@@ -3,10 +3,13 @@
 """
 # FIXME: all of this can be improved preallocating all the
 # memory and stuff like that.
+<<<<<<< HEAD
 import sys
 from typing import Dict, List
+=======
+>>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
 from utils import exec_time
-import torch
+
 class RolloutBuffer:
     """
     Buffer used to store batched data
@@ -45,9 +48,7 @@ class Memory:
         available_agent_id: list,
         policy_size: dict,
         batch_size: int,
-        device: str,
     ):
-        self.device = device
         self.policy_mapping_fun = policy_mapping_fun
         # 0,1,2,3,p
         self.available_agent_ids = available_agent_id
@@ -55,10 +56,14 @@ class Memory:
         self.policy_size = policy_size
 
         # self.rollout_buffer = Dict[str, RolloutBuffer]
-        rollout_buffer = {}
-        for key in self.available_agent_ids:
-            rollout_buffer[key] = RolloutBuffer(
-                batch_size=batch_size, n_agents=policy_size[self.policy_mapping_fun(key)]
+<<<<<<< HEAD
+
+=======
+        self.rollout_buffer = {}
+        for key in self.policy_size:
+            self.rollout_buffer[key] = RolloutBuffer(
+                batch_size=batch_size, n_agents=policy_size[key]
+>>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
             )
 
         self.rollout_buffer = Dict[str, RolloutBuffer]
@@ -89,20 +94,18 @@ class Memory:
             reward: agent's reward for this action
             is_terminal: if this is the last action for this environment
         """
-        if is_terminal['__all__'] == False:
-            is_terminal=False
-        else:
-            is_terminal=True
+<<<<<<< HEAD
+=======
+        for key in self.available_agent_ids:
+            self.action[key].append(action[key])
+            self.logprob[key].append(logprob[key])
+            self.state[key].append(state[key])
+            self.reward[key].append(reward[key])
+            self.is_terminal[key].append(is_terminal)
+>>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
 
-        for key in self.rollout_buffer:
-            self.rollout_buffer[key].actions.append(action[key])
-            self.rollout_buffer[key].logprobs.append(logprob[key])
-            self.rollout_buffer[key].states.append(state[key])
-            self.rollout_buffer[key].rewards.append(reward[key])
-            self.rollout_buffer[key].is_terminals.append(is_terminal)
-
-    @exec_time
-    def get(self, mapped_key) -> List[RolloutBuffer]:
+    # @exec_time
+    def get(self, mapped_key) -> RolloutBuffer:
         """
         Each memorized input is retrived from the memory and merged by agent.
 
@@ -116,28 +119,25 @@ class Memory:
         Returns:
             RolloutBuffer filled with the selected batch
         """
+        self.rollout_buffer[mapped_key].clear()
 
-        rollout_buffers = []
+        action, logprob, state, reward, is_terminal = [], [], [], [], []
+
         for key in self.available_agent_ids:
-            # print(self.rollout_buffer[key].actions)        
-            # print(self.rollout_buffer[key].logprobs)       
-            # print(self.rollout_buffer[key].states)         
-            # print(self.rollout_buffer[key].rewards)        
-            # print(self.rollout_buffer[key].is_terminals)    
-            
-            # print(type(self.rollout_buffer[key].states))
-            # print(type(self.rollout_buffer[key].states[0]))
-            # sys.exit()
+<<<<<<< HEAD
+=======
             if self.policy_mapping_fun(key) == mapped_key:
-                self.rollout_buffer[key].actions        = torch.Tensor(self.rollout_buffer[key].actions).to(self.device)
-                self.rollout_buffer[key].logprobs       = torch.Tensor(self.rollout_buffer[key].logprobs).to(self.device)
-                self.rollout_buffer[key].states         = torch.stack(self.rollout_buffer[key].states).to(self.device)
-                self.rollout_buffer[key].rewards        = torch.Tensor(self.rollout_buffer[key].rewards).to(self.device)
-                self.rollout_buffer[key].is_terminals   = torch.Tensor(self.rollout_buffer[key].is_terminals).to(self.device)
-                
-                rollout_buffers.append(self.rollout_buffer[key])
-                # print((self.rollout_buffer[key].actions))
-                # sys.exit()
-                # self.rollout_buffer[key].clear()
+                action.extend(self.action[key])
+                logprob.extend(self.logprob[key])
+                state.extend(self.state[key])
+                reward.extend(self.reward[key])
+                is_terminal.extend(self.is_terminal[key])
 
-        return rollout_buffers
+        self.rollout_buffer[mapped_key].actions = action
+        self.rollout_buffer[mapped_key].logprobs = logprob
+        self.rollout_buffer[mapped_key].states = state
+        self.rollout_buffer[mapped_key].rewards = reward
+        self.rollout_buffer[mapped_key].is_terminals = is_terminal
+>>>>>>> parent of c7bc54d (DEV: improved memory (rollout list) and ppo_policy)
+
+        return self.rollout_buffer[mapped_key]

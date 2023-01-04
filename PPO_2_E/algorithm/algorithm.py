@@ -22,7 +22,6 @@ class Algorithm(object):
         batch_size: int,
         policies: Dict[str, Policy],
         env,
-        device: str,
     ):
         self.policies = policies
         self.batch_size = batch_size
@@ -42,7 +41,6 @@ class Algorithm(object):
             available_agent_id=available_agent_id,
             batch_size=self.batch_size,
             policy_size=self.policies_size,
-            device=device
         )
 
     def policy_mapping_function(self, key: str) -> str:
@@ -58,7 +56,7 @@ class Algorithm(object):
             return "a"
         return "p"
 
-    @exec_time
+    # @exec_time
     def train_one_step(self, env):
         """
         Train all policies.
@@ -90,7 +88,7 @@ class Algorithm(object):
 
         return losses
     
-    @exec_time
+    # @exec_time
     def batch(self, env):
         """
         Creates a batch of `self.batch_size` steps, save in `self.rollout_buffer`.

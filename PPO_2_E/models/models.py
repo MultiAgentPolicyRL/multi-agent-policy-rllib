@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from gym.spaces import Box, Dict
 import numpy as np
+from tensordict import TensorDict
 from utils import exec_time
 
 # pylint: disable=no-member
@@ -57,13 +58,14 @@ class PytorchLinear(nn.Module):
 
         self.actor = nn.Sequential(
             nn.Linear(
-                get_flat_obs_size(obs_space["flat"]), 100  # , dtype=torch.float32
+                get_flat_obs_size(obs_space["flat"]), 50  # , dtype=torch.float32
             ),
             nn.ReLU(),
-            nn.Linear(100, 50),
-            nn.ReLU()
+            # nn.Linear(32, self.num_outputs),
         )
+        # self.actor = apply_logit_mask1(self.logits, self.mask_input)
 
+        # self.actor = apply_logit_mask1(self.actor, self.mask_input)
 
         # Fully connected Value Function
         self.fc_layers_val_layers = []  # nn.Sequential()
@@ -117,6 +119,7 @@ class PytorchLinear(nn.Module):
             dist_entropy: entropy of actions distribution
         """
         # obs = torch.stack([TensorDict(o, batch_size=1) for o in obs])
+
         action_probs = self.actor(obs["flat"].squeeze().float())
         dist = torch.distributions.Categorical(action_probs)
 
