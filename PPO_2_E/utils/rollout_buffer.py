@@ -3,7 +3,8 @@
 """
 # FIXME: all of this can be improved preallocating all the
 # memory and stuff like that.
-from typing import List
+import sys
+from typing import Dict, List
 from utils import exec_time
 import torch
 class RolloutBuffer:
@@ -12,11 +13,11 @@ class RolloutBuffer:
     """
 
     def __init__(self, batch_size, n_agents):
-        self.actions = None
-        self.states = None
-        self.logprobs = None
-        self.rewards = None
-        self.is_terminals = None
+        self.actions = []
+        self.states = []
+        self.logprobs = []
+        self.rewards = []
+        self.is_terminals = []
         self.batch_size = batch_size
         self.n_agents = n_agents
 
@@ -24,11 +25,11 @@ class RolloutBuffer:
         """
         Clear the buffer
         """
-        self.actions = None
-        self.states = None
-        self.logprobs = None
-        self.rewards = None
-        self.is_terminals = None
+        self.actions = []
+        self.states = []
+        self.logprobs = []
+        self.rewards = []
+        self.is_terminals = []
 
 
 class Memory:
@@ -53,18 +54,15 @@ class Memory:
         # a: 4, p: 1
         self.policy_size = policy_size
 
-        self.action = {key: [] for key in self.available_agent_ids}
-        self.logprob = {key: [] for key in self.available_agent_ids}
-        self.state = {key: [] for key in self.available_agent_ids}
-        self.reward = {key: [] for key in self.available_agent_ids}
-        self.is_terminal = {key: [] for key in self.available_agent_ids}
-
         # self.rollout_buffer = Dict[str, RolloutBuffer]
-        self.rollout_buffer = {}
+        rollout_buffer = {}
         for key in self.available_agent_ids:
-            self.rollout_buffer[key] = RolloutBuffer(
+            rollout_buffer[key] = RolloutBuffer(
                 batch_size=batch_size, n_agents=policy_size[self.policy_mapping_fun(key)]
             )
+
+        self.rollout_buffer = Dict[str, RolloutBuffer]
+        self.rollout_buffer = rollout_buffer
 
     def clear(self):
         """
@@ -74,12 +72,8 @@ class Memory:
         self.actions = {'0':[], '1':[], '2':[], '3':[], 'p':[]}
         """
 
-        for key in self.available_agent_ids:
-            self.action[key].clear()
-            self.logprob[key].clear()
-            self.state[key].clear()
-            self.reward[key].clear()
-            self.is_terminal[key].clear()
+        for key in self.rollout_buffer:
+            self.rollout_buffer[key].clear()  
 
     def update(
         self, action: dict, logprob: dict, state: dict, reward: dict, is_terminal: dict
@@ -100,12 +94,12 @@ class Memory:
         else:
             is_terminal=True
 
-        for key in self.available_agent_ids:
-            self.action[key].append(action[key])
-            self.logprob[key].append(logprob[key])
-            self.state[key].append(state[key])
-            self.reward[key].append(reward[key])
-            self.is_terminal[key].append(is_terminal)
+        for key in self.rollout_buffer:
+            self.rollout_buffer[key].actions.append(action[key])
+            self.rollout_buffer[key].logprobs.append(logprob[key])
+            self.rollout_buffer[key].states.append(state[key])
+            self.rollout_buffer[key].rewards.append(reward[key])
+            self.rollout_buffer[key].is_terminals.append(is_terminal)
 
     @exec_time
     def get(self, mapped_key) -> List[RolloutBuffer]:
@@ -125,15 +119,25 @@ class Memory:
 
         rollout_buffers = []
         for key in self.available_agent_ids:
-
+            # print(self.rollout_buffer[key].actions)        
+            # print(self.rollout_buffer[key].logprobs)       
+            # print(self.rollout_buffer[key].states)         
+            # print(self.rollout_buffer[key].rewards)        
+            # print(self.rollout_buffer[key].is_terminals)    
+            
+            # print(type(self.rollout_buffer[key].states))
+            # print(type(self.rollout_buffer[key].states[0]))
+            # sys.exit()
             if self.policy_mapping_fun(key) == mapped_key:
-                self.rollout_buffer[key].clear()
-                self.rollout_buffer[key].actions = torch.Tensor(self.action[key]).to(self.device)
-                self.rollout_buffer[key].logprobs = torch.Tensor(self.logprob[key]).to(self.device)
-                self.rollout_buffer[key].states = torch.stack(self.state[key]).to(self.device)
-                self.rollout_buffer[key].rewards = torch.Tensor(self.reward[key]).to(self.device)
-                self.rollout_buffer[key].is_terminals = torch.Tensor(self.is_terminal[key]).to(self.device)
-
+                self.rollout_buffer[key].actions        = torch.Tensor(self.rollout_buffer[key].actions).to(self.device)
+                self.rollout_buffer[key].logprobs       = torch.Tensor(self.rollout_buffer[key].logprobs).to(self.device)
+                self.rollout_buffer[key].states         = torch.stack(self.rollout_buffer[key].states).to(self.device)
+                self.rollout_buffer[key].rewards        = torch.Tensor(self.rollout_buffer[key].rewards).to(self.device)
+                self.rollout_buffer[key].is_terminals   = torch.Tensor(self.rollout_buffer[key].is_terminals).to(self.device)
+                
                 rollout_buffers.append(self.rollout_buffer[key])
+                # print((self.rollout_buffer[key].actions))
+                # sys.exit()
+                # self.rollout_buffer[key].clear()
 
         return rollout_buffers

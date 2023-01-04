@@ -103,7 +103,6 @@ class PpoPolicy(Policy):
 
         a_loss, c_loss = [], []
         for i in epochs_order:
-            
             a, c = self.__update(rollout_buffer[i])
 
             a_loss.append(a)
