@@ -1,9 +1,10 @@
+import sys
 import torch
 import torch.nn as nn
 from gym.spaces import Box, Dict
 import numpy as np
 from tensordict import TensorDict
-
+from utils import exec_time
 
 # pylint: disable=no-member
 
@@ -42,8 +43,9 @@ def apply_logit_mask1(logits, mask):
 class PytorchLinear(nn.Module):
     """A linear (feed-forward) model."""
 
-    def __init__(self, obs_space, action_space):
+    def __init__(self, obs_space, action_space, device):
         super().__init__()
+        self.device = device
         self.MASK_NAME = "action_mask"
         self.num_outputs = action_space
 
@@ -79,7 +81,8 @@ class PytorchLinear(nn.Module):
 
         # # self.critic = nn.Linear(1, activation=nn.ReLU(), name="critic")(self.h_val)
         # self.critic = nn.Linear(1, self.h_val)
-
+    
+    # @exec_time
     def act(self, obs):
         """
         Args:
@@ -93,7 +96,7 @@ class PytorchLinear(nn.Module):
         action_probs = self.actor(obs1)
 
         # Apply logits mask
-        logit_mask = torch.ones(action_probs.shape) * -10000000
+        logit_mask = torch.ones(action_probs.shape).to(self.device) * -10000000
         logit_mask = logit_mask * (1 - obs["action_mask"].squeeze(0))
         action_probs = action_probs + logit_mask
 
@@ -115,7 +118,7 @@ class PytorchLinear(nn.Module):
             state_values: value function reward prediction
             dist_entropy: entropy of actions distribution
         """
-        obs = torch.stack([TensorDict(o, batch_size=1) for o in obs])
+        # obs = torch.stack([TensorDict(o, batch_size=1) for o in obs])
 
         action_probs = self.actor(obs["flat"].squeeze().float())
         dist = torch.distributions.Categorical(action_probs)

@@ -14,7 +14,7 @@ class PpoPolicy(Policy):
     PPO Main Optimization Algorithm
     """
 
-    def __init__(self, observation_space, action_space, K_epochs):
+    def __init__(self, observation_space, action_space, K_epochs, device):
         super().__init__(
             observation_space=observation_space,
             action_space=action_space,
@@ -27,12 +27,13 @@ class PpoPolicy(Policy):
         self.K_epochs = K_epochs     # update policy for K epochs in one PPO update
         self.eps_clip = 0.2  # clip parameter for PPO
         self.gamma = 0.99  # discount factor
-
+        self.device = device
         # Environment and PPO parameters
         self.Model: PytorchLinear = PytorchLinear(
             obs_space=self.observation_space,
             action_space=self.action_space,
-        )
+            device=self.device
+        ).to(self.device)
 
         self.optimizer = torch.optim.Adam(
             [
@@ -106,21 +107,22 @@ class PpoPolicy(Policy):
         a_loss, c_loss = [], []
         for i in epochs_order:
 
-            minibatch_rollout.actions = rollout_buffer.actions[
+            minibatch_rollout.actions = torch.tensor(rollout_buffer.actions[
                 i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            minibatch_rollout.logprobs = rollout_buffer.logprobs[
+            ]).to(self.device)
+            minibatch_rollout.logprobs = torch.stack(rollout_buffer.logprobs[
                 i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
-            minibatch_rollout.states = rollout_buffer.states[
+            ]).to(self.device)
+            minibatch_rollout.states = torch.stack(rollout_buffer.states[
                 i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
-            ]
+            ]).to(self.device)
             minibatch_rollout.rewards = rollout_buffer.rewards[
                 i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
             ]
             minibatch_rollout.is_terminals = rollout_buffer.is_terminals[
                 i * steps_per_epoch : steps_per_epoch + i * steps_per_epoch
             ]
+
             a, c = self.__update(minibatch_rollout)
 
             a_loss.append(a)
@@ -145,21 +147,13 @@ class PpoPolicy(Policy):
             rewards.insert(0, discounted_reward)
 
         # Normalizing the rewards
-        rewards = torch.tensor(rewards, dtype=torch.float32)
+        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
-        # convert list to tensor
-        # old_states = torch.squeeze(torch.stack(buffer.states, dim=0)).detach()
-        # old_actions = torch.squeeze(torch.stack(buffer.actions, dim=0)).detach()
-        # old_logprobs = torch.squeeze(torch.stack(buffer.logprobs, dim=0)).detach()
-        # print(old_actions)
-        # print(old_logprobs)
-        # sys.exit()
         old_states = buffer.states
-        old_actions = torch.tensor(buffer.actions)
-        old_logprobs = torch.stack(buffer.logprobs, dim=0)
+        old_actions= buffer.actions
+        old_logprobs = buffer.logprobs
 
-        # sys.exit()
         a_loss, c_loss = [], []
 
         # Optimize policy for K epochs

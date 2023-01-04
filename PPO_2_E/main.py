@@ -15,21 +15,26 @@ from tqdm import tqdm
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
-    env = get_environment()
-
-    EPOCHS = 200
-    BATCH_SIZE = 3000
+    EPOCHS = 1
+    BATCH_SIZE = 2
     SEED = 1
     K_epochs = 8
     plotting = True
 
-    env = get_environment()
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cuda'
+    # device = 'cpu'
+    print(device)
+
+    env = get_environment(device)
     env.seed(SEED)
     torch.manual_seed(SEED)
     obs = env.reset()
 
+    
+
     policies = {
-        "a": PpoPolicy(observation_space=env.observation_space, action_space=[50], K_epochs=K_epochs),
+        "a": PpoPolicy(observation_space=env.observation_space, action_space=[50], K_epochs=K_epochs, device=device),
         "p": EmptyPolicy(
             observation_space=env.observation_space_pl,
             action_space=[22, 22, 22, 22, 22, 22, 22],
@@ -46,12 +51,12 @@ if __name__ == "__main__":
         # print(f"REW: {rew['0']+rew['1']+rew['2']+rew['3']}")
         
         losses = algorithm.train_one_step(env=env)
-        
         returns.append(losses)
+
         # print(
         #     f"A: batch_rew: {losses['a']['rew']}, a_loss: {losses['a']['actor']}, c_loss: {losses['a']['critic']}, "
         # )
-
+    sys.exit()
     # Plotting
     if plotting:
         # Plotting only AGENTS
@@ -88,7 +93,7 @@ if __name__ == "__main__":
         plt.plot(a2, '--', label = "Reward Actor 2", color='olivedrab', alpha=0.7)
         plt.plot(a3, '--', label = "Reward Actor 3", color='turquoise', alpha=0.7)
 
-        plt.plot(a_rews, 'x-', label = "Total Reward", color='blue')
+        plt.plot(a_rews, label = "Total Reward", color='blue')
         plt.xlabel("Steps")
         plt.ylabel("Batch Reward")
         plt.title(f"Rewards in {EPOCHS} steps with {BATCH_SIZE} batch_size, k_epochs: {K_epochs}")

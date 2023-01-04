@@ -4,6 +4,8 @@ Wrapper for making the gather-trade-build environment an OpenAI compatible envir
 import os
 import pickle
 import random
+import sys
+from typing import Dict
 import warnings
 
 import numpy as np
@@ -12,18 +14,20 @@ from gym import spaces
 from gym.utils import seeding
 from environment import env_config
 import torch
-# from tensordict import TensorDict
+from tensordict import TensorDict
 
 _BIG_NUMBER = 1e20
 
 # TODO: linting and cleaning
 
 
-def get_environment():
+def get_environment(device):
     """
     Returns builded environment with `env_config` config
     """
-    return EnvWrapper(env_config=env_config)
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = 'cpu'
+    return EnvWrapper(env_config=env_config, device=device)
 
 
 def recursive_list_to_np_array(d):
@@ -56,7 +60,8 @@ class EnvWrapper:
     and adapts the reset and step functions to run with RLlib.
     """
 
-    def __init__(self, env_config, verbose=False):
+    def __init__(self, env_config, device, verbose=False):
+        self.device = device
         self.env_config_dict = env_config["env_config_dict"]
 
         # Adding env id in the case of multiple environments
@@ -187,12 +192,22 @@ class EnvWrapper:
 
         for key in observation:
             # Agents: '0', '1', '2', '3', 'p'
-            observation_tensored[key] = {}
-            for data_key in observation[key]:
-                # Accessing to specific data like 'world-map', 'flat', 'time', ...
-                observation_tensored[key][data_key] = (
-                    torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
-                )
+            # observation_tensored[key] = {}
+            # for data_key in observation[key]:
+            #     print(observation[key][data_key].shape)    
+            # # # Accessing to specific data like 'world-map', 'flat', 'time', ...
+            # #     observation_tensored[key][data_key] = (
+            # #         torch.Tensor(observation[key][data_key]).unsqueeze(0).long().to(self.device)
+            # #     )
+            # sys.exit()
+            observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(self.device)
+            # if key != 'p':
+            #     observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(self.device)
+            # else:
+            #     observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(self.device)
+                # banana:TensorDict=TensorDict(observation[key], batch_size=[]).to(self.device)
+            # print(observation_tensored[key].shape)
+            # banana.shape
         # observation_tensored = TensorDict(observation, batch_size=[1, 2, 136, 7, 50])
         return observation_tensored
 
