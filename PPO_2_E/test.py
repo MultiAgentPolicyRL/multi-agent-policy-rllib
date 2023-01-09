@@ -16,7 +16,7 @@ if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
     EPOCHS = 1
-    BATCH_SIZE = 200
+    BATCH_SIZE = 400
     SEED = 1
     K_epochs = 8
     plotting = True
@@ -46,19 +46,6 @@ if __name__ == "__main__":
         }
     }
 
-    # policies = {
-    #     "a": PpoPolicy(
-    #         observation_space=env.observation_space,
-    #         action_space=[50],
-    #         K_epochs=K_epochs,
-    #         device=device,
-    #     ),
-    #     "p": EmptyPolicy(
-    #         observation_space=env.observation_space_pl,
-    #         action_space=[22, 22, 22, 22, 22, 22, 22],
-    #     ),
-    # }
-
     algorithm: Algorithm = Algorithm(
         train_batch_size=BATCH_SIZE,
         policies_config=policies,
@@ -72,4 +59,4 @@ if __name__ == "__main__":
         actions, _ = algorithm.get_actions(obs)
         obs, rew, done, info = env.step(actions)
         algorithm.train_one_step(env=env)
-        algorithm.compare_models(obs)
+        # algorithm.compare_models(obs)

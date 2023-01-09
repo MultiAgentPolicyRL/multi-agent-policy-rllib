@@ -11,10 +11,18 @@ import copy
 import sys
 from typing import Any, Dict, Tuple
 from algorithm.rollout_worker import RolloutWorker
+import multiprocessing as mp
 
 from policies import Policy
 from utils import exec_time, Memory
 from utils import Memory
+
+def run_rollout_worker(queue, worker: RolloutWorker):
+    while True:
+        policies = queue.get()
+        worker.policies = copy.deepcopy(policies)
+        worker.batch()
+        queue.put(worker.memory)
 
 class Algorithm(object):
     """
@@ -68,15 +76,34 @@ class Algorithm(object):
 
         # Multi-processing
         # Spawn secondary workers used for batching
-        self.second_rollout_worker = RolloutWorker(
-            rollout_fragment_length=rollout_fragment_length,
-            policies_config=self.policies_config,
-            available_agent_id=available_agent_id,
-            policies_size=self.policies_size,
-            policy_mapping_function=self.policy_mapping_function,
-            env=env,
-            device=device,
-        )
+        # self.workers = []
+        # for _ in range(self.num_rollout_workers):
+        #     self.workers.append(RolloutWorker(
+        #         rollout_fragment_length=rollout_fragment_length,
+        #         policies_config=self.policies_config,
+        #         available_agent_id=available_agent_id,
+        #         policies_size=self.policies_size,
+        #         policy_mapping_function=self.policy_mapping_function,
+        #         env=env,
+        #         device=device,
+        #     ))
+        self.queue = [mp.Queue() for _ in range(self.num_rollout_workers)]
+        workers = [
+            RolloutWorker(
+                rollout_fragment_length=rollout_fragment_length,
+                policies_config=self.policies_config,
+                available_agent_id=available_agent_id,
+                policies_size=self.policies_size,
+                policy_mapping_function=self.policy_mapping_function,
+                env=env,
+                device=device,
+            )
+            for _ in range(self.num_rollout_workers)
+        ]
+
+        # with mp.Pool() as pool:
+        with mp.Pool(initializer=run_rollout_worker, initargs=(self.queue, workers)) as pool:
+            pool.map(run_rollout_worker, [(queue, worker) for worker,queue in zip(workers, self.queue)])
 
     def policy_mapping_function(self, key: str) -> str:
         """
@@ -103,11 +130,24 @@ class Algorithm(object):
         Args:
             env: updated environment
         """
-        self.batch()
+        # self.sync_weights()
+        # self.batch()
         
+        # self.main_rollout_worker.learn(memory=self.memory)
+        # TODO: improve distribution algo
+        batch_size_counter = 0
+        while batch_size_counter < self.train_batch_size:
+            memories = [queue.get() for queue in self.queue]
+            batch_size_counter += self.rollout_fragment_length*self.num_rollout_workers
+
+            for memory in memories:
+                self.memory.append(memory)
+            
         self.main_rollout_worker.learn(memory=self.memory)
-    
-        self.sync_weights()
+        for queue in self.queue:
+            queue.put(self.main_rollout_worker.policies)
+
+
 
     # @exec_time
     def batch(self):
@@ -118,11 +158,10 @@ class Algorithm(object):
         # FIXME: not final form
         batch_size_counter = 0
         while batch_size_counter < self.train_batch_size:
-            batch_size_counter+=self.rollout_fragment_length
-            self.main_rollout_worker.batch()
-            self.memory.append(self.main_rollout_worker.memory)
-        # return self.main_rollout_worker.memory
-
+            for worker in self.workers:
+                batch_size_counter+=self.rollout_fragment_length
+                worker.batch()
+                self.memory.append(worker.memory)
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -148,7 +187,8 @@ class Algorithm(object):
 
         # set weights on other workers:
         # self.second_rollout_worker.set_weights(weights=weights)
-        self.second_rollout_worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
+        for worker in self.workers:
+            worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
 
     def compare_models(self, obs):
         # self.second_rollout_worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
@@ -168,18 +208,18 @@ class Algorithm(object):
         print(policy_action2, policy_logprob2)
 
 
-        # print(self.main_rollout_worker.get_weights())
-        # print(self.second_rollout_worker.get_weights() == self.main_rollout_worker.get_weights())
-        # a1=self.main_rollout_worker.get_weights()
-        # b1=self.second_rollout_worker.get_weights()
-        # # print(a1['a']['a']-b1['a']['a'])
+        print(self.main_rollout_worker.get_weights())
+        print(self.second_rollout_worker.get_weights() == self.main_rollout_worker.get_weights())
+        a1=self.main_rollout_worker.get_weights()
+        b1=self.second_rollout_worker.get_weights()
+        # print(a1['a']['a']-b1['a']['a'])
         
-        # # check actor weights
-        # for a,b in zip(a1['a']['a'], b1['a']['a']):
-            # print(a==b)
-        # # check critic weights
-        # for a,b in zip(a1['a']['c'], b1['a']['c']):
-            # print(a==b)
-        # # check optim weights
-        # for a,b in zip(a1['a']['o'], b1['a']['o']):
-            # print(a==b)
+        # check actor weights
+        for a,b in zip(a1['a']['a'], b1['a']['a']):
+            print(a==b)
+        # check critic weights
+        for a,b in zip(a1['a']['c'], b1['a']['c']):
+            print(a==b)
+        # check optim weights
+        for a,b in zip(a1['a']['o'], b1['a']['o']):
+            print(a==b)
