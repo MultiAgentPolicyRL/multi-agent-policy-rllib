@@ -18,12 +18,7 @@ class PpoPolicy(Policy):
             observation_space=observation_space,
             action_space=action_space,
         )
-
-        ## TMP: parameters
-        lr_actor = 0.0003  # learning rate for actor network
-        lr_critic = 0.001  # learning rate for critic network
-
-        self.K_epochs = K_epochs     # update policy for K epochs in one PPO update
+        self.K_epochs = K_epochs  # update policy for K epochs in one PPO update
         self.eps_clip = 0.2  # clip parameter for PPO
         self.gamma = 0.99  # discount factor
         self.device = device
@@ -31,15 +26,8 @@ class PpoPolicy(Policy):
         self.Model: PytorchLinear = PytorchLinear(
             obs_space=self.observation_space,
             action_space=self.action_space,
-            device=self.device
+            device=self.device,
         ).to(self.device)
-
-        self.optimizer = torch.optim.Adam(
-            [
-                {"params": self.Model.actor.parameters(), "lr": lr_actor},
-                {"params": self.Model.critic.parameters(), "lr": lr_critic},
-            ]
-        )
 
         self.MseLoss = torch.nn.MSELoss()
 
@@ -91,14 +79,14 @@ class PpoPolicy(Policy):
         """
         # Set epochs order
         # FIXME: make it work with a list of RolloutBuffers or a single RolloutBuffer
+        # print(len(rollout_buffer))
         epochs_order = list(range(rollout_buffer[0].n_agents))
         steps_per_epoch = rollout_buffer[0].batch_size
         random.shuffle(epochs_order)
 
-
         a_loss, c_loss = [], []
         for i in epochs_order:
-            
+
             a, c = self.__update(rollout_buffer[i])
 
             a_loss.append(a)
@@ -127,7 +115,7 @@ class PpoPolicy(Policy):
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
         old_states = buffer.states
-        old_actions= buffer.actions
+        old_actions = buffer.actions
         old_logprobs = buffer.logprobs
 
         a_loss, c_loss = [], []
@@ -157,9 +145,9 @@ class PpoPolicy(Policy):
             loss = -torch.min(surr1, surr2) + 0.5 * critic_loss - 0.01 * dist_entropy
 
             # take gradient step
-            self.optimizer.zero_grad()
+            self.Model.optimizer.zero_grad()
             loss.mean().backward()
-            self.optimizer.step()
+            self.Model.optimizer.step()
 
             c_loss.append(torch.mean(loss))
             a_loss.append(torch.mean(loss))
@@ -168,3 +156,22 @@ class PpoPolicy(Policy):
         c_loss = torch.mean(torch.tensor(c_loss))
 
         return a_loss, c_loss
+
+    def get_weights(self) -> dict:
+        """
+        Get policy weights.
+
+        Return:
+            actor_weights, critic_weights
+        """
+        actor_weights, critic_weights, optimizer_weights = self.Model.get_weights()
+        return {'a': actor_weights, 'c': critic_weights, 'o': optimizer_weights}
+
+    def set_weights(self, weights: dict) -> None:
+        """
+        Set policy weights.
+        """
+        # FIXME: fix input
+        # FIXME: add args
+
+        self.Model.set_weights(actor_weights=weights['a'], critic_weights=weights['c'], optimizer_weights=weights['o'])

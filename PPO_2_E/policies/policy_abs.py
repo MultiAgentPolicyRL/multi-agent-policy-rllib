@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 from utils.rollout_buffer import RolloutBuffer
 
+
 class Policy(ABC):
     """
     Abstract policy class
@@ -36,5 +37,22 @@ class Policy(ABC):
     ) -> Tuple[float, float]:
         """
         Update the policy
+        """
+        NotImplementedError("This method must be implemented")
+
+    @abstractmethod
+    def get_weights(self):
+        """
+        Get policy weights.
+
+        Return:
+            weights
+        """
+        NotImplementedError("This method must be implemented")
+
+    @abstractmethod
+    def set_weights(self, weights) -> None:
+        """
+        Set policy weights.
         """
         NotImplementedError("This method must be implemented")

@@ -46,3 +46,20 @@ class EmptyPolicy(Policy):
         This policy doesn't have to learn anything. It will just do nothing.
         """
         return 0.0, 0.0
+
+    def get_weights(self):
+        """
+        Get policy weights.
+
+        Return:
+            weights
+        """
+        return {"a": None, "c": None}
+
+    def set_weights(self, weights) -> None:
+        """
+        Set policy weights.
+
+        Return:
+            weights
+        """

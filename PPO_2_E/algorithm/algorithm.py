@@ -2,15 +2,19 @@
 Multi-agent, multi-policy management algorithm.
 
 It manages:
+- multi-worker training
 - batching
 - giving actions to the environment
 - each policy singularly so that it has all the required (correct) inputs
 """
-from typing import Dict, Tuple
+import copy
+import sys
+from typing import Any, Dict, Tuple
+from algorithm.rollout_worker import RolloutWorker
 
 from policies import Policy
 from utils import exec_time, Memory
-
+from utils import Memory
 
 class Algorithm(object):
     """
@@ -19,30 +23,59 @@ class Algorithm(object):
 
     def __init__(
         self,
-        batch_size: int,
-        policies: Dict[str, Policy],
+        train_batch_size: int,
+        policies_config: Dict[str, Policy],
         env,
-        device:str
+        device: str,
+        num_rollout_workers: int,
+        rollout_fragment_length: int,
     ):
-        self.policies = policies
-        self.batch_size = batch_size
+        self.policies_config = policies_config
+        self.train_batch_size = train_batch_size
+        self.rollout_fragment_length = rollout_fragment_length
+        self.num_rollout_workers = num_rollout_workers
 
-        obs: Dict[str, _] = env.reset()
+        obs: Dict[str, Any] = env.reset()
 
         self.policies_size = {}
-        for key in policies.keys():
-            self.policies_size[key] = 0
         available_agent_id = []
+        
+        for key in policies_config.keys():
+            self.policies_size[key] = 0
+        
         for key in obs.keys():
             self.policies_size[self.policy_mapping_function(key)] += 1
             available_agent_id.append(key)
 
+        # Spawn main rollout worker, used for (actual) learning
+        self.main_rollout_worker = RolloutWorker(
+            rollout_fragment_length=rollout_fragment_length,
+            policies_config=self.policies_config,
+            available_agent_id=available_agent_id,
+            policies_size=self.policies_size,
+            policy_mapping_function=self.policy_mapping_function,
+            env=env,
+            device=device,
+        )
+
         self.memory = Memory(
             policy_mapping_fun=self.policy_mapping_function,
             available_agent_id=available_agent_id,
-            batch_size=self.batch_size,
+            batch_size=self.train_batch_size,
             policy_size=self.policies_size,
-            device=device
+            device=device,
+        )
+
+        # Multi-processing
+        # Spawn secondary workers used for batching
+        self.second_rollout_worker = RolloutWorker(
+            rollout_fragment_length=rollout_fragment_length,
+            policies_config=self.policies_config,
+            available_agent_id=available_agent_id,
+            policies_size=self.policies_size,
+            policy_mapping_function=self.policy_mapping_function,
+            env=env,
+            device=device,
         )
 
     def policy_mapping_function(self, key: str) -> str:
@@ -70,64 +103,26 @@ class Algorithm(object):
         Args:
             env: updated environment
         """
-        self.memory.clear()
-
-        a_rew, a0, a1, a2, a3, p_rew = self.batch(env)
-
-        losses = {
-            "a": {"actor": 0, "critic": 0, "rew": a_rew,
-            'a0': a0, 'a1':a1, 'a2':a2, 'a3':a3},
-            "p": {"actor": 0, "critic": 0, "rew": p_rew},
-        }
-
-        for key in self.policies:
-            a_loss, c_loss = self.policies[key].learn(
-                rollout_buffer=self.memory.get(key)
-            )
-
-            losses[key]["actor"] = a_loss
-            losses[key]["critic"] = c_loss
-
-        return losses
+        self.batch()
+        
+        self.main_rollout_worker.learn(memory=self.memory)
     
-    @exec_time
-    def batch(self, env):
+        self.sync_weights()
+
+    # @exec_time
+    def batch(self):
         """
-        Creates a batch of `self.batch_size` steps, save in `self.rollout_buffer`.
-
-        Args:
-            env: current environment
+        Distributed batching.
+        Creates a batch of `self.train_batch_size` steps saved in `self.rollout_buffer`.
         """
+        # FIXME: not final form
+        batch_size_counter = 0
+        while batch_size_counter < self.train_batch_size:
+            batch_size_counter+=self.rollout_fragment_length
+            self.main_rollout_worker.batch()
+            self.memory.append(self.main_rollout_worker.memory)
+        # return self.main_rollout_worker.memory
 
-        obs = env.reset()
-
-        a_rew, a0, a1, a2, a3, p_rew = 0, 0, 0, 0, 0, 0
-
-        for _ in range(self.batch_size):
-            # Policies pick actions
-            policy_action, policy_logprob = self.get_actions(obs)
-
-            # Retrieve new state and reward
-            next_obs, rew, done, _ = env.step(policy_action)
-
-            a_rew += rew["0"] + rew["1"] + rew["2"] + rew["3"]
-            a0 += rew['0']
-            a1 += rew['1']
-            a2 += rew['2']
-            a3 += rew['3']
-            p_rew += rew["p"]
-
-            self.memory.update(
-                state=obs,
-                action=policy_action,
-                logprob=policy_logprob,
-                reward=rew,
-                is_terminal=done,
-            )
-
-            obs = next_obs
-
-        return a_rew, a0, a1, a2, a3, p_rew
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -140,12 +135,51 @@ class Algorithm(object):
             policy_action
             policy_logprob
         """
-
-        policy_action, policy_logprob = {}, {}
-
-        for key in obs.keys():
-            (policy_action[key], policy_logprob[key]) = self.policies[
-                self.policy_mapping_function(key)
-            ].act(obs[key])
+        policy_action, policy_logprob = self.main_rollout_worker.get_actions(obs=obs)
 
         return policy_action, policy_logprob
+
+    def sync_weights(self) -> None:
+        """
+        Sync weights on multiple workers.
+        """
+        # TODO: check if deepcopy is faster or set/get weighes is better.
+        # weights = self.main_rollout_worker.get_weights()
+
+        # set weights on other workers:
+        # self.second_rollout_worker.set_weights(weights=weights)
+        self.second_rollout_worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
+
+    def compare_models(self, obs):
+        # self.second_rollout_worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
+
+        policy_action1, policy_logprob1 = self.main_rollout_worker.get_actions(obs)
+        print(policy_action1, policy_logprob1)
+        policy_action1, policy_logprob1 = self.main_rollout_worker.get_actions(obs)
+        print(policy_action1, policy_logprob1)
+        policy_action1, policy_logprob1 = self.main_rollout_worker.get_actions(obs)
+        print(policy_action1, policy_logprob1)
+
+        policy_action2, policy_logprob2 = self.second_rollout_worker.get_actions(obs)
+        print(policy_action2, policy_logprob2)
+        policy_action2, policy_logprob2 = self.second_rollout_worker.get_actions(obs)
+        print(policy_action2, policy_logprob2)
+        policy_action2, policy_logprob2 = self.second_rollout_worker.get_actions(obs)        
+        print(policy_action2, policy_logprob2)
+
+
+        # print(self.main_rollout_worker.get_weights())
+        # print(self.second_rollout_worker.get_weights() == self.main_rollout_worker.get_weights())
+        # a1=self.main_rollout_worker.get_weights()
+        # b1=self.second_rollout_worker.get_weights()
+        # # print(a1['a']['a']-b1['a']['a'])
+        
+        # # check actor weights
+        # for a,b in zip(a1['a']['a'], b1['a']['a']):
+            # print(a==b)
+        # # check critic weights
+        # for a,b in zip(a1['a']['c'], b1['a']['c']):
+            # print(a==b)
+        # # check optim weights
+        # for a,b in zip(a1['a']['o'], b1['a']['o']):
+            # print(a==b)

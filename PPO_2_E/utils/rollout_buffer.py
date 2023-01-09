@@ -6,6 +6,8 @@
 from typing import List
 from utils import exec_time
 import torch
+
+
 class RolloutBuffer:
     """
     Buffer used to store batched data
@@ -63,8 +65,20 @@ class Memory:
         self.rollout_buffer = {}
         for key in self.available_agent_ids:
             self.rollout_buffer[key] = RolloutBuffer(
-                batch_size=batch_size, n_agents=policy_size[self.policy_mapping_fun(key)]
+                batch_size=batch_size,
+                n_agents=policy_size[self.policy_mapping_fun(key)],
             )
+
+    def append(self, other):
+        """
+        Temporary way (I'd prefer a 'sum' method) to append another filled memory to this one.
+        """
+        for key in self.available_agent_ids:
+            self.action[key].extend(other.action[key])
+            self.logprob[key].extend(other.logprob[key])
+            self.state[key].extend(other.state[key])
+            self.reward[key].extend(other.reward[key])
+            self.is_terminal[key].extend(other.is_terminal[key])
 
     def clear(self):
         """
@@ -72,7 +86,6 @@ class Memory:
         It remains like this:
         self.actions = {'0':[], '1':[], '2':[], '3':[], 'p':[]}
         """
-
         for key in self.available_agent_ids:
             self.action[key].clear()
             self.logprob[key].clear()
@@ -93,10 +106,10 @@ class Memory:
             reward: agent's reward for this action
             is_terminal: if this is the last action for this environment
         """
-        if is_terminal['__all__'] == False:
-            is_terminal=False
+        if is_terminal["__all__"] == False:
+            is_terminal = False
         else:
-            is_terminal=True
+            is_terminal = True
 
         for key in self.available_agent_ids:
             self.action[key].append(action[key])
@@ -123,11 +136,21 @@ class Memory:
 
             if self.policy_mapping_fun(key) == mapped_key:
                 self.rollout_buffer[key].clear()
-                self.rollout_buffer[key].actions = torch.Tensor(self.action[key]).to(self.device)
-                self.rollout_buffer[key].logprobs = torch.Tensor(self.logprob[key]).to(self.device)
-                self.rollout_buffer[key].states = torch.stack(self.state[key]).to(self.device)
-                self.rollout_buffer[key].rewards = torch.Tensor(self.reward[key]).to(self.device)
-                self.rollout_buffer[key].is_terminals = torch.Tensor(self.is_terminal[key]).to(self.device)
+                self.rollout_buffer[key].actions = torch.Tensor(self.action[key]).to(
+                    self.device
+                )
+                self.rollout_buffer[key].logprobs = torch.Tensor(self.logprob[key]).to(
+                    self.device
+                )
+                self.rollout_buffer[key].states = torch.stack(self.state[key]).to(
+                    self.device
+                )
+                self.rollout_buffer[key].rewards = torch.Tensor(self.reward[key]).to(
+                    self.device
+                )
+                self.rollout_buffer[key].is_terminals = torch.Tensor(
+                    self.is_terminal[key]
+                ).to(self.device)
 
                 rollout_buffers.append(self.rollout_buffer[key])
 

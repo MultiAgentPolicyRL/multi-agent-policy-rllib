@@ -46,6 +46,11 @@ class PytorchLinear(nn.Module):
     def __init__(self, obs_space, action_space, device):
         super().__init__()
         self.device = device
+        
+        ## TMP: parameters
+        lr_actor = 0.0003  # learning rate for actor network
+        lr_critic = 0.001  # learning rate for critic network
+
         self.MASK_NAME = "action_mask"
         self.num_outputs = action_space
 
@@ -63,11 +68,7 @@ class PytorchLinear(nn.Module):
             nn.ReLU(),
             # nn.Linear(32, self.num_outputs),
         )
-        # self.actor = apply_logit_mask1(self.logits, self.mask_input)
-
-        # self.actor = apply_logit_mask1(self.actor, self.mask_input)
-
-        # Fully connected Value Function
+        
         self.fc_layers_val_layers = []  # nn.Sequential()
 
         for _ in range(self.num_fc):
@@ -77,11 +78,13 @@ class PytorchLinear(nn.Module):
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
         self.critic = nn.Sequential(*self.fc_layers_val_layers)
 
-        # self.h_val = self.fc_layers_val
+        self.optimizer = torch.optim.Adam(
+            [
+                {"params": self.actor.parameters(), "lr": lr_actor},
+                {"params": self.critic.parameters(), "lr": lr_critic},
+            ]
+        )
 
-        # # self.critic = nn.Linear(1, activation=nn.ReLU(), name="critic")(self.h_val)
-        # self.critic = nn.Linear(1, self.h_val)
-    
     # @exec_time
     def act(self, obs):
         """
@@ -136,3 +139,27 @@ class PytorchLinear(nn.Module):
         Just don't.
         """
         NotImplementedError("Don't use this method.")
+
+    def get_weights(self):
+        """
+        Get policy weights.
+
+        Return:
+            actor_weights, critic_weights
+        """
+        # FIXME: add return type
+        actor_weights = self.actor.state_dict()
+        critic_weights = self.critic.state_dict()
+        optimizer_weights = self.optimizer.state_dict()
+
+        return actor_weights, critic_weights, optimizer_weights
+
+    def set_weights(self, actor_weights, critic_weights, optimizer_weights):
+        """
+        Set policy weights.
+        """
+        # FIXME: docs
+        # FIXME: add args type
+        self.actor.load_state_dict(actor_weights)
+        self.critic.load_state_dict(critic_weights)
+        self.optimizer.load_state_dict(optimizer_weights)

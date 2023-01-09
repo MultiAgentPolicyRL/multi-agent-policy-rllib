@@ -53,6 +53,7 @@ for 1, 2, ..., episodes:
             else
                 save new_observation, reward, done, action, action_logprob in rollout_buffer
             end
+    	end for
     END PARALLEL EXEC
 
     join worker's rollout_buffers
