@@ -15,15 +15,15 @@ from tqdm import tqdm
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
-    EPOCHS = 100
+    EPOCHS = 2
     BATCH_SIZE = 6000
     SEED = 1
     K_epochs = 8
     plotting = True
 
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = 'cuda'
-    # device = 'cpu'
+    # device = 'cuda'
+    device = 'cpu'
     print(device)
 
     env = get_environment(device)
@@ -44,7 +44,8 @@ if __name__ == "__main__":
     algorithm: Algorithm = Algorithm(batch_size=BATCH_SIZE, policies=policies, env=env, device=device)
 
     returns = []
-    for i in tqdm(range(EPOCHS)):
+    # for i in tqdm(range(EPOCHS)):
+    for i in (range(EPOCHS)):
         actions, _ = algorithm.get_actions(obs)
         # print(actions)
         obs, rew, done, info = env.step(actions)

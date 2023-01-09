@@ -90,7 +90,7 @@ class Algorithm(object):
 
         return losses
     
-    # @exec_time
+    @exec_time
     def batch(self, env):
         """
         Creates a batch of `self.batch_size` steps, save in `self.rollout_buffer`.
