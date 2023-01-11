@@ -78,24 +78,25 @@ class PpoPolicy(Policy):
                 print(data[i*batch_size:batch_size+i*batch_size])
         """
         # Set epochs order
-        # FIXME: make it work with a list of RolloutBuffers or a single RolloutBuffer
-        # print(len(rollout_buffer))
-        epochs_order = list(range(rollout_buffer[0].n_agents))
-        steps_per_epoch = rollout_buffer[0].batch_size
-        random.shuffle(epochs_order)
+        # FIXME: split in batches of `train_batch_size` size.
+        # epochs_order = list(range(rollout_buffer[0].n_agents))
+        # steps_per_epoch = rollout_buffer[0].batch_size
+        # random.shuffle(epochs_order)
 
-        a_loss, c_loss = [], []
-        for i in epochs_order:
+        # a_loss, c_loss = [], []
+        # for i in epochs_order:
 
-            a, c = self.__update(rollout_buffer[i])
+            # a, c = self.__update(rollout_buffer[i])
 
-            a_loss.append(a)
-            c_loss.append(c)
+            # a_loss.append(a)
+            # c_loss.append(c)
+        buffer = rollout_buffer.to_tensor()
+        self.__update(buffer=buffer)
 
-        a_loss = torch.mean(torch.tensor(a_loss))
-        c_loss = torch.mean(torch.tensor(c_loss))
+        # a_loss = torch.mean(torch.tensor(a_loss))
+        # c_loss = torch.mean(torch.tensor(c_loss))
 
-        return a_loss.float(), c_loss.float()
+        # return a_loss.float(), c_loss.float()
 
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
@@ -165,7 +166,7 @@ class PpoPolicy(Policy):
             actor_weights, critic_weights
         """
         actor_weights, critic_weights, optimizer_weights = self.Model.get_weights()
-        return {'a': actor_weights, 'c': critic_weights, 'o': optimizer_weights}
+        return {"a": actor_weights, "c": critic_weights, "o": optimizer_weights}
 
     def set_weights(self, weights: dict) -> None:
         """
@@ -174,4 +175,8 @@ class PpoPolicy(Policy):
         # FIXME: fix input
         # FIXME: add args
 
-        self.Model.set_weights(actor_weights=weights['a'], critic_weights=weights['c'], optimizer_weights=weights['o'])
+        self.Model.set_weights(
+            actor_weights=weights["a"],
+            critic_weights=weights["c"],
+            optimizer_weights=weights["o"],
+        )

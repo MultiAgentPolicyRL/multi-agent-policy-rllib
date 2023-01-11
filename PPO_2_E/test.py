@@ -15,8 +15,8 @@ from tqdm import tqdm
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
-    EPOCHS = 1
-    BATCH_SIZE = 400
+    EPOCHS = 2
+    BATCH_SIZE = 1600
     SEED = 1
     K_epochs = 8
     plotting = True
@@ -32,18 +32,18 @@ if __name__ == "__main__":
 
     # FIXME: mode policy creation in rollout_worker -> so it can be "distributed"
     policies = {
-        'a': {
-            'policy': PpoPolicy,
-            'observation_space': env.observation_space,
-            'action_space': [50],
-            'K_epochs': K_epochs,
-            'device': device,
+        "a": {
+            "policy": PpoPolicy,
+            "observation_space": env.observation_space,
+            "action_space": [50],
+            "K_epochs": K_epochs,
+            "device": device,
         },
-        'p': {
-            'policy': EmptyPolicy,
-            'observation_space': env.observation_space_pl,
-            'action_space': [22, 22, 22, 22, 22, 22, 22],
-        }
+        "p": {
+            "policy": EmptyPolicy,
+            "observation_space": env.observation_space_pl,
+            "action_space": [22, 22, 22, 22, 22, 22, 22],
+        },
     }
 
     algorithm: Algorithm = Algorithm(
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         policies_config=policies,
         env=env,
         device=device,
-        num_rollout_workers=1,
+        num_rollout_workers=4,
         rollout_fragment_length=200,
     )
 
@@ -60,3 +60,5 @@ if __name__ == "__main__":
         obs, rew, done, info = env.step(actions)
         algorithm.train_one_step(env=env)
         # algorithm.compare_models(obs)
+
+    algorithm.close_workers()

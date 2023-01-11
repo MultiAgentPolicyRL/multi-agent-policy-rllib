@@ -46,7 +46,7 @@ class PytorchLinear(nn.Module):
     def __init__(self, obs_space, action_space, device):
         super().__init__()
         self.device = device
-        
+
         ## TMP: parameters
         lr_actor = 0.0003  # learning rate for actor network
         lr_critic = 0.001  # learning rate for critic network
@@ -68,7 +68,7 @@ class PytorchLinear(nn.Module):
             nn.ReLU(),
             # nn.Linear(32, self.num_outputs),
         )
-        
+
         self.fc_layers_val_layers = []  # nn.Sequential()
 
         for _ in range(self.num_fc):

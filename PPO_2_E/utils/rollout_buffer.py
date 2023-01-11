@@ -13,26 +13,60 @@ class RolloutBuffer:
     Buffer used to store batched data
     """
 
-    def __init__(self, batch_size, n_agents):
-        self.actions = None
-        self.states = None
-        self.logprobs = None
-        self.rewards = None
-        self.is_terminals = None
-        self.batch_size = batch_size
-        self.n_agents = n_agents
+    def __init__(self):
+        self.actions = []
+        self.states = []
+        self.logprobs = []
+        self.rewards = []
+        self.is_terminals = []
 
     def clear(self):
         """
         Clear the buffer
         """
-        self.actions = None
-        self.states = None
-        self.logprobs = None
-        self.rewards = None
-        self.is_terminals = None
+        self.actions.clear()
+        self.states.clear()
+        self.logprobs.clear()
+        self.rewards.clear()
+        self.is_terminals.clear()
 
+    def update(self, action, logprob, state, reward, is_terminal):
+        """
+        Append single observation to this buffer.
 
+        Args:
+            action
+            logprob
+            state
+            reward
+            is_terminal
+        """
+        self.actions.append(action)
+        self.logprobs.append(logprob)
+        self.states.append(state)
+        self.rewards.append(reward)
+        self.is_terminals.append(is_terminal)
+
+    def extend(self, other):
+        self.actions.extend(other.actions)
+        self.logprobs.extend(other.logprobs)
+        self.states.extend(other.states)
+        self.rewards.extend(other.rewards)
+        self.is_terminals.extend(other.is_terminals)
+
+    def to_tensor(self):
+        # self.actions = torch.Tensor(self.actions)
+        # self.logprobs = torch.Tensor(self.logprobs)
+        # self.states = torch.stack(self.states)
+        # self.rewards = torch.Tensor(self.rewards)
+        # self.is_terminals = torch.Tensor(self.is_terminals)
+        buffer =  RolloutBuffer()
+        buffer.actions = torch.Tensor(self.actions)
+        buffer.logprobs = torch.Tensor(self.logprobs)
+        buffer.states = torch.stack(self.states)
+        buffer.rewards = torch.Tensor(self.rewards)
+        buffer.is_terminals = torch.Tensor(self.is_terminals)
+        return buffer
 class Memory:
     """
     Batch memory used during batching and training
@@ -62,12 +96,12 @@ class Memory:
         self.is_terminal = {key: [] for key in self.available_agent_ids}
 
         # self.rollout_buffer = Dict[str, RolloutBuffer]
-        self.rollout_buffer = {}
-        for key in self.available_agent_ids:
-            self.rollout_buffer[key] = RolloutBuffer(
-                batch_size=batch_size,
-                n_agents=policy_size[self.policy_mapping_fun(key)],
-            )
+        # self.rollout_buffer = {}
+        # for key in self.available_agent_ids:
+        #     self.rollout_buffer[key] = RolloutBuffer(
+        #         batch_size=batch_size,
+        #         n_agents=policy_size[self.policy_mapping_fun(key)],
+        #     )
 
     def append(self, other):
         """
@@ -155,3 +189,31 @@ class Memory:
                 rollout_buffers.append(self.rollout_buffer[key])
 
         return rollout_buffers
+
+
+"""
+obs = {
+    '0': {
+        'aa': ...
+        'bb': ...
+    },
+    '1': {
+        'aa': ...
+        'bb': ...
+    }
+    '2': {
+        'aa': ...
+        'bb': ...
+    }
+    'p': {
+        'aa': ...
+        'bb': ...
+    }    
+}
+
+a: 0,1,2,3
+
+obs {
+    'a': 0,1,2,3,4,5,6,7
+}
+"""

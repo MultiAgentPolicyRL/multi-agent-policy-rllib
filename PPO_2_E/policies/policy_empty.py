@@ -32,14 +32,22 @@ class EmptyPolicy(Policy):
         not manage in a smart way all the multi-agent-policy system.
         """
         actions = []
+        # TODO: revert
+        # for _ in self.action_space:
+        # actions.append(torch.zeros((1,)))
+
+        # if len(actions) == 1:
+        # actions = actions[0]
+
+        # return actions, torch.zeros((1,))
 
         for _ in self.action_space:
-            actions.append(torch.zeros((1,)))
+            actions.append(0)
 
         if len(actions) == 1:
             actions = actions[0]
 
-        return actions, torch.zeros((1,))
+        return actions, 0
 
     def learn(self, rollout_buffer: RolloutBuffer) -> Tuple[float, float]:
         """

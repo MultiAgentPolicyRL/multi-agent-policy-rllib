@@ -212,6 +212,7 @@ class EnvWrapper:
             # banana.shape
         # observation_tensored = TensorDict(observation, batch_size=[1, 2, 136, 7, 50])
         return observation_tensored
+        # return observation
 
     @property
     def pickle_file(self):
