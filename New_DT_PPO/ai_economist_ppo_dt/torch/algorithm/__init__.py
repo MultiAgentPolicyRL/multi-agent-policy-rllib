@@ -1,3 +1,3 @@
-__all__ = ['PPO']
+__all__ = ["PPO"]
 
 from .ppo import PPO

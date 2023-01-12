@@ -12,16 +12,24 @@ from keras.models import Model, load_model
 
 from ai_economist_ppo_dt.utils import get_basic_logger
 
+
 class Critic:
     """
     Actor (Policy) Model.
     =====
-    
-    
+
+
 
 
     """
-    def __init__(self, conv_filters: tuple = (16, 32), filter_size: int = 3, log_level: int = logging.INFO,log_path: str = None,) -> None:
+
+    def __init__(
+        self,
+        conv_filters: tuple = (16, 32),
+        filter_size: int = 3,
+        log_level: int = logging.INFO,
+        log_path: str = None,
+    ) -> None:
         """
         Critic (Policy) Model.
         -----
@@ -29,12 +37,11 @@ class Critic:
         ----------
         """
         self.logger = get_basic_logger("Critic", level=log_level, log_path=log_path)
-        
+
         # Model
         self.device = "/cpu:0" if "CUDA_VISIBLE_DEVICES" in os.environ else "/gpu:0"
         self.model = self._build_model(conv_filters, filter_size)
-        
-        
+
     def _build_model(self, conv_filters: tuple, filter_size: int) -> Model:
         """
         Build an critic (policy) network that maps states (for now only world_map and flat) -> actions
@@ -47,7 +54,7 @@ class Critic:
             Number of filters for each convolutional layer.
         filter_size : int
             Size of the convolutional filters.
-        
+
         Returns
         -------
         model : Model
@@ -59,19 +66,19 @@ class Critic:
             info_input = k.Input(shape=(136,))
 
             # CNN
-            cnn = k.Conv2D(conv_filters[0], filter_size, activation='relu')(cnn_in)
-            cnn = k.Conv2D(conv_filters[1], filter_size, activation='relu')(cnn)
+            cnn = k.Conv2D(conv_filters[0], filter_size, activation="relu")(cnn_in)
+            cnn = k.Conv2D(conv_filters[1], filter_size, activation="relu")(cnn)
             cnn = k.Flatten()(cnn)
 
             # Concatenate CNN and info_input
             concat = k.concatenate([cnn, info_input])
-            concat = k.Dense(128, activation='relu')(concat)
-            concat = k.Dense(128, activation='relu')(concat)
+            concat = k.Dense(128, activation="relu")(concat)
+            concat = k.Dense(128, activation="relu")(concat)
             concat = k.Reshape([1, -1])(concat)
 
             # LSTM
             lstm = k.LSTM(128, unroll=True)(concat)
-            
+
             # Output
             lstm_out = k.Dense(1, activation=None)(lstm)
 
@@ -79,13 +86,17 @@ class Critic:
             model = Model(inputs=[cnn_in, info_input], outputs=lstm_out)
             # model.compile(loss=tf.keras.losses.MeanSquaredError(), optimizer=Adam(learning_rate=0.0003), run_eagerly=False)
             # custom loss
-            model.compile(loss=self._loss_wrapper(), optimizer=Adam(learning_rate=0.0003), run_eagerly=False)
+            model.compile(
+                loss=self._loss_wrapper(),
+                optimizer=Adam(learning_rate=0.0003),
+                run_eagerly=False,
+            )
 
             # Log
             self.logger.debug("Critic model summary:")
             if self.logger.level == logging.DEBUG:
                 model.summary()
-            
+
             # Return model
             return model
 
@@ -97,14 +108,18 @@ class Critic:
         ----------
         flag_mean : bool
             Whether to return the mean loss or the clipped loss.
-        
+
         Returns
         -------
         loss : tf.Tensor
             The loss function.
         """
+
         @tf.function
-        def loss(y_true: tf.Tensor, y_pred: tf.Tensor,) -> tf.Tensor:
+        def loss(
+            y_true: tf.Tensor,
+            y_pred: tf.Tensor,
+        ) -> tf.Tensor:
             """
             -----
 
@@ -114,7 +129,7 @@ class Critic:
                 The true action.
             y_pred : tf.Tensor
                 The predicted action.
-            
+
             Returns
             -----
             loss : tf.Tensor
@@ -122,10 +137,10 @@ class Critic:
             """
             with tf.device(self.device):
                 y_true = tf.squeeze(y_true)
-                
+
                 values = K.expand_dims(y_true[1], -1)
                 y_true = K.expand_dims(y_true[0], -1)
-                
+
                 if flag_mean:
                     return K.mean((y_true - y_pred) ** 2)
 
@@ -142,10 +157,17 @@ class Critic:
                 value_loss = 0.5 * K.mean(K.maximum(v_loss1, v_loss2))
 
             return value_loss
+
         return loss
 
     @tf.function
-    def predict(self, input_state: np.ndarray, verbose: Optional[int] = 0, workers: Optional[int] = 8, use_multiprocessing: Optional[bool] = True) -> np.ndarray:
+    def predict(
+        self,
+        input_state: np.ndarray,
+        verbose: Optional[int] = 0,
+        workers: Optional[int] = 8,
+        use_multiprocessing: Optional[bool] = True,
+    ) -> np.ndarray:
         """
         Predict an action given a input_state.
 
@@ -153,7 +175,7 @@ class Critic:
         ----------
         input_state : np.ndarray
             The input_state of the environment.
-        
+
         Returns
         -------
         action : np.ndarray
@@ -164,16 +186,25 @@ class Critic:
         # # to speed up the prediction
         # if self.model.run_eagerly:
         #     return np.squeeze(self.model(input_state).numpy())
-        
-        # return self.model.predict(input_state, verbose=0, steps=len(input_state), workers=workers, use_multiprocessing=use_multiprocessing) 
+
+        # return self.model.predict(input_state, verbose=0, steps=len(input_state), workers=workers, use_multiprocessing=use_multiprocessing)
 
         # New
         with tf.device(self.device):
             return tf.squeeze(self.model(input_state))
 
-
-    #@tf.function
-    def fit(self, x: np.ndarray, y: np.ndarray, epochs: int = 1, batch_size: int = 32, verbose: bool = False, shuffle: bool = True, workers: int = 8, use_multiprocessing: bool = True) -> None:
+    # @tf.function
+    def fit(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        epochs: int = 1,
+        batch_size: int = 32,
+        verbose: bool = False,
+        shuffle: bool = True,
+        workers: int = 8,
+        use_multiprocessing: bool = True,
+    ) -> None:
         """
         Fit the model.
 
@@ -202,19 +233,21 @@ class Critic:
             The history of the model losses.
         """
         if use_multiprocessing and workers <= 0:
-            raise ValueError("If `use_multiprocessing` is `True`, `workers` must be a positive integer.")
-        
+            raise ValueError(
+                "If `use_multiprocessing` is `True`, `workers` must be a positive integer."
+            )
+
         with tf.device(self.device):
             return self.model.fit(
-                x, 
-                y, 
-                epochs=epochs, 
+                x,
+                y,
+                epochs=epochs,
                 batch_size=batch_size,
-                steps_per_epoch=batch_size//epochs,
+                steps_per_epoch=batch_size // epochs,
                 verbose=verbose,
                 shuffle=shuffle,
                 workers=workers,
-                use_multiprocessing=use_multiprocessing
+                use_multiprocessing=use_multiprocessing,
             )
 
     def save_weights(self, path: str) -> None:
@@ -227,7 +260,7 @@ class Critic:
             The path to save the weights.
         """
         self.model.save_weights(path)
-    
+
     def save(self, path: str, loss: int) -> None:
         """
         Save the model.
@@ -259,7 +292,13 @@ class Critic:
         path : str
             The path to load the model.
         """
-        model:Model = load_model(os.path.join(path, "critic.h5"), custom_objects={"loss": self._loss_wrapper(self.action_space)})
-        model.compile(loss=self._loss_wrapper(self.action_space), optimizer=Adam(learning_rate=0.0003))
+        model: Model = load_model(
+            os.path.join(path, "critic.h5"),
+            custom_objects={"loss": self._loss_wrapper(self.action_space)},
+        )
+        model.compile(
+            loss=self._loss_wrapper(self.action_space),
+            optimizer=Adam(learning_rate=0.0003),
+        )
 
         self.model = model

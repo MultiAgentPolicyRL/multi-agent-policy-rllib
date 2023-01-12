@@ -145,12 +145,14 @@ if __name__ == "__main__":
     obs = env.reset()
     env.observation_space
     # policy_config = {
-        # "a": PpoPolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
-        # # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
+    # "a": PpoPolicyConfig(action_space=50, observation_space=obs["0"], name="a"),
+    # # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     # }
 
     policy_config = {
-        "a": PpoPolicyConfig(action_space=50, observation_space=env.observation_space, name="a"),
+        "a": PpoPolicyConfig(
+            action_space=50, observation_space=env.observation_space, name="a"
+        ),
         # 'p': PolicyConfig(action_space = env.action_space_pl, observation_space=env.observation_space_pl)
     }
 

@@ -113,9 +113,7 @@ class PpoAlgorithm(object):
 
             # Actor picks an action
             # Returned data are all torch.tensors
-            policy_actions, policy_probabilities = self.get_actions(
-                observation
-            )
+            policy_actions, policy_probabilities = self.get_actions(observation)
 
             # Retrieve new state, rew
             next_observation, reward, _, _ = env.step(policy_actions)
@@ -179,7 +177,7 @@ class PpoAlgorithm(object):
                 )
             else:
                 # tmp to also feed the planner
-                policy_actions[key], policy_probabilities[key]= (
+                policy_actions[key], policy_probabilities[key] = (
                     [
                         torch.zeros((1,)),
                         torch.zeros((1,)),

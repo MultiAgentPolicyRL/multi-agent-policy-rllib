@@ -6,6 +6,7 @@
 from typing import List
 from utils import exec_time
 import torch
+from tensordict import TensorDict
 
 
 class RolloutBuffer:
@@ -55,18 +56,20 @@ class RolloutBuffer:
         self.is_terminals.extend(other.is_terminals)
 
     def to_tensor(self):
-        # self.actions = torch.Tensor(self.actions)
-        # self.logprobs = torch.Tensor(self.logprobs)
-        # self.states = torch.stack(self.states)
-        # self.rewards = torch.Tensor(self.rewards)
-        # self.is_terminals = torch.Tensor(self.is_terminals)
-        buffer =  RolloutBuffer()
+        buffer = RolloutBuffer()
         buffer.actions = torch.Tensor(self.actions)
         buffer.logprobs = torch.Tensor(self.logprobs)
-        buffer.states = torch.stack(self.states)
         buffer.rewards = torch.Tensor(self.rewards)
         buffer.is_terminals = torch.Tensor(self.is_terminals)
+
+        states = []
+        for state in self.states:
+            states.append(TensorDict(state, batch_size=[]))
+
+        buffer.states = torch.stack(states)
         return buffer
+
+
 class Memory:
     """
     Batch memory used during batching and training
@@ -189,31 +192,3 @@ class Memory:
                 rollout_buffers.append(self.rollout_buffer[key])
 
         return rollout_buffers
-
-
-"""
-obs = {
-    '0': {
-        'aa': ...
-        'bb': ...
-    },
-    '1': {
-        'aa': ...
-        'bb': ...
-    }
-    '2': {
-        'aa': ...
-        'bb': ...
-    }
-    'p': {
-        'aa': ...
-        'bb': ...
-    }    
-}
-
-a: 0,1,2,3
-
-obs {
-    'a': 0,1,2,3,4,5,6,7
-}
-"""

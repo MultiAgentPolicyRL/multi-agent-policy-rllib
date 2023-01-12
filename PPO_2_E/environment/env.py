@@ -186,31 +186,12 @@ class EnvWrapper:
                 ...
             }
         """
-        # observation_tensored = observation
-
+        # FIXME: add dict_to_tensor_dict
         observation_tensored = {}
 
-        for key in observation:
-            # Agents: '0', '1', '2', '3', 'p'
-            # observation_tensored[key] = {}
-            # for data_key in observation[key]:
-            #     print(observation[key][data_key].shape)
-            # # # Accessing to specific data like 'world-map', 'flat', 'time', ...
-            # #     observation_tensored[key][data_key] = (
-            # #         torch.Tensor(observation[key][data_key]).unsqueeze(0).long().to(self.device)
-            # #     )
-            # sys.exit()
-            observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(
-                self.device
-            )
-            # if key != 'p':
-            #     observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(self.device)
-            # else:
-            #     observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(self.device)
-            # banana:TensorDict=TensorDict(observation[key], batch_size=[]).to(self.device)
-            # print(observation_tensored[key].shape)
-            # banana.shape
-        # observation_tensored = TensorDict(observation, batch_size=[1, 2, 136, 7, 50])
+        for agent_key in observation.keys():
+            for data_key in observation[agent_key].keys():
+                observation_tensored[agent_key][data_key] = torch.tensor(observation[agent_key][data_key]).to(self.device)
         return observation_tensored
         # return observation
 

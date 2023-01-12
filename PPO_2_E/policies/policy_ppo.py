@@ -66,37 +66,8 @@ class PpoPolicy(Policy):
         Args:
             rollout_buffer: RolloutBuffer for this specific policy.
         """
-
-        """
-        Logic simplified:
-            epochs = 4
-            batch_size = 5
-            epochs_selected = list(range(epochs))
-            random.shuffle(epochs_selected)
-            data = [0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3]
-            for i in epochs_selected:
-                print(data[i*batch_size:batch_size+i*batch_size])
-        """
-        # Set epochs order
-        # FIXME: split in batches of `train_batch_size` size.
-        # epochs_order = list(range(rollout_buffer[0].n_agents))
-        # steps_per_epoch = rollout_buffer[0].batch_size
-        # random.shuffle(epochs_order)
-
-        # a_loss, c_loss = [], []
-        # for i in epochs_order:
-
-            # a, c = self.__update(rollout_buffer[i])
-
-            # a_loss.append(a)
-            # c_loss.append(c)
         buffer = rollout_buffer.to_tensor()
         self.__update(buffer=buffer)
-
-        # a_loss = torch.mean(torch.tensor(a_loss))
-        # c_loss = torch.mean(torch.tensor(c_loss))
-
-        # return a_loss.float(), c_loss.float()
 
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns

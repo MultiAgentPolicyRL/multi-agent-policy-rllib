@@ -3,7 +3,7 @@ try:
 except ImportError:
     pass
 finally:
-    __all__ = ['PPO']
+    __all__ = ["PPO"]
 
-    #from .models import ActorCritic
+    # from .models import ActorCritic
     from .algorithm import PPO

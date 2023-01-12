@@ -53,7 +53,7 @@ class RolloutWorker:
         policy_mapping_function,
         actor_keys: list,
         env,
-        device: str,
+        device: str = "cpu",
     ):
         # super().__init__(*args, **kwargs)
 
@@ -96,24 +96,24 @@ class RolloutWorker:
                     action=policy_action[id],
                     logprob=policy_logprob[id],
                     reward=rew[id],
-                    is_terminal=done['__all__'],
+                    is_terminal=done["__all__"],
                 )
 
             # if counter == self.rollout_fragment_length - 1:
-                # # end this episode, start a new one. Set done to True (used in policies)
-                # # reset batching environment and get its observation
-                # # next_obs = self.env.reset()
-                # done["__all__"] = True
-                # for id in self.actor_keys:
-                #     self.memory[self.policy_mapping_function(id)].update(
-                #         state=obs[id],
-                #         action=policy_action[id],
-                #         logprob=policy_logprob[id],
-                #         reward=rew[id],
-                #         is_terminal=done['__all__'],
-                #     )
-                # break
-                # obs = self.env.reset()
+            # # end this episode, start a new one. Set done to True (used in policies)
+            # # reset batching environment and get its observation
+            # # next_obs = self.env.reset()
+            # done["__all__"] = True
+            # for id in self.actor_keys:
+            #     self.memory[self.policy_mapping_function(id)].update(
+            #         state=obs[id],
+            #         action=policy_action[id],
+            #         logprob=policy_logprob[id],
+            #         reward=rew[id],
+            #         is_terminal=done['__all__'],
+            #     )
+            # break
+            # obs = self.env.reset()
 
             obs = next_obs
 
@@ -133,8 +133,9 @@ class RolloutWorker:
         policy_action, policy_logprob = {}, {}
 
         for key in obs.keys():
-            (policy_action[key], policy_logprob[key]
-             ) = self.policies[self.policy_mapping_function(key)].act(obs[key])
+            (policy_action[key], policy_logprob[key]) = self.policies[
+                self.policy_mapping_function(key)
+            ].act(obs[key])
 
         return policy_action, policy_logprob
 

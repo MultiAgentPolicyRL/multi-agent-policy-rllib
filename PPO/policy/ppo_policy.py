@@ -11,6 +11,7 @@ import numpy as np
 
 # import tensorflow as tf
 import torch
+
 # from model.model import LSTMModel
 from model.model import PytorchLinear as LSTMModel
 from policy.ppo_policy_config import PpoPolicyConfig
@@ -31,8 +32,14 @@ class PPOAgent:
         self.batch_size = self.policy_config.batch_size  # training epochs
 
         # self.Model: LSTMModel = LSTMModel(policy_config.model_config)
-        self.Model: LSTMModel = LSTMModel(obs_space=policy_config.model_config.observation_space, action_space=policy_config.model_config.action_space,
-        num_outputs=policy_config.model_config.action_space, model_config=None, name=None)
+        self.Model: LSTMModel = LSTMModel(
+            obs_space=policy_config.model_config.observation_space,
+            action_space=policy_config.model_config.action_space,
+            num_outputs=policy_config.model_config.action_space,
+            model_config=None,
+            name=None,
+        )
+
     # @timeit
     def act(self, observation: dict):
         """

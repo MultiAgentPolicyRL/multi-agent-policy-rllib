@@ -1,3 +1,3 @@
-__all__ = ['LSTMModel']
+__all__ = ["LSTMModel"]
 
 from .actor_critic import LSTMModel

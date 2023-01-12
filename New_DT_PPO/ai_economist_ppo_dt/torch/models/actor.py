@@ -16,7 +16,17 @@ class Actor(nn.Module):
 
 
     """
-    def __init__(self, output_size: int = 50, conv_first_dim: tuple = (7, 2), conv_filters: tuple = (16,32), filter_size: int = 3, log_level: int = logging.INFO, log_path: str = None, device: str = "cpu") -> None:
+
+    def __init__(
+        self,
+        output_size: int = 50,
+        conv_first_dim: tuple = (7, 2),
+        conv_filters: tuple = (16, 32),
+        filter_size: int = 3,
+        log_level: int = logging.INFO,
+        log_path: str = None,
+        device: str = "cpu",
+    ) -> None:
         """
         Initialize parameters and build model.
 
@@ -24,19 +34,25 @@ class Actor(nn.Module):
 
         self.output_size = output_size
         self.device = device
-        self.logger:logging = get_basic_logger("Actor", level=log_level, log_path=log_path)
+        self.logger: logging = get_basic_logger(
+            "Actor", level=log_level, log_path=log_path
+        )
 
         super(Actor, self).__init__()
 
         # Define the layers
-        self.conv1 = nn.Conv2d(conv_first_dim[0], conv_filters[0], filter_size).to(device)
+        self.conv1 = nn.Conv2d(conv_first_dim[0], conv_filters[0], filter_size).to(
+            device
+        )
         self.conv2 = nn.Conv2d(conv_filters[0], conv_filters[1], filter_size).to(device)
         self.flatten = nn.Flatten().to(device)
 
-        #self.concat = torch.cat([self.conv1, self.conv2, self.flatten])
-        self.dense1 = nn.Linear(1704, 128).to(device) # Before was 32*32*32 but now hard-coded to 1704, to understand why
+        # self.concat = torch.cat([self.conv1, self.conv2, self.flatten])
+        self.dense1 = nn.Linear(1704, 128).to(
+            device
+        )  # Before was 32*32*32 but now hard-coded to 1704, to understand why
         self.dense2 = nn.Linear(128, 128).to(device)
-        
+
         self.relu = nn.ReLU(inplace=False).to(device)
         self.sigmoid = nn.Sigmoid().to(device)
 
@@ -74,7 +90,7 @@ class Actor(nn.Module):
 
         # Sigmoid
         x = self.sigmoid(x)
-        
+
         # Reshape and return
         x = self.reshape(x)
         x.to(self.device)

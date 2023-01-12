@@ -11,8 +11,10 @@ import copy
 import sys
 from typing import Any, Dict, Tuple
 from algorithm.rollout_worker import RolloutWorker
+
 # from torch.multiprocessing import Pipe, Pool, Process, set_start_method
-from multiprocessing import Pipe, Process
+from torch.multiprocessing import Pipe, Process
+
 # try:
 #      set_start_method('spawn')
 # except RuntimeError:
@@ -26,22 +28,16 @@ from utils import exec_time, RolloutBuffer
 def run_rollout_worker(conn, worker: RolloutWorker):
     # tmp = Memory(None, [], {}, 1, "cpu")
     while True:
-        # FIXME: aggiungere if vai avanti a fare batch / aggiorna modello.
-        # print("waiting for weights")
         policies = conn.recv()
 
         if type(policies) != int:
             worker.policies = policies
             del policies
 
-        # print("updating policies")
         # worker.policies = copy.deepcopy(policies)
-        print("batching")
         worker.batch()
-        print("data to queue")
         conn.send(worker.memory)
         # conn.send(tmp)
-        print("banana")
 
 
 class Algorithm(object):
@@ -86,7 +82,6 @@ class Algorithm(object):
 
         self.workers = []
         for id in range(self.num_rollout_workers):
-            print(id)
             parent_conn, child_conn = self.pipes[id]
 
             worker = RolloutWorker(
@@ -135,21 +130,15 @@ class Algorithm(object):
         Args:
             env: updated environment
         """
-        print("one step")
         # TODO: improve distribution algo
         batch_size_counter = 0
         while batch_size_counter < self.train_batch_size:
             print(f"batch: {batch_size_counter}")
-            memories = [pipe[0].recv() for pipe in self.pipes]
-            print(type(memories))
-            
-            # memories = []
-            # for pipe in self.pipes:
-            #     print("getting data")
-            #     memories.append(pipe[0].recv)
-            #     print("got data")
-            # print("got memories")
-           
+            # memories = [pipe[0].recv() for pipe in self.pipes]
+            memories = []
+            for pipe in self.pipes:
+                memories.append(pipe[0].recv())
+
             batch_size_counter += (
                 self.rollout_fragment_length * self.num_rollout_workers
             )
@@ -158,12 +147,12 @@ class Algorithm(object):
                 for key in self.policy_keys:
                     # print(len(memory[key].actions))
                     self.memory[key].extend(memory[key])
-            
-            if batch_size_counter != self.train_batch_size-1:
+
+            if batch_size_counter != self.train_batch_size - 1:
                 for pipe in self.pipes:
                     pipe[0].send(1)
 
-        print(f"MEMORY LEN: {len(self.memory['a'].actions)}")
+        print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
         self.main_rollout_worker.learn(memory=self.memory)
 
         for pipe in self.pipes:
@@ -207,39 +196,3 @@ class Algorithm(object):
         # self.second_rollout_worker.set_weights(weights=weights)
         for worker in self.workers:
             worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
-
-    def compare_models(self, obs):
-        # self.second_rollout_worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
-
-        policy_action1, policy_logprob1 = self.main_rollout_worker.get_actions(obs)
-        print(policy_action1, policy_logprob1)
-        policy_action1, policy_logprob1 = self.main_rollout_worker.get_actions(obs)
-        print(policy_action1, policy_logprob1)
-        policy_action1, policy_logprob1 = self.main_rollout_worker.get_actions(obs)
-        print(policy_action1, policy_logprob1)
-
-        policy_action2, policy_logprob2 = self.second_rollout_worker.get_actions(obs)
-        print(policy_action2, policy_logprob2)
-        policy_action2, policy_logprob2 = self.second_rollout_worker.get_actions(obs)
-        print(policy_action2, policy_logprob2)
-        policy_action2, policy_logprob2 = self.second_rollout_worker.get_actions(obs)
-        print(policy_action2, policy_logprob2)
-
-        print(self.main_rollout_worker.get_weights())
-        print(
-            self.second_rollout_worker.get_weights()
-            == self.main_rollout_worker.get_weights()
-        )
-        a1 = self.main_rollout_worker.get_weights()
-        b1 = self.second_rollout_worker.get_weights()
-        # print(a1['a']['a']-b1['a']['a'])
-
-        # check actor weights
-        for a, b in zip(a1["a"]["a"], b1["a"]["a"]):
-            print(a == b)
-        # check critic weights
-        for a, b in zip(a1["a"]["c"], b1["a"]["c"]):
-            print(a == b)
-        # check optim weights
-        for a, b in zip(a1["a"]["o"], b1["a"]["o"]):
-            print(a == b)

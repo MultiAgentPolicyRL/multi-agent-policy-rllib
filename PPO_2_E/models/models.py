@@ -61,7 +61,7 @@ class PytorchLinear(nn.Module):
         self.fc_dim = 136
         self.num_fc = 2
 
-        args = {'use_multiprocessing' : False}
+        args = {"use_multiprocessing": False}
 
         self.actor = nn.Sequential(
             nn.Linear(
@@ -69,7 +69,6 @@ class PytorchLinear(nn.Module):
             ),
             nn.ReLU(),
             # nn.Linear(32, self.num_outputs),
-            
         )
 
         self.fc_layers_val_layers = []  # nn.Sequential()
@@ -79,7 +78,7 @@ class PytorchLinear(nn.Module):
             self.fc_layers_val_layers.append(nn.ReLU())
 
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
-        
+
         self.critic = nn.Sequential(*self.fc_layers_val_layers)
 
         self.optimizer = torch.optim.Adam(
@@ -99,6 +98,7 @@ class PytorchLinear(nn.Module):
             action: taken action
             action_logprob: log probability of that action
         """
+        # obs = TensorDict(obs, batch_size=[])
         obs1 = obs["flat"].squeeze().float()
         action_probs = self.actor(obs1)
 

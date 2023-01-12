@@ -15,9 +15,13 @@ from tqdm import tqdm
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
 
-    EPOCHS = 2
-    BATCH_SIZE = 1600
+    EPOCHS = 5
+    BATCH_SIZE = 6000
     SEED = 1
+
+    NUM_WORKERS = 12
+    rollout_fragment_length = 200
+
     K_epochs = 8
     plotting = True
 
@@ -51,8 +55,8 @@ if __name__ == "__main__":
         policies_config=policies,
         env=env,
         device=device,
-        num_rollout_workers=6,
-        rollout_fragment_length=200,
+        num_rollout_workers=NUM_WORKERS,
+        rollout_fragment_length=rollout_fragment_length,
     )
 
     for i in range(EPOCHS):

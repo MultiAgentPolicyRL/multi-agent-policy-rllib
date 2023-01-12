@@ -432,12 +432,12 @@ class PytorchLinear(nn.Module):
         self.fc_dim = 128
         self.num_fc = 2
 
-
-
         self.actor = nn.Sequential(
-            nn.Linear(get_flat_obs_size(obs_space['flat']), self.fc_dim, dtype=torch.float32),
+            nn.Linear(
+                get_flat_obs_size(obs_space["flat"]), self.fc_dim, dtype=torch.float32
+            ),
             nn.ReLU(),
-            nn.Linear(self.fc_dim, self.num_outputs)
+            nn.Linear(self.fc_dim, self.num_outputs),
         )
         # self.actor = apply_logit_mask1(self.logits, self.mask_input)
 
@@ -467,14 +467,14 @@ class PytorchLinear(nn.Module):
             action: taken action
             action_logprob: log probability of that action
         """
-        obs1 = obs['flat'].squeeze().float()
+        obs1 = obs["flat"].squeeze().float()
         # obs = obs.long()
         action_probs = self.actor(obs1)
         # print(action_probs.shape)
         # print(obs['action_mask'].shape)
         # sys.exit()
         logit_mask = torch.ones(action_probs.shape) * -10000000
-        logit_mask = logit_mask*(1-obs['action_mask'].squeeze(0))
+        logit_mask = logit_mask * (1 - obs["action_mask"].squeeze(0))
         action_probs = action_probs + logit_mask
 
         dist = torch.distributions.Categorical(logits=action_probs)
@@ -483,8 +483,6 @@ class PytorchLinear(nn.Module):
         action_logprob = dist.log_prob(action)
 
         return action.detach(), action_logprob.detach()
-
-
 
     def evaluate(self, obs, act):
         """
