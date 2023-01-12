@@ -61,12 +61,15 @@ class PytorchLinear(nn.Module):
         self.fc_dim = 136
         self.num_fc = 2
 
+        args = {'use_multiprocessing' : False}
+
         self.actor = nn.Sequential(
             nn.Linear(
                 get_flat_obs_size(obs_space["flat"]), 50  # , dtype=torch.float32
             ),
             nn.ReLU(),
             # nn.Linear(32, self.num_outputs),
+            
         )
 
         self.fc_layers_val_layers = []  # nn.Sequential()
@@ -76,6 +79,7 @@ class PytorchLinear(nn.Module):
             self.fc_layers_val_layers.append(nn.ReLU())
 
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
+        
         self.critic = nn.Sequential(*self.fc_layers_val_layers)
 
         self.optimizer = torch.optim.Adam(

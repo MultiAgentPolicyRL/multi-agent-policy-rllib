@@ -11,7 +11,13 @@ import copy
 import sys
 from typing import Any, Dict, Tuple
 from algorithm.rollout_worker import RolloutWorker
-import multiprocessing as mp
+# from torch.multiprocessing import Pipe, Pool, Process, set_start_method
+from multiprocessing import Pipe, Process
+# try:
+#      set_start_method('spawn')
+# except RuntimeError:
+#     pass
+
 
 from policies import Policy
 from utils import exec_time, RolloutBuffer
@@ -23,15 +29,19 @@ def run_rollout_worker(conn, worker: RolloutWorker):
         # FIXME: aggiungere if vai avanti a fare batch / aggiorna modello.
         # print("waiting for weights")
         policies = conn.recv()
+
+        if type(policies) != int:
+            worker.policies = policies
+            del policies
+
         # print("updating policies")
-        worker.policies = policies
         # worker.policies = copy.deepcopy(policies)
-        # print("batching")
+        print("batching")
         worker.batch()
-        # print("data to queue")
+        print("data to queue")
         conn.send(worker.memory)
         # conn.send(tmp)
-        # print("banana")
+        print("banana")
 
 
 class Algorithm(object):
@@ -54,6 +64,7 @@ class Algorithm(object):
         self.num_rollout_workers = num_rollout_workers
         self.actor_keys = env.reset().keys()
         self.policy_keys = policies_config.keys()
+        rollout_batch_len = self.train_batch_size // self.num_rollout_workers
 
         # Spawn main rollout worker, used for (actual) learning
         self.main_rollout_worker = RolloutWorker(
@@ -71,10 +82,11 @@ class Algorithm(object):
 
         # Multi-processing
         # Spawn secondary workers used for batching
-        self.pipes = [mp.Pipe() for _ in range(self.num_rollout_workers)]
+        self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
 
         self.workers = []
         for id in range(self.num_rollout_workers):
+            print(id)
             parent_conn, child_conn = self.pipes[id]
 
             worker = RolloutWorker(
@@ -86,7 +98,7 @@ class Algorithm(object):
                 device=device,
             )
 
-            p = mp.Process(
+            p = Process(
                 target=run_rollout_worker,
                 name=f"RolloutWorker-{id}",
                 args=(child_conn, worker),
@@ -129,14 +141,28 @@ class Algorithm(object):
         while batch_size_counter < self.train_batch_size:
             print(f"batch: {batch_size_counter}")
             memories = [pipe[0].recv() for pipe in self.pipes]
+            print(type(memories))
+            
+            # memories = []
+            # for pipe in self.pipes:
+            #     print("getting data")
+            #     memories.append(pipe[0].recv)
+            #     print("got data")
+            # print("got memories")
+           
             batch_size_counter += (
                 self.rollout_fragment_length * self.num_rollout_workers
             )
 
             for memory in memories:
                 for key in self.policy_keys:
+                    # print(len(memory[key].actions))
                     self.memory[key].extend(memory[key])
-        
+            
+            if batch_size_counter != self.train_batch_size-1:
+                for pipe in self.pipes:
+                    pipe[0].send(1)
+
         print(f"MEMORY LEN: {len(self.memory['a'].actions)}")
         self.main_rollout_worker.learn(memory=self.memory)
 

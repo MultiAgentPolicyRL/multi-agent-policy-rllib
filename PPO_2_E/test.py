@@ -51,7 +51,7 @@ if __name__ == "__main__":
         policies_config=policies,
         env=env,
         device=device,
-        num_rollout_workers=4,
+        num_rollout_workers=6,
         rollout_fragment_length=200,
     )
 

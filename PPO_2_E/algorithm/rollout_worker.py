@@ -99,20 +99,21 @@ class RolloutWorker:
                     is_terminal=done['__all__'],
                 )
 
-            if counter == self.rollout_fragment_length - 1:
-                # end this episode, start a new one. Set done to True (used in policies)
-                # reset batching environment and get its observation
-                # next_obs = self.env.reset()
-                done["__all__"] = True
-                for id in self.actor_keys:
-                    self.memory[self.policy_mapping_function(id)].update(
-                        state=obs[id],
-                        action=policy_action[id],
-                        logprob=policy_logprob[id],
-                        reward=rew[id],
-                        is_terminal=done['__all__'],
-                    )
-                break
+            # if counter == self.rollout_fragment_length - 1:
+                # # end this episode, start a new one. Set done to True (used in policies)
+                # # reset batching environment and get its observation
+                # # next_obs = self.env.reset()
+                # done["__all__"] = True
+                # for id in self.actor_keys:
+                #     self.memory[self.policy_mapping_function(id)].update(
+                #         state=obs[id],
+                #         action=policy_action[id],
+                #         logprob=policy_logprob[id],
+                #         reward=rew[id],
+                #         is_terminal=done['__all__'],
+                #     )
+                # break
+                # obs = self.env.reset()
 
             obs = next_obs
 
