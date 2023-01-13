@@ -46,6 +46,7 @@ class PytorchLinear(nn.Module):
     def __init__(self, obs_space, action_space, device):
         super().__init__()
         self.device = device
+        self.logit_mask = torch.ones(50).to(self.device) * -10000000
 
         ## TMP: parameters
         lr_actor = 0.0003  # learning rate for actor network
@@ -98,12 +99,17 @@ class PytorchLinear(nn.Module):
             action: taken action
             action_logprob: log probability of that action
         """
-        # obs = TensorDict(obs, batch_size=[])
-        obs1 = obs["flat"].squeeze().float()
+        obs2 = {}
+        for key in obs.keys():
+            obs2[key] = torch.from_numpy(obs[key]).to(self.device)
+
+        obs1 = obs2['flat'].squeeze()
+        obs['action_mask'] = torch.from_numpy(obs['action_mask']).to(self.device).detach()
+
         action_probs = self.actor(obs1)
 
         # Apply logits mask
-        logit_mask = torch.ones(action_probs.shape).to(self.device) * -10000000
+        logit_mask = self.logit_mask
         logit_mask = logit_mask * (1 - obs["action_mask"].squeeze(0))
         action_probs = action_probs + logit_mask
 
@@ -125,8 +131,6 @@ class PytorchLinear(nn.Module):
             state_values: value function reward prediction
             dist_entropy: entropy of actions distribution
         """
-        # obs = torch.stack([TensorDict(o, batch_size=1) for o in obs])
-
         action_probs = self.actor(obs["flat"].squeeze().float())
         dist = torch.distributions.Categorical(action_probs)
 

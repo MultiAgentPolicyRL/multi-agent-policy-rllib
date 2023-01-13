@@ -6,7 +6,7 @@ from models import PytorchLinear
 from policies import Policy
 from utils import RolloutBuffer
 from utils import exec_time
-
+from tensordict import TensorDict
 
 class PpoPolicy(Policy):
     """

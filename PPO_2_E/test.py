@@ -14,13 +14,15 @@ from tqdm import tqdm
 
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
-
+    # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~11s/step
+    # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~5,6s/step - torch.tensor: 1.32
+    # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~5,6s/step - torch.from_numpy + np.array: 1.62
     EPOCHS = 5
-    BATCH_SIZE = 6000
+    BATCH_SIZE = 3000
     SEED = 1
 
     NUM_WORKERS = 12
-    rollout_fragment_length = 200
+    rollout_fragment_length = 500
 
     K_epochs = 8
     plotting = True

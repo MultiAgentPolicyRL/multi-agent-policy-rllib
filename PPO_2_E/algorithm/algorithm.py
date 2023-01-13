@@ -11,16 +11,7 @@ import copy
 import sys
 from typing import Any, Dict, Tuple
 from algorithm.rollout_worker import RolloutWorker
-
-# from torch.multiprocessing import Pipe, Pool, Process, set_start_method
 from torch.multiprocessing import Pipe, Process
-
-# try:
-#      set_start_method('spawn')
-# except RuntimeError:
-#     pass
-
-
 from policies import Policy
 from utils import exec_time, RolloutBuffer
 
@@ -37,7 +28,6 @@ def run_rollout_worker(conn, worker: RolloutWorker):
         # worker.policies = copy.deepcopy(policies)
         worker.batch()
         conn.send(worker.memory)
-        # conn.send(tmp)
 
 
 class Algorithm(object):

@@ -70,7 +70,7 @@ class RolloutWorker:
             self.policies[key] = build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
 
-    # @exec_time
+    @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
@@ -89,6 +89,12 @@ class RolloutWorker:
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
+            if counter == self.rollout_fragment_length-1:
+                # end this episode, start a new one. Set done to True (used in policies)
+                # reset batching environment and get its observation
+                done["__all__"] = True
+                next_obs = self.env.reset()
+            
             # save new_observation, reward, done, action, action_logprob in rollout_buffer
             for id in self.actor_keys:
                 self.memory[self.policy_mapping_function(id)].update(
@@ -98,22 +104,6 @@ class RolloutWorker:
                     reward=rew[id],
                     is_terminal=done["__all__"],
                 )
-
-            # if counter == self.rollout_fragment_length - 1:
-            # # end this episode, start a new one. Set done to True (used in policies)
-            # # reset batching environment and get its observation
-            # # next_obs = self.env.reset()
-            # done["__all__"] = True
-            # for id in self.actor_keys:
-            #     self.memory[self.policy_mapping_function(id)].update(
-            #         state=obs[id],
-            #         action=policy_action[id],
-            #         logprob=policy_logprob[id],
-            #         reward=rew[id],
-            #         is_terminal=done['__all__'],
-            #     )
-            # break
-            # obs = self.env.reset()
 
             obs = next_obs
 

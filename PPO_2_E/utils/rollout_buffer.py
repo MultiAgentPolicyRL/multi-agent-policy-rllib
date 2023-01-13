@@ -7,7 +7,7 @@ from typing import List
 from utils import exec_time
 import torch
 from tensordict import TensorDict
-
+import numpy as np
 
 class RolloutBuffer:
     """
@@ -55,20 +55,29 @@ class RolloutBuffer:
         self.rewards.extend(other.rewards)
         self.is_terminals.extend(other.is_terminals)
 
+    @exec_time
     def to_tensor(self):
         buffer = RolloutBuffer()
-        buffer.actions = torch.Tensor(self.actions)
-        buffer.logprobs = torch.Tensor(self.logprobs)
-        buffer.rewards = torch.Tensor(self.rewards)
-        buffer.is_terminals = torch.Tensor(self.is_terminals)
+        buffer.actions = torch.tensor((self.actions))
+        buffer.logprobs = torch.tensor((self.logprobs))
+        buffer.rewards = torch.tensor((self.rewards))
+        buffer.is_terminals = torch.tensor((self.is_terminals))
 
         states = []
         for state in self.states:
             states.append(TensorDict(state, batch_size=[]))
+            # states.append(self._dict_to_tensor_dict(state))
 
         buffer.states = torch.stack(states)
         return buffer
 
+    def _dict_to_tensor_dict(self, data : dict):
+        observation_tensored = {}
+
+        for key in data.keys():
+            observation_tensored[key] = torch.from_numpy(data[key])
+            
+        return observation_tensored
 
 class Memory:
     """

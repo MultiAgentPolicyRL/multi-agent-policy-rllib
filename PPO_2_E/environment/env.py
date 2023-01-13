@@ -187,13 +187,18 @@ class EnvWrapper:
             }
         """
         # FIXME: add dict_to_tensor_dict
-        observation_tensored = {}
+        # observation_tensored = {}
 
-        for agent_key in observation.keys():
-            for data_key in observation[agent_key].keys():
-                observation_tensored[agent_key][data_key] = torch.tensor(observation[agent_key][data_key]).to(self.device)
-        return observation_tensored
-        # return observation
+        # for key in observation:
+        #     # Agents: '0', '1', '2', '3', 'p'
+        #     observation_tensored[key] = {}
+        #     for data_key in observation[key]:
+        #         # Accessing to specific data like 'world-map', 'flat', 'time', ...
+        #         observation_tensored[key][data_key] = (
+        #             torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
+        #         )
+        # return observation_tensored
+        return observation
 
     @property
     def pickle_file(self):
