@@ -1,0 +1,3 @@
+[submodule "ai-economist"]
+	path = ai-economist
+	url = git@github.com:MultiAgentPolicyRL/ai-economist.git
