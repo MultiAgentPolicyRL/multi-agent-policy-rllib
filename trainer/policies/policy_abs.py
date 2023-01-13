@@ -4,7 +4,7 @@ Abstract policy class
 
 from abc import ABC, abstractmethod
 from typing import Tuple
-from utils.rollout_buffer import RolloutBuffer
+from trainer.utils.rollout_buffer import RolloutBuffer
 
 
 class Policy(ABC):

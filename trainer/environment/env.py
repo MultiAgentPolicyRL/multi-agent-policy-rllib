@@ -5,16 +5,15 @@ import os
 import pickle
 import random
 import sys
-from typing import Dict
 import warnings
+from typing import Dict
 
 import numpy as np
-from ai_economist import foundation
+import ai_economist.foundation as foundation
+
 from gym import spaces
 from gym.utils import seeding
-from environment import env_config
-import torch
-from tensordict import TensorDict
+from trainer.environment import env_config
 
 _BIG_NUMBER = 1e20
 

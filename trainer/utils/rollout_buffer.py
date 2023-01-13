@@ -4,10 +4,13 @@
 # FIXME: all of this can be improved preallocating all the
 # memory and stuff like that.
 from typing import List
-from utils import exec_time
+
+import numpy as np
 import torch
 from tensordict import TensorDict
-import numpy as np
+
+from trainer.utils import exec_time
+
 
 class RolloutBuffer:
     """

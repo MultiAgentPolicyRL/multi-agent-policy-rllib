@@ -7,12 +7,9 @@ is not under a real policy. Every action is set to 0.
 # pylint: disable=import-error
 
 from typing import Tuple
-from policies import Policy
-from utils import RolloutBuffer
+from trainer.policies import Policy
+from trainer.utils import RolloutBuffer, exec_time
 import torch
-
-from utils import exec_time
-
 
 class EmptyPolicy(Policy):
     """

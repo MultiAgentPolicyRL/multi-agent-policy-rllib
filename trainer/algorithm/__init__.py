@@ -1,2 +1,2 @@
-from algorithm.algorithm import Algorithm
-from algorithm.rollout_worker import RolloutWorker
+from trainer.algorithm.algorithm import Algorithm
+from trainer.algorithm.rollout_worker import RolloutWorker

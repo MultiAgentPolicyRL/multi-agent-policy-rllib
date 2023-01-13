@@ -3,9 +3,9 @@ Rollout worker. This good guy manages its policy and creates a batch
 """
 from typing import Dict, Tuple
 
-from policies import EmptyPolicy, PpoPolicy
-from utils.execution_time import exec_time
-from utils.rollout_buffer import RolloutBuffer
+from trainer.policies import EmptyPolicy, PpoPolicy
+from trainer.utils.execution_time import exec_time
+from trainer.utils.rollout_buffer import RolloutBuffer
 
 
 def build_policy(policy_config):

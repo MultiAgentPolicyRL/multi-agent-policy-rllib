@@ -4,7 +4,7 @@ import torch.nn as nn
 from gym.spaces import Box, Dict
 import numpy as np
 from tensordict import TensorDict
-from utils import exec_time
+from trainer.utils import exec_time
 
 # pylint: disable=no-member
 

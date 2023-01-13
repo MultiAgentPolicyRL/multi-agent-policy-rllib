@@ -1,1 +1,1 @@
-from models.models import PytorchLinear
+from trainer.models.models import PytorchLinear

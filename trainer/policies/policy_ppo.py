@@ -2,10 +2,9 @@ import random
 import sys
 from typing import List, Tuple
 import torch
-from models import PytorchLinear
-from policies import Policy
-from utils import RolloutBuffer
-from utils import exec_time
+from trainer.models import PytorchLinear
+from trainer.policies import Policy
+from trainer.utils import RolloutBuffer, exec_time
 from tensordict import TensorDict
 
 class PpoPolicy(Policy):

@@ -10,10 +10,11 @@ It manages:
 import copy
 import sys
 from typing import Any, Dict, Tuple
-from algorithm.rollout_worker import RolloutWorker
 from torch.multiprocessing import Pipe, Process
-from policies import Policy
-from utils import exec_time, RolloutBuffer
+
+from trainer.algorithm.rollout_worker import RolloutWorker
+from trainer.policies import Policy
+from trainer.utils import RolloutBuffer, exec_time
 
 
 def run_rollout_worker(conn, worker: RolloutWorker):
