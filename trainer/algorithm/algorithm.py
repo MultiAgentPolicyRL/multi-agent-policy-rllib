@@ -17,17 +17,15 @@ from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
 
 
-def run_rollout_worker(conn, worker: RolloutWorker):
+def run_rollout_worker(conn, worker: RolloutWorker, id:int):
     # tmp = Memory(None, [], {}, 1, "cpu")
     while True:
-        policies = conn.recv()
-
-        if type(policies) != int:
-            worker.policies = policies
-            del policies
-
-        # worker.policies = copy.deepcopy(policies)
+        weights = conn.recv()
+        # print(f"{id} presa connessione - set weights")
+        worker.set_weights(weights=weights)
+        # print(f"{id} batcha")
         worker.batch()
+        # print(f"{id} manda memoria")
         conn.send(worker.memory)
 
 
@@ -56,6 +54,7 @@ class Algorithm(object):
         # Spawn main rollout worker, used for (actual) learning
         self.main_rollout_worker = RolloutWorker(
             rollout_fragment_length=rollout_fragment_length,
+            batch_iterations = 0,
             policies_config=self.policies_config,
             actor_keys=self.actor_keys,
             policy_mapping_function=self.policy_mapping_function,
@@ -67,34 +66,52 @@ class Algorithm(object):
         for key in self.policy_keys:
             self.memory[key] = RolloutBuffer()
 
-        # Multi-processing
+        ### Multi-processing
         # Spawn secondary workers used for batching
         self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
 
+        # Calculate batch iterations distribution
+        if self.train_batch_size % self.rollout_fragment_length != 0:
+            ValueError(f"train_batch_size % rollout_fragment_length must be == 0")
+
+        batch_iterations = self.train_batch_size//self.rollout_fragment_length
+        iterations_per_worker = batch_iterations//self.num_rollout_workers
+        remaining_iterations = batch_iterations-(iterations_per_worker*self.num_rollout_workers)
+
         self.workers = []
         for id in range(self.num_rollout_workers):
+            # Get pipe connection
             parent_conn, child_conn = self.pipes[id]
+
+            # Calculate worker_iterations
+            if remaining_iterations > 0:
+                worker_iterations = iterations_per_worker + 1
+                remaining_iterations-=1
+            else:
+                worker_iterations = iterations_per_worker
 
             worker = RolloutWorker(
                 rollout_fragment_length=rollout_fragment_length,
+                batch_iterations = worker_iterations,
                 policies_config=self.policies_config,
                 actor_keys=self.actor_keys,
                 policy_mapping_function=self.policy_mapping_function,
                 env=env,
                 device=device,
+                id=id
             )
 
             p = Process(
                 target=run_rollout_worker,
                 name=f"RolloutWorker-{id}",
-                args=(child_conn, worker),
+                args=(child_conn, worker, id),
             )
 
             self.workers.append(p)
             p.start()
-            parent_conn.send(self.main_rollout_worker.policies)
+            parent_conn.send(self.main_rollout_worker.get_weights())
 
-        print("done")
+        print("Rollout workers build!")
 
     def policy_mapping_function(self, key: str) -> str:
         """
@@ -122,33 +139,44 @@ class Algorithm(object):
             env: updated environment
         """
         # TODO: improve distribution algo
-        batch_size_counter = 0
-        while batch_size_counter < self.train_batch_size:
-            print(f"batch: {batch_size_counter}")
-            # memories = [pipe[0].recv() for pipe in self.pipes]
-            memories = []
-            for pipe in self.pipes:
-                memories.append(pipe[0].recv())
+        # batch_size_counter = 0
+        # while batch_size_counter < self.train_batch_size:
+        #     print(f"batch: {batch_size_counter}")
+        #     # memories = [pipe[0].recv() for pipe in self.pipes]
+        #     memories = []
+        #     for pipe in self.pipes:
+        #         memories.append(pipe[0].recv())
 
-            batch_size_counter += (
-                self.rollout_fragment_length * self.num_rollout_workers
-            )
+        #     batch_size_counter += (
+        #         self.rollout_fragment_length * self.num_rollout_workers
+        #     )
 
-            for memory in memories:
+        #     for memory in memories:
+        #         for key in self.policy_keys:
+        #             # print(len(memory[key].actions))
+        #             self.memory[key].extend(memory[key])
+
+        #     if batch_size_counter != self.train_batch_size - 1:
+        #         for pipe in self.pipes:
+        #             pipe[0].send(1)
+
+        # Get batches and create a single "big" batch
+        memories = [pipe[0].recv() for pipe in self.pipes]
+        for memory in memories:
                 for key in self.policy_keys:
                     # print(len(memory[key].actions))
                     self.memory[key].extend(memory[key])
 
-            if batch_size_counter != self.train_batch_size - 1:
-                for pipe in self.pipes:
-                    pipe[0].send(1)
 
         print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
+        # Update main worker policy
         self.main_rollout_worker.learn(memory=self.memory)
 
+        # Send updated policy to all rollout workers
         for pipe in self.pipes:
-            pipe[0].send(self.main_rollout_worker.policies)
+            pipe[0].send(self.main_rollout_worker.get_weights())
 
+        # Clear memory from used batch
         for memory in self.memory.values():
             memory.clear()
 

@@ -156,10 +156,13 @@ class PytorchLinear(nn.Module):
             actor_weights, critic_weights
         """
         # FIXME: add return type
-        actor_weights = self.actor.state_dict()
-        critic_weights = self.critic.state_dict()
-        optimizer_weights = self.optimizer.state_dict()
-
+        actor_weights = self.actor.state_dict(keep_vars=False)
+        # print(actor_weights)
+        # print(type(actor_weights))
+        # sys.exit()
+        critic_weights = self.critic.state_dict(keep_vars=False)
+        # optimizer_weights = self.optimizer.state_dict()
+        optimizer_weights = 0
         return actor_weights, critic_weights, optimizer_weights
 
     def set_weights(self, actor_weights, critic_weights, optimizer_weights):
@@ -170,4 +173,4 @@ class PytorchLinear(nn.Module):
         # FIXME: add args type
         self.actor.load_state_dict(actor_weights)
         self.critic.load_state_dict(critic_weights)
-        self.optimizer.load_state_dict(optimizer_weights)
+        # self.optimizer.load_state_dict(optimizer_weights)

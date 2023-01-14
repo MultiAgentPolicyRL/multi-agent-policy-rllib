@@ -144,7 +144,7 @@ class PpoPolicy(Policy):
         """
         # FIXME: fix input
         # FIXME: add args
-
+        # print(f"updating weights")
         self.Model.set_weights(
             actor_weights=weights["a"],
             critic_weights=weights["c"],

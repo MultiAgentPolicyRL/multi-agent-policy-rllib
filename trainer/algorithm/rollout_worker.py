@@ -44,23 +44,29 @@ class RolloutWorker:
         policy_mapping_function,
         env,
         device: str,
+        id
     """
 
     def __init__(
         self,
         rollout_fragment_length: int,
+        batch_iterations : int,
         policies_config: dict,
         policy_mapping_function,
         actor_keys: list,
         env,
         device: str = "cpu",
+        id: int = -1
     ):
         # super().__init__(*args, **kwargs)
 
         self.env = env
+        self.id = id
         self.actor_keys = actor_keys
         # self.policies_config = policies_config
+        self.batch_iterations = batch_iterations
         self.rollout_fragment_length = rollout_fragment_length
+        self.batch_size = self.batch_iterations*self.rollout_fragment_length
         self.policy_keys = policies_config.keys()
         self.policy_mapping_function = policy_mapping_function
 
@@ -75,21 +81,24 @@ class RolloutWorker:
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
         """
+        # print(f"{self.id} batch start")
         # reset batching environment and get its observation
         obs = self.env.reset()
 
         # reset rollout_buffer
+        # print(f"{self.id} batch_memory_clear")
         for memory in self.memory.values():
             memory.clear()
-
-        for counter in range(self.rollout_fragment_length):
+        
+        # print(f"{self.id} creating batch")
+        for counter in range(self.batch_size):
             # get actions, action_logprob for all agents in each policy* wrt observation
             policy_action, policy_logprob = self.get_actions(obs)
 
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
-            if counter == self.rollout_fragment_length-1:
+            if counter % self.rollout_fragment_length-1 == 0:
                 # end this episode, start a new one. Set done to True (used in policies)
                 # reset batching environment and get its observation
                 done["__all__"] = True
@@ -106,6 +115,8 @@ class RolloutWorker:
                 )
 
             obs = next_obs
+        # print(f"{self.id} batch created")
+
 
     # @exec_time
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
@@ -150,5 +161,7 @@ class RolloutWorker:
         """
         Set model weights
         """
+        # print(f"{self.id} updating weights")
         for key in self.policies.keys():
             self.policies[key].set_weights(weights[key])
+        # print(f"{self.id} weights updated")
