@@ -36,7 +36,6 @@ if __name__ == "__main__":
     torch.manual_seed(SEED)
     obs = env.reset()
 
-    # FIXME: mode policy creation in rollout_worker -> so it can be "distributed"
     policies = {
         "a": {
             "policy": PpoPolicy,

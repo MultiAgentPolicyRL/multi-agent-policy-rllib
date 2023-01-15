@@ -50,7 +50,7 @@ class RolloutWorker:
     def __init__(
         self,
         rollout_fragment_length: int,
-        batch_iterations : int,
+        batch_iterations: int,
         policies_config: dict,
         policy_mapping_function,
         actor_keys: list,
@@ -81,6 +81,12 @@ class RolloutWorker:
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
         """
+        # FIXME: batch done in this way is wrong:
+        # the env should be reset only when done==true, so we need
+        # a common "self.obs" that is used at the beginning of the batch and
+        # is set at the end (so we have save this obs for the next batch)
+        # DONE: checked if this env returns `done` and YES, it DOES IT (at 1k steps - as config)
+
         # print(f"{self.id} batch start")
         # reset batching environment and get its observation
         obs = self.env.reset()
@@ -89,7 +95,7 @@ class RolloutWorker:
         # print(f"{self.id} batch_memory_clear")
         for memory in self.memory.values():
             memory.clear()
-        
+
         # print(f"{self.id} creating batch")
         for counter in range(self.batch_size):
             # get actions, action_logprob for all agents in each policy* wrt observation
@@ -103,7 +109,7 @@ class RolloutWorker:
                 # reset batching environment and get its observation
                 done["__all__"] = True
                 next_obs = self.env.reset()
-            
+
             # save new_observation, reward, done, action, action_logprob in rollout_buffer
             for id in self.actor_keys:
                 self.memory[self.policy_mapping_function(id)].update(
@@ -117,8 +123,8 @@ class RolloutWorker:
             obs = next_obs
         # print(f"{self.id} batch created")
 
-
     # @exec_time
+
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
         Build action dictionary using actions taken from all policies.

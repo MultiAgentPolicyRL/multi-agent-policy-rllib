@@ -59,7 +59,7 @@ env_config: dict = {
         # kwargs that are used by every Scenario class (i.e. defined in BaseEnvironment)
         "n_agents": 4,  # Number of non-planner agents (must be > 1)
         "world_size": [25, 25],  # [Height, Width] of the env world
-        "episode_length": 6000,  # Number of timesteps per episode #### MODIFIED modified from 1000 to 6000
+        "episode_length": 1000,  # Number of timesteps per episode #### MODIFIED modified from 1000 to 6000
         # In multi-action-mode, the policy selects an action for each action subspace (defined in component code).
         # Otherwise, the policy selects only 1 action.
         "multi_action_mode_agents": False,

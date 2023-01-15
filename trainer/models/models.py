@@ -46,14 +46,16 @@ class PytorchLinear(nn.Module):
     def __init__(self, obs_space, action_space, device):
         super().__init__()
         self.device = device
-        self.logit_mask = torch.ones(50).to(self.device) * -10000000
+
+        self.MASK_NAME = "action_mask"
+        # FIXME: this doesn't work with [22,22,22,22,22,22] of the planner
+        self.num_outputs = action_space[0]
+        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
 
         ## TMP: parameters
         lr_actor = 0.0003  # learning rate for actor network
         lr_critic = 0.001  # learning rate for critic network
 
-        self.MASK_NAME = "action_mask"
-        self.num_outputs = action_space
 
         mask = obs_space[self.MASK_NAME]
         self.mask_input = mask.shape
@@ -66,7 +68,7 @@ class PytorchLinear(nn.Module):
 
         self.actor = nn.Sequential(
             nn.Linear(
-                get_flat_obs_size(obs_space["flat"]), 50  # , dtype=torch.float32
+                get_flat_obs_size(obs_space["flat"]), self.num_outputs  # , dtype=torch.float32
             ),
             nn.ReLU(),
             # nn.Linear(32, self.num_outputs),
@@ -169,8 +171,8 @@ class PytorchLinear(nn.Module):
         """
         Set policy weights.
         """
-        # FIXME: docs
-        # FIXME: add args type
+        # FIXME: docs, args type
+        # FIXME: optimizer weights are an issue!
         self.actor.load_state_dict(actor_weights)
         self.critic.load_state_dict(critic_weights)
         # self.optimizer.load_state_dict(optimizer_weights)

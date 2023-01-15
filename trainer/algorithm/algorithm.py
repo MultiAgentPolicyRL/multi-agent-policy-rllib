@@ -49,7 +49,6 @@ class Algorithm(object):
         self.num_rollout_workers = num_rollout_workers
         self.actor_keys = env.reset().keys()
         self.policy_keys = policies_config.keys()
-        rollout_batch_len = self.train_batch_size // self.num_rollout_workers
 
         # Spawn main rollout worker, used for (actual) learning
         self.main_rollout_worker = RolloutWorker(
@@ -69,6 +68,10 @@ class Algorithm(object):
         ### Multi-processing
         # Spawn secondary workers used for batching
         self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
+
+        # TODO: add shared memory - probably one per process w/the main process
+        # After batching all data is merged together to create a single big
+        # batch.
 
         # Calculate batch iterations distribution
         if self.train_batch_size % self.rollout_fragment_length != 0:
@@ -138,28 +141,6 @@ class Algorithm(object):
         Args:
             env: updated environment
         """
-        # TODO: improve distribution algo
-        # batch_size_counter = 0
-        # while batch_size_counter < self.train_batch_size:
-        #     print(f"batch: {batch_size_counter}")
-        #     # memories = [pipe[0].recv() for pipe in self.pipes]
-        #     memories = []
-        #     for pipe in self.pipes:
-        #         memories.append(pipe[0].recv())
-
-        #     batch_size_counter += (
-        #         self.rollout_fragment_length * self.num_rollout_workers
-        #     )
-
-        #     for memory in memories:
-        #         for key in self.policy_keys:
-        #             # print(len(memory[key].actions))
-        #             self.memory[key].extend(memory[key])
-
-        #     if batch_size_counter != self.train_batch_size - 1:
-        #         for pipe in self.pipes:
-        #             pipe[0].send(1)
-
         # Get batches and create a single "big" batch
         memories = [pipe[0].recv() for pipe in self.pipes]
         for memory in memories:
@@ -203,15 +184,3 @@ class Algorithm(object):
         policy_action, policy_logprob = self.main_rollout_worker.get_actions(obs=obs)
 
         return policy_action, policy_logprob
-
-    def sync_weights(self) -> None:
-        """
-        Sync weights on multiple workers.
-        """
-        # TODO: check if deepcopy is faster or set/get weighes is better.
-        # weights = self.main_rollout_worker.get_weights()
-
-        # set weights on other workers:
-        # self.second_rollout_worker.set_weights(weights=weights)
-        for worker in self.workers:
-            worker.policies = copy.deepcopy(self.main_rollout_worker.policies)
