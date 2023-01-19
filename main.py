@@ -21,7 +21,7 @@ if __name__ == "__main__":
     BATCH_SIZE = 6000
     SEED = 1
 
-    NUM_WORKERS = 12
+    NUM_WORKERS = 8
     rollout_fragment_length = 200
 
     K_epochs = 8

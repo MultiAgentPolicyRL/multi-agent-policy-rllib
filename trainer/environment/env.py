@@ -14,6 +14,7 @@ import ai_economist.foundation as foundation
 from gym import spaces
 from gym.utils import seeding
 from trainer.environment import env_config
+from tensordict import TensorDict
 
 _BIG_NUMBER = 1e20
 
@@ -187,15 +188,10 @@ class EnvWrapper:
         """
         # FIXME: add dict_to_tensor_dict
         # observation_tensored = {}
-
         # for key in observation:
-        #     # Agents: '0', '1', '2', '3', 'p'
-        #     observation_tensored[key] = {}
-        #     for data_key in observation[key]:
-        #         # Accessing to specific data like 'world-map', 'flat', 'time', ...
-        #         observation_tensored[key][data_key] = (
-        #             torch.Tensor(observation[key][data_key]).unsqueeze(0).long()
-        #         )
+        #     observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(
+        #         self.device
+        #     )
         # return observation_tensored
         return observation
 

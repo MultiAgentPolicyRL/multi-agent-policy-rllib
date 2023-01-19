@@ -1,6 +1,8 @@
 """
 Rollout worker. This good guy manages its policy and creates a batch
 """
+# import dill as pickle
+import pickle
 from typing import Dict, Tuple
 
 from trainer.policies import EmptyPolicy, PpoPolicy
@@ -121,9 +123,15 @@ class RolloutWorker:
                 )
 
             obs = next_obs
-        # print(f"{self.id} batch created")
 
-    # @exec_time
+        # Dump memory in file
+        self.pickle_memory()
+
+    @exec_time
+    def pickle_memory(self):
+        data_file = open(f'.bin/{self.id}.bin', 'wb')
+        pickle.dump(self.memory, data_file)
+        data_file.close()
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """

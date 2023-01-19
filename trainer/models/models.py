@@ -108,6 +108,9 @@ class PytorchLinear(nn.Module):
         obs1 = obs2['flat'].squeeze()
         obs['action_mask'] = torch.from_numpy(obs['action_mask']).to(self.device).detach()
 
+        # obs1 = obs['flat'].squeeze()
+        # obs['action_mask'] = obs['action_mask']
+
         action_probs = self.actor(obs1)
 
         # Apply logits mask

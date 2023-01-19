@@ -8,6 +8,7 @@ It manages:
 - each policy singularly so that it has all the required (correct) inputs
 """
 import copy
+import pickle
 import sys
 from typing import Any, Dict, Tuple
 from torch.multiprocessing import Pipe, Process
@@ -26,8 +27,10 @@ def run_rollout_worker(conn, worker: RolloutWorker, id:int):
         # print(f"{id} batcha")
         worker.batch()
         # print(f"{id} manda memoria")
-        conn.send(worker.memory)
-
+        # conn.send(worker.memory)
+        
+        # Bad way of using semaphores/signals
+        conn.send(1)
 
 class Algorithm(object):
     """
@@ -82,9 +85,10 @@ class Algorithm(object):
         remaining_iterations = batch_iterations-(iterations_per_worker*self.num_rollout_workers)
 
         self.workers = []
-        for id in range(self.num_rollout_workers):
+        self.workers_id = []
+        for _id in range(self.num_rollout_workers):
             # Get pipe connection
-            parent_conn, child_conn = self.pipes[id]
+            parent_conn, child_conn = self.pipes[_id]
 
             # Calculate worker_iterations
             if remaining_iterations > 0:
@@ -101,20 +105,22 @@ class Algorithm(object):
                 policy_mapping_function=self.policy_mapping_function,
                 env=env,
                 device=device,
-                id=id
+                id=_id
             )
+
+            self.workers_id.append(_id)
 
             p = Process(
                 target=run_rollout_worker,
-                name=f"RolloutWorker-{id}",
-                args=(child_conn, worker, id),
+                name=f"RolloutWorker-{_id}",
+                args=(child_conn, worker, _id),
             )
 
             self.workers.append(p)
             p.start()
             parent_conn.send(self.main_rollout_worker.get_weights())
 
-        print("Rollout workers build!")
+        print("Rollout workers built!")
 
     def policy_mapping_function(self, key: str) -> str:
         """
@@ -142,11 +148,23 @@ class Algorithm(object):
             env: updated environment
         """
         # Get batches and create a single "big" batch
-        memories = [pipe[0].recv() for pipe in self.pipes]
-        for memory in memories:
-                for key in self.policy_keys:
-                    # print(len(memory[key].actions))
-                    self.memory[key].extend(memory[key])
+        # Bad way to do semaphores
+        _ = [pipe[0].recv() for pipe in self.pipes]
+
+        # Open all files in a list of `file`
+        for file_name in self.workers_id:
+            file = (open(f'.bin/{file_name}.bin', 'rb'))
+            rollout = (pickle.load(file))
+            
+            for key in self.policy_keys:
+                self.memory[key].extend(rollout[key])
+            
+            file.close()
+
+        # for memory in memories:
+                # for key in self.policy_keys:
+                    # # print(len(memory[key].actions))
+                    # self.memory[key].extend(memory[key])
 
 
         print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
