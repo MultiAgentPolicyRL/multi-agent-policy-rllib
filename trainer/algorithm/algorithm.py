@@ -7,30 +7,27 @@ It manages:
 - giving actions to the environment
 - each policy singularly so that it has all the required (correct) inputs
 """
-import copy
 import pickle
-import sys
-from typing import Any, Dict, Tuple
+from time import sleep
+from typing import Dict, Tuple
 from torch.multiprocessing import Pipe, Process
 
 from trainer.algorithm.rollout_worker import RolloutWorker
 from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
+from os import remove
 
 
-def run_rollout_worker(conn, worker: RolloutWorker, id:int):
+def run_rollout_worker(conn, worker: RolloutWorker, id: int):
     # tmp = Memory(None, [], {}, 1, "cpu")
     while True:
         weights = conn.recv()
-        # print(f"{id} presa connessione - set weights")
         worker.set_weights(weights=weights)
-        # print(f"{id} batcha")
         worker.batch()
-        # print(f"{id} manda memoria")
-        # conn.send(worker.memory)
-        
+        worker.save_csv()
         # Bad way of using semaphores/signals
         conn.send(1)
+
 
 class Algorithm(object):
     """
@@ -45,6 +42,7 @@ class Algorithm(object):
         device: str,
         num_rollout_workers: int,
         rollout_fragment_length: int,
+        experiment_name
     ):
         self.policies_config = policies_config
         self.train_batch_size = train_batch_size
@@ -52,11 +50,12 @@ class Algorithm(object):
         self.num_rollout_workers = num_rollout_workers
         self.actor_keys = env.reset().keys()
         self.policy_keys = policies_config.keys()
+        self.experiment_name = experiment_name
 
         # Spawn main rollout worker, used for (actual) learning
         self.main_rollout_worker = RolloutWorker(
             rollout_fragment_length=rollout_fragment_length,
-            batch_iterations = 0,
+            batch_iterations=0,
             policies_config=self.policies_config,
             actor_keys=self.actor_keys,
             policy_mapping_function=self.policy_mapping_function,
@@ -68,7 +67,7 @@ class Algorithm(object):
         for key in self.policy_keys:
             self.memory[key] = RolloutBuffer()
 
-        ### Multi-processing
+        # Multi-processing
         # Spawn secondary workers used for batching
         self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
 
@@ -78,11 +77,13 @@ class Algorithm(object):
 
         # Calculate batch iterations distribution
         if self.train_batch_size % self.rollout_fragment_length != 0:
-            ValueError(f"train_batch_size % rollout_fragment_length must be == 0")
+            ValueError(
+                f"train_batch_size % rollout_fragment_length must be == 0")
 
         batch_iterations = self.train_batch_size//self.rollout_fragment_length
         iterations_per_worker = batch_iterations//self.num_rollout_workers
-        remaining_iterations = batch_iterations-(iterations_per_worker*self.num_rollout_workers)
+        remaining_iterations = batch_iterations - \
+            (iterations_per_worker*self.num_rollout_workers)
 
         self.workers = []
         self.workers_id = []
@@ -93,19 +94,20 @@ class Algorithm(object):
             # Calculate worker_iterations
             if remaining_iterations > 0:
                 worker_iterations = iterations_per_worker + 1
-                remaining_iterations-=1
+                remaining_iterations -= 1
             else:
                 worker_iterations = iterations_per_worker
 
             worker = RolloutWorker(
                 rollout_fragment_length=rollout_fragment_length,
-                batch_iterations = worker_iterations,
+                batch_iterations=worker_iterations,
                 policies_config=self.policies_config,
                 actor_keys=self.actor_keys,
                 policy_mapping_function=self.policy_mapping_function,
                 env=env,
                 device=device,
-                id=_id
+                id=_id,
+                experiment_name=self.experiment_name
             )
 
             self.workers_id.append(_id)
@@ -136,16 +138,13 @@ class Algorithm(object):
         return "p"
 
     @exec_time
-    def train_one_step(self, env):
+    def train_one_step(self):
         """
         Train all policies.
         It creates a batch of size = `self.batch_size`, then
         this RolloutBuffer is splitted between each policy following
         `self.policy_mapping_fun` and trained respectivly to the
         corrisponding policy.
-
-        Args:
-            env: updated environment
         """
         # Get batches and create a single "big" batch
         # Bad way to do semaphores
@@ -153,19 +152,18 @@ class Algorithm(object):
 
         # Open all files in a list of `file`
         for file_name in self.workers_id:
-            file = (open(f'.bin/{file_name}.bin', 'rb'))
+            file = (open(f'/dev/shm/{self.experiment_name}_{file_name}.bin', 'rb'))
             rollout = (pickle.load(file))
-            
+
             for key in self.policy_keys:
                 self.memory[key].extend(rollout[key])
-            
+
             file.close()
 
         # for memory in memories:
-                # for key in self.policy_keys:
-                    # # print(len(memory[key].actions))
-                    # self.memory[key].extend(memory[key])
-
+            # for key in self.policy_keys:
+            # # print(len(memory[key].actions))
+            # self.memory[key].extend(memory[key])
 
         print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
         # Update main worker policy
@@ -184,9 +182,10 @@ class Algorithm(object):
         Kill and clear all workers.
         """
         for worker in self.workers:
-            # worker.join()
             worker.terminate()
-            # worker.close()
+            worker.join()
+        sleep(10)
+        self.delete_data_files()
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -199,6 +198,14 @@ class Algorithm(object):
             policy_action
             policy_logprob
         """
-        policy_action, policy_logprob = self.main_rollout_worker.get_actions(obs=obs)
+        policy_action, policy_logprob = self.main_rollout_worker.get_actions(
+            obs=obs)
 
         return policy_action, policy_logprob
+
+    def delete_data_files(self):
+        """
+        Delte communication files used during batching 
+        """
+        for file_name in range(self.num_rollout_workers):
+            remove(f'/dev/shm/{self.experiment_name}_{file_name}.bin')

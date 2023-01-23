@@ -10,18 +10,23 @@ import torch
 from trainer.algorithm import Algorithm
 from trainer.environment import get_environment
 from trainer.policies import EmptyPolicy, PpoPolicy
-from tqdm import tqdm
+# from tqdm import tqdm
 
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~11s/step
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~5,6s/step - torch.tensor: 1.32
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~5,6s/step - torch.from_numpy + np.array: 1.62
-    EPOCHS = 5
-    BATCH_SIZE = 6000
+    # With files instead of pipes:
+    # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~2.2s/step
+
+    # Actual with files in disk: Function train_one_step Took 6.888880795999967 seconds
+
+    EPOCHS = 1
+    BATCH_SIZE = 3000
     SEED = 1
 
-    NUM_WORKERS = 8
+    NUM_WORKERS = 12
     rollout_fragment_length = 200
 
     K_epochs = 8
@@ -58,12 +63,13 @@ if __name__ == "__main__":
         device=device,
         num_rollout_workers=NUM_WORKERS,
         rollout_fragment_length=rollout_fragment_length,
+        experiment_name=EXPERIMENT_NAME
     )
 
     for i in range(EPOCHS):
         actions, _ = algorithm.get_actions(obs)
         obs, rew, done, info = env.step(actions)
-        algorithm.train_one_step(env=env)
+        algorithm.train_one_step()
         # algorithm.compare_models(obs)
 
     algorithm.close_workers()

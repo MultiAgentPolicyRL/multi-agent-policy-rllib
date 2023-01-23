@@ -56,7 +56,8 @@ class PytorchLinear(nn.Module):
         lr_actor = 0.0003  # learning rate for actor network
         lr_critic = 0.001  # learning rate for critic network
 
-
+        # print(type(obs_space.spaces[self.MASK_NAME].shape))
+        # sys.exit()
         mask = obs_space[self.MASK_NAME]
         self.mask_input = mask.shape
 

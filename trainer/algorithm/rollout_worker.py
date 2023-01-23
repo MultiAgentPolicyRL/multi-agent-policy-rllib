@@ -46,7 +46,8 @@ class RolloutWorker:
         policy_mapping_function,
         env,
         device: str,
-        id
+        id,
+        experiment_name,
     """
 
     def __init__(
@@ -58,27 +59,29 @@ class RolloutWorker:
         actor_keys: list,
         env,
         device: str = "cpu",
-        id: int = -1
+        id: int = -1,
+        experiment_name = None,
     ):
-        # super().__init__(*args, **kwargs)
-
+        # TODO: config validation
         self.env = env
         self.id = id
         self.actor_keys = actor_keys
-        # self.policies_config = policies_config
         self.batch_iterations = batch_iterations
         self.rollout_fragment_length = rollout_fragment_length
         self.batch_size = self.batch_iterations*self.rollout_fragment_length
         self.policy_keys = policies_config.keys()
         self.policy_mapping_function = policy_mapping_function
+        self.experiment_name=experiment_name
 
         self.policies = {}
         self.memory = {}
         for key in self.policy_keys:
             self.policies[key] = build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
+        
+        # TODO: add csv header
 
-    @exec_time
+    # @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
@@ -89,16 +92,13 @@ class RolloutWorker:
         # is set at the end (so we have save this obs for the next batch)
         # DONE: checked if this env returns `done` and YES, it DOES IT (at 1k steps - as config)
 
-        # print(f"{self.id} batch start")
         # reset batching environment and get its observation
         obs = self.env.reset()
 
         # reset rollout_buffer
-        # print(f"{self.id} batch_memory_clear")
         for memory in self.memory.values():
             memory.clear()
 
-        # print(f"{self.id} creating batch")
         for counter in range(self.batch_size):
             # get actions, action_logprob for all agents in each policy* wrt observation
             policy_action, policy_logprob = self.get_actions(obs)
@@ -127,11 +127,19 @@ class RolloutWorker:
         # Dump memory in file
         self.pickle_memory()
 
-    @exec_time
+    # @exec_time
     def pickle_memory(self):
-        data_file = open(f'.bin/{self.id}.bin', 'wb')
+        """
+        Dumps data in a file so it can be read by process' father
+        """
+        data_file = open(f'/dev/shm/{self.experiment_name}_{self.id}.bin', 'wb')
         pickle.dump(self.memory, data_file)
         data_file.close()
+
+    def save_csv(self):
+        """
+        Append agent's total reward for this batch
+        """
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -175,7 +183,5 @@ class RolloutWorker:
         """
         Set model weights
         """
-        # print(f"{self.id} updating weights")
         for key in self.policies.keys():
             self.policies[key].set_weights(weights[key])
-        # print(f"{self.id} weights updated")
