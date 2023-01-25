@@ -6,30 +6,32 @@ import logging
 import sys
 
 import torch
-
 from trainer.algorithm import Algorithm
 from trainer.environment import get_environment
 from trainer.policies import EmptyPolicy, PpoPolicy
-# from tqdm import tqdm
+
+from tqdm import tqdm
 
 if __name__ == "__main__":
     EXPERIMENT_NAME = int(time.time())
+    print(f"EXPERIMENT_NAME: {EXPERIMENT_NAME}")
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~11s/step
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~5,6s/step - torch.tensor: 1.32
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~5,6s/step - torch.from_numpy + np.array: 1.62
     # With files instead of pipes:
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~2.2s/step
+    # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~1.6s/step
+    # 24/1/23 with files in disk: Function train_one_step Took 6.888880795999967 seconds - 6k batch - 12 workers - 200
+    # 25/1/23 with files in disk: Function train_one_step Took 4.844272016000104 seconds - 6k batch - 12 workers - 200
 
-    # Actual with files in disk: Function train_one_step Took 6.888880795999967 seconds
-
-    EPOCHS = 1
-    BATCH_SIZE = 3000
+    EPOCHS = 200
+    BATCH_SIZE = 1000
     SEED = 1
 
     NUM_WORKERS = 12
     rollout_fragment_length = 200
 
-    K_epochs = 8
+    K_epochs = 16
     plotting = True
 
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -63,10 +65,11 @@ if __name__ == "__main__":
         device=device,
         num_rollout_workers=NUM_WORKERS,
         rollout_fragment_length=rollout_fragment_length,
-        experiment_name=EXPERIMENT_NAME
+        experiment_name=EXPERIMENT_NAME,
+        seed=SEED,
     )
 
-    for i in range(EPOCHS):
+    for i in tqdm(range(EPOCHS)):
         actions, _ = algorithm.get_actions(obs)
         obs, rew, done, info = env.step(actions)
         algorithm.train_one_step()

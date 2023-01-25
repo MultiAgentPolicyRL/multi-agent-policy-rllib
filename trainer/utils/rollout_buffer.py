@@ -16,6 +16,7 @@ class RolloutBuffer:
     """
     Buffer used to store batched data
     """
+    # TODO: move to_tensor inside each policy.
 
     def __init__(self):
         self.actions = []
@@ -58,7 +59,7 @@ class RolloutBuffer:
         self.rewards.extend(other.rewards)
         self.is_terminals.extend(other.is_terminals)
 
-    @exec_time
+    # @exec_time
     def to_tensor(self):
         buffer = RolloutBuffer()
         buffer.actions = torch.tensor((self.actions))
@@ -74,13 +75,14 @@ class RolloutBuffer:
         buffer.states = torch.stack(states)
         return buffer
 
-    def _dict_to_tensor_dict(self, data : dict):
+    def _dict_to_tensor_dict(self, data: dict):
         observation_tensored = {}
 
         for key in data.keys():
             observation_tensored[key] = torch.from_numpy(data[key])
-            
+
         return observation_tensored
+
 
 class Memory:
     """

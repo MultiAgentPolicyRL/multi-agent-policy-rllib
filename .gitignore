@@ -2,6 +2,14 @@
 .bin
 *.bin
 
+# Profiler data
+profile.html
+profile.json
+
+# Plotting and logs
+/logs
+/plot
+
 # Specicif files
 env.md
 link_effettivamente_utili.md
@@ -10,7 +18,6 @@ videoCall020922
 whid.md
 roadmap.md
 *.txt
-*.csv
 
 # Ide
 .vscode

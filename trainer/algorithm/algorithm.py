@@ -24,9 +24,9 @@ def run_rollout_worker(conn, worker: RolloutWorker, id: int):
         weights = conn.recv()
         worker.set_weights(weights=weights)
         worker.batch()
-        worker.save_csv()
         # Bad way of using semaphores/signals
         conn.send(1)
+        worker.save_csv()
 
 
 class Algorithm(object):
@@ -42,7 +42,8 @@ class Algorithm(object):
         device: str,
         num_rollout_workers: int,
         rollout_fragment_length: int,
-        experiment_name
+        experiment_name,
+        seed: int,
     ):
         self.policies_config = policies_config
         self.train_batch_size = train_batch_size
@@ -61,6 +62,8 @@ class Algorithm(object):
             policy_mapping_function=self.policy_mapping_function,
             env=env,
             device=device,
+            seed=seed,
+            experiment_name=experiment_name
         )
 
         self.memory = {}
@@ -77,13 +80,13 @@ class Algorithm(object):
 
         # Calculate batch iterations distribution
         if self.train_batch_size % self.rollout_fragment_length != 0:
-            ValueError(
-                f"train_batch_size % rollout_fragment_length must be == 0")
+            ValueError(f"train_batch_size % rollout_fragment_length must be == 0")
 
-        batch_iterations = self.train_batch_size//self.rollout_fragment_length
-        iterations_per_worker = batch_iterations//self.num_rollout_workers
-        remaining_iterations = batch_iterations - \
-            (iterations_per_worker*self.num_rollout_workers)
+        batch_iterations = self.train_batch_size // self.rollout_fragment_length
+        iterations_per_worker = batch_iterations // self.num_rollout_workers
+        remaining_iterations = batch_iterations - (
+            iterations_per_worker * self.num_rollout_workers
+        )
 
         self.workers = []
         self.workers_id = []
@@ -107,7 +110,8 @@ class Algorithm(object):
                 env=env,
                 device=device,
                 id=_id,
-                experiment_name=self.experiment_name
+                seed=seed,
+                experiment_name=self.experiment_name,
             )
 
             self.workers_id.append(_id)
@@ -137,7 +141,7 @@ class Algorithm(object):
             return "a"
         return "p"
 
-    @exec_time
+    # @exec_time
     def train_one_step(self):
         """
         Train all policies.
@@ -152,20 +156,16 @@ class Algorithm(object):
 
         # Open all files in a list of `file`
         for file_name in self.workers_id:
-            file = (open(f'/dev/shm/{self.experiment_name}_{file_name}.bin', 'rb'))
-            rollout = (pickle.load(file))
+            file = open(f"/tmp/{self.experiment_name}_{file_name}.bin", "rb")
+            rollout = pickle.load(file)
 
             for key in self.policy_keys:
                 self.memory[key].extend(rollout[key])
 
             file.close()
 
-        # for memory in memories:
-            # for key in self.policy_keys:
-            # # print(len(memory[key].actions))
-            # self.memory[key].extend(memory[key])
+        # print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
 
-        print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
         # Update main worker policy
         self.main_rollout_worker.learn(memory=self.memory)
 
@@ -182,10 +182,7 @@ class Algorithm(object):
         Kill and clear all workers.
         """
         for worker in self.workers:
-            worker.terminate()
-            worker.join()
-        sleep(10)
-        self.delete_data_files()
+            worker.kill()
 
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -198,14 +195,13 @@ class Algorithm(object):
             policy_action
             policy_logprob
         """
-        policy_action, policy_logprob = self.main_rollout_worker.get_actions(
-            obs=obs)
+        policy_action, policy_logprob = self.main_rollout_worker.get_actions(obs=obs)
 
         return policy_action, policy_logprob
 
     def delete_data_files(self):
         """
-        Delte communication files used during batching 
+        Delte communication files used during batching
         """
         for file_name in range(self.num_rollout_workers):
-            remove(f'/dev/shm/{self.experiment_name}_{file_name}.bin')
+            remove(f"/tmp/{self.experiment_name}_{file_name}.bin")

@@ -7,6 +7,7 @@ from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
 from tensordict import TensorDict
 
+
 class PpoPolicy(Policy):
     """
     PPO Main Optimization Algorithm
@@ -48,7 +49,7 @@ class PpoPolicy(Policy):
 
         return policy_action.item(), policy_probability
 
-    @exec_time
+    # @exec_time
     def learn(
         self,
         rollout_buffer: List[RolloutBuffer],
@@ -66,7 +67,8 @@ class PpoPolicy(Policy):
             rollout_buffer: RolloutBuffer for this specific policy.
         """
         buffer = rollout_buffer.to_tensor()
-        self.__update(buffer=buffer)
+        a_loss, c_loss = self.__update(buffer=buffer)
+        return a_loss, c_loss
 
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
@@ -111,8 +113,8 @@ class PpoPolicy(Policy):
             )
 
             critic_loss = self.MseLoss(state_values, rewards)
+            
             # final loss of clipped objective PPO
-
             loss = -torch.min(surr1, surr2) + 0.5 * critic_loss - 0.01 * dist_entropy
 
             # take gradient step
@@ -120,11 +122,11 @@ class PpoPolicy(Policy):
             loss.mean().backward()
             self.Model.optimizer.step()
 
-            c_loss.append(torch.mean(loss))
+            c_loss.append(torch.mean(critic_loss))
             a_loss.append(torch.mean(loss))
 
-        a_loss = torch.mean(torch.tensor(a_loss))
-        c_loss = torch.mean(torch.tensor(c_loss))
+        a_loss = torch.mean(torch.tensor(a_loss)).numpy()
+        c_loss = torch.mean(torch.tensor(c_loss)).numpy()
 
         return a_loss, c_loss
 

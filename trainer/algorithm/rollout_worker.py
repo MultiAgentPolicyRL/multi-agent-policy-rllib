@@ -58,28 +58,41 @@ class RolloutWorker:
         policy_mapping_function,
         actor_keys: list,
         env,
+        seed: int,
         device: str = "cpu",
         id: int = -1,
-        experiment_name = None,
+        experiment_name=None,
     ):
         # TODO: config validation
         self.env = env
         self.id = id
+
+        # Set worker's env seed
+        env.seed(seed + id)
+
         self.actor_keys = actor_keys
         self.batch_iterations = batch_iterations
         self.rollout_fragment_length = rollout_fragment_length
-        self.batch_size = self.batch_iterations*self.rollout_fragment_length
+        self.batch_size = self.batch_iterations * self.rollout_fragment_length
         self.policy_keys = policies_config.keys()
         self.policy_mapping_function = policy_mapping_function
-        self.experiment_name=experiment_name
+        self.experiment_name = experiment_name
 
         self.policies = {}
         self.memory = {}
         for key in self.policy_keys:
             self.policies[key] = build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
-        
+
         # TODO: add csv header
+        # Create csv file
+        # rew: 0,1,2,3,p
+        csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
+        if self.id != -1:
+            csv.write(f"{','.join(map(str, self.policy_keys))}\n")
+        else:
+            csv.write(f"a_actor_loss,a_critic_loss,p_a_loss,p_c_loss\n")
+        csv.close()
 
     # @exec_time
     def batch(self):
@@ -106,10 +119,13 @@ class RolloutWorker:
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
-            if counter % self.rollout_fragment_length-1 == 0:
-                # end this episode, start a new one. Set done to True (used in policies)
-                # reset batching environment and get its observation
-                done["__all__"] = True
+            # if counter % self.rollout_fragment_length - 1 == 0:
+            #     # end this episode, start a new one. Set done to True (used in policies)
+            #     # reset batching environment and get its observation
+            #     done["__all__"] = True
+            #     next_obs = self.env.reset()
+
+            if done['__all__']==True:
                 next_obs = self.env.reset()
 
             # save new_observation, reward, done, action, action_logprob in rollout_buffer
@@ -127,20 +143,24 @@ class RolloutWorker:
         # Dump memory in file
         self.pickle_memory()
 
+    def save_csv(self):
+        """
+        Append agent's total reward for this batch
+        """
+        csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
+        rewards = [sum(m.rewards) for m in self.memory.values()]
+        csv.write(f"{','.join(map(str, rewards))}\n")
+        csv.close()
+
     # @exec_time
     def pickle_memory(self):
         """
         Dumps data in a file so it can be read by process' father
         """
-        data_file = open(f'/dev/shm/{self.experiment_name}_{self.id}.bin', 'wb')
+        data_file = open(f"/tmp/{self.experiment_name}_{self.id}.bin", "wb")
         pickle.dump(self.memory, data_file)
         data_file.close()
-
-    def save_csv(self):
-        """
-        Append agent's total reward for this batch
-        """
-
+        
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
         Build action dictionary using actions taken from all policies.
@@ -166,8 +186,19 @@ class RolloutWorker:
         """
         TODO: docs
         """
+        losses = []
         for key in self.policies:
-            self.policies[key].learn(rollout_buffer=memory[key])
+            losses.append(self.policies[key].learn(rollout_buffer=memory[key]))
+
+        csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
+        # rewards = [*m for m in losses]
+        rewards = []
+        for m in losses:
+            for k in m:
+                rewards.append(k)
+        csv.write(f"{','.join(map(str, rewards))}\n")
+        csv.close()
+        
 
     def get_weights(self) -> dict:
         """

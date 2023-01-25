@@ -11,6 +11,7 @@ from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
 import torch
 
+
 class EmptyPolicy(Policy):
     """
     Empty policy to manage an `unmanaged` policy. Used when an actor (or set of actors)

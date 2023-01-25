@@ -9,22 +9,22 @@ if __name__ == "__main__":
         ValueError(f"batch_size % rollout_fragment_length must be == 0")
 
     # 30
-    batch_iterations = batch_size//rollout_fragment_length 
+    batch_iterations = batch_size // rollout_fragment_length
 
     # 30//12 =  2
-    iterations_per_worker = batch_iterations//num_workers
+    iterations_per_worker = batch_iterations // num_workers
 
-    remaining_iterations = batch_iterations-(iterations_per_worker*num_workers)
+    remaining_iterations = batch_iterations - (iterations_per_worker * num_workers)
 
     workers_iterations = []
 
     for i in range(num_workers):
         if remaining_iterations > 0:
             iter = iterations_per_worker + 1
-            remaining_iterations-=1
+            remaining_iterations -= 1
         else:
             iter = iterations_per_worker
-      
+
         workers_iterations.append(iter)
 
     print(sum(workers_iterations))
