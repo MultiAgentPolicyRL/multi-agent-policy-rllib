@@ -32,12 +32,7 @@ class EmptyPolicy(Policy):
         actions = []
         # TODO: revert
         # for _ in self.action_space:
-        # actions.append(torch.zeros((1,)))
-
-        # if len(actions) == 1:
-        # actions = actions[0]
-
-        # return actions, torch.zeros((1,))
+        #   actions.append(torch.zeros((1,)))
 
         for _ in self.action_space:
             actions.append(0)

@@ -73,6 +73,5 @@ if __name__ == "__main__":
         actions, _ = algorithm.get_actions(obs)
         obs, rew, done, info = env.step(actions)
         algorithm.train_one_step()
-        # algorithm.compare_models(obs)
 
     algorithm.close_workers()

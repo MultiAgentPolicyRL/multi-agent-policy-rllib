@@ -4,7 +4,7 @@ import torch
 import numpy
 
 if __name__ == '__main__':
-    EXPERIMENT_NAME = 1674647866
+    EXPERIMENT_NAME = 1675706364
 
     # Stati data:
     EPOCHS = 200

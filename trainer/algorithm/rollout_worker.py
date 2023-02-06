@@ -99,12 +99,6 @@ class RolloutWorker:
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
         """
-        # FIXME: batch done in this way is wrong:
-        # the env should be reset only when done==true, so we need
-        # a common "self.obs" that is used at the beginning of the batch and
-        # is set at the end (so we have save this obs for the next batch)
-        # DONE: checked if this env returns `done` and YES, it DOES IT (at 1k steps - as config)
-
         # reset batching environment and get its observation
         obs = self.env.reset()
 
@@ -118,12 +112,6 @@ class RolloutWorker:
 
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
-
-            # if counter % self.rollout_fragment_length - 1 == 0:
-            #     # end this episode, start a new one. Set done to True (used in policies)
-            #     # reset batching environment and get its observation
-            #     done["__all__"] = True
-            #     next_obs = self.env.reset()
 
             if done['__all__']==True:
                 next_obs = self.env.reset()

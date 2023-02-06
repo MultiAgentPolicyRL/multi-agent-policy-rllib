@@ -53,8 +53,8 @@ class PytorchLinear(nn.Module):
         self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
         ## TMP: parameters
-        lr_actor = 0.001  # learning rate for actor network 0003
-        lr_critic = 0.001  # learning rate for critic network 001
+        lr_actor = 0.0003  # learning rate for actor network 0003
+        lr_critic = 0.0003  # learning rate for critic network 001
 
         # print(type(obs_space.spaces[self.MASK_NAME].shape))
         # mask = obs_space[self.MASK_NAME]
