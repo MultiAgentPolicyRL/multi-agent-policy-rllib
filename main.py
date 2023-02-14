@@ -10,9 +10,13 @@ from trainer.algorithm import Algorithm
 from trainer.environment import get_environment
 from trainer.policies import EmptyPolicy, PpoPolicy
 
+import ray
+
 from tqdm import tqdm
 
 if __name__ == "__main__":
+    ray.init()
+
     EXPERIMENT_NAME = int(time.time())
     print(f"EXPERIMENT_NAME: {EXPERIMENT_NAME}")
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~11s/step
@@ -23,22 +27,21 @@ if __name__ == "__main__":
     # batch_size 1600, 4 workers, rollout_lenghts 200 -> ~1.6s/step
     # 24/1/23 with files in disk: Function train_one_step Took 6.888880795999967 seconds - 6k batch - 12 workers - 200
     # 25/1/23 with files in disk: Function train_one_step Took 4.844272016000104 seconds - 6k batch - 12 workers - 200
-
+    # 14:55
+    
     EPOCHS = 1
-    BATCH_SIZE = 6000
+    BATCH_SIZE = 1000
     SEED = 1
-
     NUM_WORKERS = 12
-    rollout_fragment_length = 200
-
-    K_epochs = 16
-    plotting = True
+    ROLLOUT_FRAGMENT_LENGTH = 200
+    K_EPOCHS = 16
+    PLOTTING = True
 
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = 'cuda'
-    device = "cpu"
+    DEVICE = "cpu"
 
-    env = get_environment(device)
+    env = get_environment(DEVICE)
     env.seed(SEED)
     torch.manual_seed(SEED)
     obs = env.reset()
@@ -48,8 +51,8 @@ if __name__ == "__main__":
             "policy": PpoPolicy,
             "observation_space": env.observation_space,
             "action_space": [50],
-            "K_epochs": K_epochs,
-            "device": device,
+            "K_epochs": K_EPOCHS,
+            "device": DEVICE,
         },
         "p": {
             "policy": EmptyPolicy,
@@ -62,15 +65,15 @@ if __name__ == "__main__":
         train_batch_size=BATCH_SIZE,
         policies_config=policies,
         env=env,
-        device=device,
+        device=DEVICE,
         num_rollout_workers=NUM_WORKERS,
-        rollout_fragment_length=rollout_fragment_length,
+        rollout_fragment_length=ROLLOUT_FRAGMENT_LENGTH,
         experiment_name=EXPERIMENT_NAME,
         seed=SEED,
     )
 
-    # for i in tqdm(range(EPOCHS)):
-    for i in range(EPOCHS):
+    for i in tqdm(range(EPOCHS)):
+    # for i in range(EPOCHS):
 
         actions, _ = algorithm.get_actions(obs)
         obs, rew, done, info = env.step(actions)
