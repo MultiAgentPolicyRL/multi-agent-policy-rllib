@@ -2,8 +2,6 @@
 Experiment launcher
 """
 import time
-import logging
-import sys
 
 import torch
 from trainer.algorithm import Algorithm

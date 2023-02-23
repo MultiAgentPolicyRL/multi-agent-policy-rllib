@@ -1,6 +1,5 @@
 import logging
 
-
 def setup_logger(logger_name, log_file, formatter, level=logging.DEBUG):
     """
     Setup a logger with

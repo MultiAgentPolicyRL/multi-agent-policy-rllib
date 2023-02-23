@@ -1,5 +1,3 @@
-import random
-import sys
 from typing import List, Tuple
 import torch
 from trainer.models import PytorchLinear
