@@ -203,7 +203,7 @@ class LSTMModel(nn.Module):
         _world_map = obs[WORLD_MAP].int()
         _world_idx_map = obs[WORLD_IDX_MAP].int()
         _flat = obs["flat"]
-        _time = obs["time"].squeeze(1).int()
+        _time = obs["time"].int()
         # _action_mask = obs[ACTION_MASK].int()
 
         if self.action_space == 22:
@@ -331,8 +331,15 @@ class LSTMModel(nn.Module):
         """
         for key in obs.keys():
             # if key in ['world-map', 'world-idx_map']:
-            if key != 'time':
-                obs[key] = obs[key].to(self.device).squeeze(1)
+            if key == 'time':
+                if len(obs[key].shape) < 2:
+                    obs[key] = obs[key].unsqueeze(-1)
+                elif len(obs[key].shape) > 2:
+                    obs[key] = obs[key].squeeze(1)
+
+                obs[key] = obs[key].to(self.device).int()
+            else:
+                obs[key] = obs[key].squeeze(1).to(self.device)
             # else:
             #     obs[key] = obs[key].to(self.device).squeeze(-1)
 

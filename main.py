@@ -10,6 +10,8 @@ from trainer.policies import EmptyPolicy, PpoPolicy
 
 from tqdm import tqdm
 
+torch.multiprocessing.set_start_method("fork")
+
 if __name__ == "__main__":
 
     EXPERIMENT_NAME = int(time.time())
