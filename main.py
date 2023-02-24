@@ -25,9 +25,9 @@ if __name__ == "__main__":
     # 14:55
     
     EPOCHS = 1
-    BATCH_SIZE = 1000
+    BATCH_SIZE = 200
     SEED = 1
-    NUM_WORKERS = 12
+    NUM_WORKERS = 1
     ROLLOUT_FRAGMENT_LENGTH = 200
     K_EPOCHS = 16
     PLOTTING = True

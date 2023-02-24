@@ -2,19 +2,25 @@
 AI-Economist inspired pytorch model
 """
 
-import os
-import sys
-import copy
-from typing import Tuple
 import torch
-import random
 import torch.nn as nn
-from torch.autograd import Variable
+# from torch.autograd import Variable
 
 WORLD_MAP = "world-map"
 WORLD_IDX_MAP = "world-idx_map"
 ACTION_MASK = "action_mask"
 
+N_DIMS = {
+    'world-map': 4,
+    'world-idx_map':4,
+    'flat':2,
+    'time':2,
+    'action_mask':2,
+    'p0':2,
+    'p1':2,
+    'p2':2,
+    'p3':2,
+}
 
 class LSTMModel(nn.Module):
     """
@@ -49,11 +55,11 @@ class LSTMModel(nn.Module):
             self.output_dim = 1
 
         ### Manage observation shape(s)
-        self.conv_map_channels, self.conv_shape_r, self.conv_shape_c = obs_space[
+        self.conv_map_channels, self.conv_shape_r, self.conv_shape_c = obs_space.spaces[
             WORLD_MAP
         ].shape
 
-        self.conv_idx_channels = obs_space[WORLD_IDX_MAP].shape[0] * self.emb_dim
+        self.conv_idx_channels = obs_space.spaces[WORLD_IDX_MAP].shape[0] * self.emb_dim
         
         ### Embedding layers
 
@@ -108,12 +114,12 @@ class LSTMModel(nn.Module):
 
         self.conv_dims = 192 if self.action_space == 50 else 320
         self.flatten_dims = (
-            self.conv_dims + obs_space["flat"].shape[0] + obs_space["time"].shape[0]
+            self.conv_dims + obs_space.spaces["flat"].shape[0] + obs_space.spaces["time"].shape[0]
         )
 
         if self.action_space == 22:
             for agent in ["p0", "p1", "p2", "p3"]:  # 32
-                self.flatten_dims += obs_space[agent].shape[0]
+                self.flatten_dims += obs_space.spaces[agent].shape[0]
 
         self.fc_layer_1_policy = nn.Linear(
             in_features=self.flatten_dims, out_features=self.fc_dim
@@ -193,13 +199,11 @@ class LSTMModel(nn.Module):
         Returns:
             probability: ...
         """
-        
-
 
         _world_map = obs[WORLD_MAP].int()
         _world_idx_map = obs[WORLD_IDX_MAP].int()
         _flat = obs["flat"]
-        _time = obs["time"].int()
+        _time = obs["time"].squeeze(1).int()
         # _action_mask = obs[ACTION_MASK].int()
 
         if self.action_space == 22:
@@ -288,7 +292,7 @@ class LSTMModel(nn.Module):
         """
         for key in obs.keys():
             obs[key] = torch.from_numpy(obs[key]).to(self.device).unsqueeze(0)
-
+                
         logits = self.__forward(obs)
 
         _action_mask = obs[ACTION_MASK].int()
@@ -325,6 +329,12 @@ class LSTMModel(nn.Module):
             state_values: value function reward prediction
             dist_entropy: entropy of actions distribution
         """
+        for key in obs.keys():
+            # if key in ['world-map', 'world-idx_map']:
+            if key != 'time':
+                obs[key] = obs[key].to(self.device).squeeze(1)
+            # else:
+            #     obs[key] = obs[key].to(self.device).squeeze(-1)
 
         action_probs = self.__forward(obs)
         dist = torch.distributions.Categorical(logits=action_probs)
@@ -410,3 +420,28 @@ class LSTMModel(nn.Module):
         state_values = self.output_value(lstm_out)
 
         return action_logprobs, state_values, dist_entropy
+
+    def get_weights(self) -> dict:
+        """
+        Get policy weights.
+
+        Return:
+            actor_weights, critic_weights
+        """
+        actor_weights = self.state_dict(keep_vars=True)
+        critic_weights = 0
+        optimizer_weights = 0
+
+        return actor_weights, critic_weights, optimizer_weights
+
+    def set_weights(self, actor_weights: dict, critic_weights: dict, optimizer_weights):
+        """
+        Set policy weights.
+
+        Args:
+            actor_weights: actor weights dictionary - from numpy
+            critic_weights: critic weights dictionary - from numpy
+        """
+        print("loading")
+        self.load_state_dict(actor_weights)
+        print("loaded")

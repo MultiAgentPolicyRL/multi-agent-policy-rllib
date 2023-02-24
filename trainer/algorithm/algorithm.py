@@ -25,7 +25,9 @@ def run_rollout_worker(conn, worker: RolloutWorker, id: int):
     """
     while True:
         weights = conn.recv()
+        print(f"{id} - got weights")
         worker.set_weights(weights=weights)
+        print(f"{id} - set w")
         worker.batch()
         # Bad way of using semaphores/signals
         conn.send(1)
@@ -151,13 +153,14 @@ class Algorithm(object):
         """
         # Get batches and create a single "big" batch
         # Bad way to do semaphores
+        print("bad semaphores")
         _ = [pipe[0].recv() for pipe in self.pipes]
-
+        print("bad semaphores -> memory")
         self.get_memory()
-
+        print("memory -> learn")
         # Update main worker policy
         self.main_rollout_worker.learn(memory=self.memory)
-
+        print("learned!")
         # Send updated policy to all rollout workers
         for pipe in self.pipes:
             pipe[0].send(self.main_rollout_worker.get_weights())
