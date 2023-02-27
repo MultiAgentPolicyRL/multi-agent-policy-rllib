@@ -47,7 +47,7 @@ if __name__ == "__main__":
         "a": {
             "policy": PpoPolicy,
             "observation_space": env.observation_space,
-            "action_space": 50,
+            "action_space": [50],
             "K_epochs": K_EPOCHS,
             "device": DEVICE,
         },

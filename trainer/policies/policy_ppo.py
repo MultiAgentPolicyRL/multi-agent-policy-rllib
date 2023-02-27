@@ -1,6 +1,6 @@
 from typing import List, Tuple
 import torch
-from trainer.models import PytorchLinear, LSTMModel
+from trainer.models import PytorchLinear
 from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
 from tensordict import TensorDict
@@ -21,7 +21,7 @@ class PpoPolicy(Policy):
         self.gamma = 0.998  # discount factor
         self.device = device
         # Environment and PPO parameters
-        self.Model = LSTMModel(
+        self.Model: PytorchLinear = PytorchLinear(
             obs_space=self.observation_space,
             action_space=self.action_space,
             device=self.device,

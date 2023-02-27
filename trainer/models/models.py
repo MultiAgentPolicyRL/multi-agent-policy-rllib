@@ -46,6 +46,7 @@ class PytorchLinear(nn.Module):
         super().__init__()
         self.device = device
 
+        self.MASK_NAME = "action_mask"
         # FIXME: this doesn't work with [22,22,22,22,22,22] of the planner
         self.num_outputs = action_space[0]
         self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
@@ -97,14 +98,25 @@ class PytorchLinear(nn.Module):
             action: taken action
             action_logprob: log probability of that action
         """
+        obs2 = {}
         for key in obs.keys():
-            obs[key] = torch.from_numpy(obs[key]).to(self.device).detach()
+            obs2[key] = torch.from_numpy(obs[key]).to(self.device).detach()
 
-        action_probs = self.actor(obs["flat"])
+        # obs1 =
+        # obs['action_mask'] = torch.from_numpy(obs['action_mask']).to(self.device)#.detach()
+
+        # obs1 = obs['flat'].squeeze()
+        # obs['action_mask'] = obs['action_mask']
+        action_probs = self.actor(obs2["flat"])
 
         # Apply logits mask
         logit_mask = self.logit_mask * (self.one_mask - obs["action_mask"])
+        # logit_mask = torch.matmul(
+        #     self.logit_mask, torch.sub(self.one_mask, obs2["action_mask"])
+        # )
+
         action_probs = action_probs + logit_mask
+        # action_probs = torch.add(logit_mask, action_probs)
 
         dist = torch.distributions.Categorical(logits=action_probs)
 
