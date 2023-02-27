@@ -8,10 +8,9 @@ from typing import Dict, Tuple
 
 from trainer.policies import EmptyPolicy, PpoPolicy
 from trainer.utils.execution_time import exec_time
-from trainer.utils.rollout_buffer import RolloutBuffer, MultiRolloutBuffer
+from trainer.utils.rollout_buffer import RolloutBuffer
 
 from copy import deepcopy
-
 
 def build_policy(policy_config):
     """
@@ -33,7 +32,6 @@ def build_policy(policy_config):
         )
     else:
         KeyError(f"Policy {policy_config['policy']} is not in the registry")
-
 
 @ray.remote
 class RolloutWorker:
@@ -59,17 +57,17 @@ class RolloutWorker:
         rollout_fragment_length: int,
         batch_iterations: int,
         policies_config: dict,
+        policy_mapping_function,
         actor_keys: list,
         env,
         seed: int,
         device: str = "cpu",
         id: int = -1,
         experiment_name=None,
-        shared_memory: MultiRolloutBuffer = None,
     ):
+        # TODO: config validation
         self.env = deepcopy(env)
         self.id = id
-        self.shared_memory: MultiRolloutBuffer = shared_memory
 
         # Set worker's env seed
         env.seed(seed + id)
@@ -79,14 +77,15 @@ class RolloutWorker:
         self.rollout_fragment_length = rollout_fragment_length
         self.batch_size = self.batch_iterations * self.rollout_fragment_length
         self.policy_keys = policies_config.keys()
+        self.policy_mapping_function = policy_mapping_function
         self.experiment_name = experiment_name
 
         self.policies = {}
+        self.memory = {}
         for key in self.policy_keys:
             self.policies[key] = build_policy(policies_config[key])
+            self.memory[key] = RolloutBuffer()
 
-        self.memory = MultiRolloutBuffer.remote(
-            agent_keys=self.actor_keys)
 
         # TODO: add csv header
         # Create csv file
@@ -107,37 +106,35 @@ class RolloutWorker:
         obs = self.env.reset()
 
         # reset rollout_buffer
-        # self.memory.clear.remote()
+        for memory in self.memory.values():
+            memory.clear()
 
-        for _ in range(self.batch_size):
+        for counter in range(self.batch_size):
             # get actions, action_logprob for all agents in each policy* wrt observation
             policy_action, policy_logprob = self.get_actions(obs)
 
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
-            if done["__all__"] == True:
+            if done['__all__']==True:
                 next_obs = self.env.reset()
 
-            self.shared_memory.update.remote(
-                action=policy_action,
-                logprob=policy_logprob,
-                state=obs,
-                reward=rew,
-                is_terminal=done["__all__"],
-            )
+            # save new_observation, reward, done, action, action_logprob in rollout_buffer
+            for id in self.actor_keys:
+                self.memory[self.policy_mapping_function(id)].update(
+                    state=obs[id],
+                    action=policy_action[id],
+                    logprob=policy_logprob[id],
+                    reward=rew[id],
+                    is_terminal=done["__all__"],
+                )
 
             obs = next_obs
-
-        # ray.get(self.memory.get_buffers.remote())
-        # self.shared_memory.extend.remote(ray.get(self.memory.get_buffers.remote()))
-
-        return True
-        # return self.memory
+        return self.memory
         # return ray.put(self.memory)
 
     def get_memory(self):
-        return self.memory
+            return self.memory
 
     def save_csv(self):
         """
@@ -148,6 +145,8 @@ class RolloutWorker:
         csv.write(f"{','.join(map(str, rewards))}\n")
         csv.close()
 
+    
+        
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
         Build action dictionary using actions taken from all policies.
@@ -173,6 +172,17 @@ class RolloutWorker:
         """
         TODO: docs
         """
+        # # Clear internal memory bf any futher action
+        for memory in self.memory.values():
+            memory.clear()
+        
+        # Set new memory
+        # data = [ray.get(rollout) for rollout in memory]
+        # # print(len(memory['a'].actions))
+        # for rollout in data:
+        #     for key in self.policy_keys:
+        #         self.memory[key].extend(ray.get(rollout)[key])
+
         losses = []
         for key in self.policies:
             losses.append(self.policies[key].learn(rollout_buffer=self.memory[key]))
@@ -185,6 +195,7 @@ class RolloutWorker:
                 rewards.append(k)
         csv.write(f"{','.join(map(str, rewards))}\n")
         csv.close()
+        
 
     def get_weights(self) -> dict:
         """
@@ -202,16 +213,3 @@ class RolloutWorker:
         """
         for key in self.policies.keys():
             self.policies[key].set_weights(weights[key])
-
-    def policy_mapping_function(self, key: str) -> str:
-        """
-        It differenciates between two types of agents:
-        `a` and `p`:    `a` -> economic player
-                        `p` -> social planner
-
-        Args:
-            key: agent dictionary key
-        """
-        if str(key).isdigit() or key == "a":
-            return "a"
-        return "p"

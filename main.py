@@ -31,8 +31,8 @@ if __name__ == "__main__":
     # 25/1/23 with files in disk: Function train_one_step Took 4.844272016000104 seconds - 6k batch - 12 workers - 200
     # 14:55
 
-    EPOCHS = 1
-    BATCH_SIZE = 1000
+    EPOCHS = 5
+    BATCH_SIZE = 6000
     SEED = 1
     NUM_WORKERS = 1
     ROLLOUT_FRAGMENT_LENGTH = 200
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     env.seed(SEED)
     torch.manual_seed(SEED)
     obs = env.reset()
-    
+
     policies = {
         "a": {
             "policy": PpoPolicy,

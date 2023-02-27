@@ -15,10 +15,21 @@ from torch.multiprocessing import Pipe, Process
 import ray
 from trainer.algorithm.rollout_worker import RolloutWorker
 from trainer.policies import Policy
-from trainer.utils import RolloutBuffer, exec_time, MultiRolloutBuffer
+from trainer.utils import RolloutBuffer, exec_time
 from os import remove
 import time
 from copy import deepcopy
+
+
+def run_rollout_worker(conn, worker: RolloutWorker, id: int):
+    # tmp = Memory(None, [], {}, 1, "cpu")
+    while True:
+        weights = conn.recv()
+        worker.set_weights(weights=weights)
+        worker.batch()
+        # Bad way of using semaphores/signals
+        conn.send(1)
+        worker.save_csv()
 
 
 class Algorithm(object):
@@ -45,22 +56,22 @@ class Algorithm(object):
         self.policy_keys = policies_config.keys()
         self.experiment_name = experiment_name
 
-        self.memory = MultiRolloutBuffer.remote(
-            agent_keys=self.actor_keys,
-        )
-
         # Spawn main rollout worker, used for (actual) learning
-        self.main_rollout_worker: RolloutWorker = RolloutWorker.remote(
+        self.main_rollout_worker : RolloutWorker = RolloutWorker.remote(
             rollout_fragment_length=rollout_fragment_length,
             batch_iterations=0,
             policies_config=self.policies_config,
             actor_keys=self.actor_keys,
+            policy_mapping_function=self.policy_mapping_function,
             env=env,
             device=device,
             seed=seed,
-            experiment_name=experiment_name,
-            shared_memory=self.memory,
+            experiment_name=experiment_name
         )
+
+        self.memory = {}
+        for key in self.policy_keys:
+            self.memory[key] = RolloutBuffer()
 
         # Multi-processing
         # Spawn secondary workers used for batching
@@ -86,20 +97,18 @@ class Algorithm(object):
             else:
                 worker_iterations = iterations_per_worker
 
-            self.workers.append(
-                RolloutWorker.remote(
-                    rollout_fragment_length=rollout_fragment_length,
-                    batch_iterations=worker_iterations,
-                    policies_config=self.policies_config,
-                    actor_keys=self.actor_keys,
-                    env=env,
-                    device=device,
-                    id=_id,
-                    seed=seed,
-                    experiment_name=self.experiment_name,
-                    shared_memory=self.memory,
-                )
-            )
+            self.workers.append(RolloutWorker.remote(
+                rollout_fragment_length=rollout_fragment_length,
+                batch_iterations=worker_iterations,
+                policies_config=self.policies_config,
+                actor_keys=self.actor_keys,
+                policy_mapping_function=self.policy_mapping_function,
+                env=env,
+                device=device,
+                id=_id,
+                seed=seed,
+                experiment_name=self.experiment_name,
+            ))
 
 
         print("Rollout workers built!")
@@ -127,26 +136,20 @@ class Algorithm(object):
         corrisponding policy.
         """
         # FIXME: remove this deepcopy and prepare data in a more effective way
-        models_weights = ray.put(
-            deepcopy(ray.get(self.main_rollout_worker.get_weights.remote()))
-        )
-
+        models_weiths = ray.put(deepcopy(ray.get(self.main_rollout_worker.get_weights.remote())))
+        
         for worker in self.workers:
-            worker.set_weights.remote(models_weights)
-
-        del models_weights
+            worker.set_weights.remote(models_weiths)
 
         # Get batches and create a single "big" batch
-
-        start = time.time()
+        # batch_ref = [ worker.batch.remote() for worker in self.workers]
+        start = time.time()        
         results = ray.get([worker.batch.remote() for worker in self.workers])
         print(f"{time.time() - start}")
-
-        sys.exit()
         # for rollout in results:
         #     for key in self.policy_keys:
         #         self.memory[key].extend(rollout[key])
-        # start = time.time()
+        # start = time.time()        
         # mem = ray.put(results)
 
         # Update main worker policy
@@ -178,9 +181,7 @@ class Algorithm(object):
             policy_action
             policy_logprob
         """
-        policy_action, policy_logprob = ray.get(
-            self.main_rollout_worker.get_actions.remote(obs=obs)
-        )
+        policy_action, policy_logprob = ray.get(self.main_rollout_worker.get_actions.remote(obs=obs))
 
         return policy_action, policy_logprob
 
