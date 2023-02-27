@@ -8,6 +8,7 @@ It manages:
 - each policy singularly so that it has all the required (correct) inputs
 """
 import pickle
+from time import sleep
 from typing import Dict, Tuple
 from torch.multiprocessing import Pipe, Process
 
@@ -15,14 +16,11 @@ from trainer.algorithm.rollout_worker import RolloutWorker
 from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
 from os import remove
+import time
 
 
 def run_rollout_worker(conn, worker: RolloutWorker, id: int):
-    """
-    `rollout_worker` manager. 
-    MaybeFIXME: add arg about how many times the worker should
-    iterate, so it can end its work without being forcefully killed.
-    """
+    # tmp = Memory(None, [], {}, 1, "cpu")
     while True:
         weights = conn.recv()
         print(f"{id} - got weights")
@@ -68,7 +66,7 @@ class Algorithm(object):
             env=env,
             device=device,
             seed=seed,
-            experiment_name=experiment_name,
+            experiment_name=experiment_name
         )
 
         self.memory = {}
@@ -78,6 +76,10 @@ class Algorithm(object):
         # Multi-processing
         # Spawn secondary workers used for batching
         self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
+
+        # TODO: add shared memory - probably one per process w/the main process
+        # After batching all data is merged together to create a single big
+        # batch.
 
         # Calculate batch iterations distribution
         if self.train_batch_size % self.rollout_fragment_length != 0:
@@ -155,9 +157,20 @@ class Algorithm(object):
         # Bad way to do semaphores
         print("bad semaphores")
         _ = [pipe[0].recv() for pipe in self.pipes]
-        print("bad semaphores -> memory")
-        self.get_memory()
-        print("memory -> learn")
+
+        # Open all files in a list of `file`
+        # _time = time.perf_counter()
+        for file_name in self.workers_id:
+            file = open(f"/tmp/{self.experiment_name}_{file_name}.bin", "rb")
+            rollout = pickle.load(file)
+
+            for key in self.policy_keys:
+                self.memory[key].extend(rollout[key])
+
+            file.close()
+
+        # print(f"UNPICKLING TIME: {time.perf_counter()-_time}")
+
         # Update main worker policy
         self.main_rollout_worker.learn(memory=self.memory)
         print("learned!")
@@ -165,21 +178,9 @@ class Algorithm(object):
         for pipe in self.pipes:
             pipe[0].send(self.main_rollout_worker.get_weights())
 
-        # Clear memory
+        # Clear memory from used batch
         for memory in self.memory.values():
             memory.clear()
-
-    def get_memory(self) -> None:
-        """
-        Get batch from `self.workers_id` and put it in `self.memory`
-        """
-        # Open all files in a list of `file`
-        for file_name in self.workers_id:
-            with open(f"/tmp/{self.experiment_name}_{file_name}.bin", "rb") as file:
-                rollout = pickle.load(file)
-
-            for key in self.policy_keys:
-                self.memory[key].extend(rollout[key])
 
     def close_workers(self):
         """

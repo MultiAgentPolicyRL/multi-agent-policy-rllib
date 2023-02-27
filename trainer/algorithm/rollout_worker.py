@@ -2,7 +2,7 @@
 Rollout worker. This good guy manages its policy and creates a batch
 """
 import pickle
-from typing import Tuple
+from typing import Dict, Tuple
 
 from trainer.policies import EmptyPolicy, PpoPolicy
 from trainer.utils.execution_time import exec_time
@@ -61,6 +61,7 @@ class RolloutWorker:
         id: int = -1,
         experiment_name=None,
     ):
+        # TODO: config validation
         self.env = env
         self.id = id
 
@@ -81,13 +82,15 @@ class RolloutWorker:
             self.policies[key] = build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
 
+        # TODO: add csv header
         # Create csv file
         # rew: 0,1,2,3,p
-        with open(f"logs/{self.experiment_name}_{self.id}.csv", "a") as csv:
-            if self.id != -1:
-                csv.write(f"{','.join(map(str, self.policy_keys))}\n")
-            else:
-                csv.write("a_actor_loss,a_critic_loss,p_a_loss,p_c_loss\n")
+        csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
+        if self.id != -1:
+            csv.write(f"{','.join(map(str, self.policy_keys))}\n")
+        else:
+            csv.write(f"a_actor_loss,a_critic_loss,p_a_loss,p_c_loss\n")
+        csv.close()
 
     # @exec_time
     def batch(self):
@@ -101,23 +104,23 @@ class RolloutWorker:
         for memory in self.memory.values():
             memory.clear()
 
-        for _ in range(self.batch_size):
+        for counter in range(self.batch_size):
             # get actions, action_logprob for all agents in each policy* wrt observation
             policy_action, policy_logprob = self.get_actions(obs)
 
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
-            if done['__all__'] is True:
+            if done['__all__']==True:
                 next_obs = self.env.reset()
 
             # save new_observation, reward, done, action, action_logprob in rollout_buffer
-            for _id in self.actor_keys:
-                self.memory[self.policy_mapping_function(_id)].update(
-                    state=obs[_id],
-                    action=policy_action[_id],
-                    logprob=policy_logprob[_id],
-                    reward=rew[_id],
+            for id in self.actor_keys:
+                self.memory[self.policy_mapping_function(id)].update(
+                    state=obs[id],
+                    action=policy_action[id],
+                    logprob=policy_logprob[id],
+                    reward=rew[id],
                     is_terminal=done["__all__"],
                 )
 
@@ -130,17 +133,19 @@ class RolloutWorker:
         """
         Append agent's total reward for this batch
         """
-        with open(f"logs/{self.experiment_name}_{self.id}.csv", "a") as csv:
-            rewards = [sum(m.rewards) for m in self.memory.values()]
-            csv.write(f"{','.join(map(str, rewards))}\n")
+        csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
+        rewards = [sum(m.rewards) for m in self.memory.values()]
+        csv.write(f"{','.join(map(str, rewards))}\n")
+        csv.close()
 
     # @exec_time
     def pickle_memory(self):
         """
         Dumps data in a file so it can be read by process' father
         """
-        with open(f"/tmp/{self.experiment_name}_{self.id}.bin", "wb") as data_file:
-            pickle.dump(self.memory, data_file)
+        data_file = open(f"/tmp/{self.experiment_name}_{self.id}.bin", "wb")
+        pickle.dump(self.memory, data_file)
+        data_file.close()
         
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -170,13 +175,16 @@ class RolloutWorker:
         losses = []
         for key in self.policies:
             losses.append(self.policies[key].learn(rollout_buffer=memory[key]))
-        
+
+        csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
+        # rewards = [*m for m in losses]
         rewards = []
-        with open(f"logs/{self.experiment_name}_{self.id}.csv", "a") as csv:
-            for m in losses:
-                for k in m:
-                    rewards.append(k)
-            csv.write(f"{','.join(map(str, rewards))}\n")        
+        for m in losses:
+            for k in m:
+                rewards.append(k)
+        csv.write(f"{','.join(map(str, rewards))}\n")
+        csv.close()
+        
 
     def get_weights(self) -> dict:
         """
