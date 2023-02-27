@@ -6,7 +6,6 @@
 from typing import List
 
 import numpy as np
-import ray
 import torch
 from tensordict import TensorDict
 
@@ -84,27 +83,7 @@ class RolloutBuffer:
 
         return observation_tensored
 
-@ray.remote
-class MultiRolloutBuffer():
-    def __init__(self, agent_keys):
-        self.buffers = { key:RolloutBuffer() for key in agent_keys}
-    
-    def clear(self):
-        for buffer in self.buffers.values():
-            buffer.clear()
-    
-    def update(self, action: dict, logprob:dict, state:dict, reward:dict, is_terminal:dict):
-        for key in self.buffers.keys():
-            self.buffers[key].update(action=action,
-                logprob=logprob,
-                state=state,
-                reward=reward,
-                is_terminal=is_terminal)
 
-    def extend(self, other):
-        for key in self.buffers.keys():
-            self.buffers[key].extend(other.buffers[key])
-        
 # class Memory:
 #     """
 #     Batch memory used during batching and training
