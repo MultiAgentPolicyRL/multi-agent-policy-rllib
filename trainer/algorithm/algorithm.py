@@ -8,15 +8,17 @@ It manages:
 - each policy singularly so that it has all the required (correct) inputs
 """
 import pickle
+import sys
 from time import sleep
 from typing import Dict, Tuple
 from torch.multiprocessing import Pipe, Process
-
+import ray
 from trainer.algorithm.rollout_worker import RolloutWorker
 from trainer.policies import Policy
 from trainer.utils import RolloutBuffer, exec_time
 from os import remove
 import time
+from copy import deepcopy
 
 
 def run_rollout_worker(conn, worker: RolloutWorker, id: int):
@@ -57,7 +59,7 @@ class Algorithm(object):
         self.experiment_name = experiment_name
 
         # Spawn main rollout worker, used for (actual) learning
-        self.main_rollout_worker = RolloutWorker(
+        self.main_rollout_worker : RolloutWorker = RolloutWorker.remote(
             rollout_fragment_length=rollout_fragment_length,
             batch_iterations=0,
             policies_config=self.policies_config,
@@ -75,9 +77,6 @@ class Algorithm(object):
 
         # Multi-processing
         # Spawn secondary workers used for batching
-        self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
-
-        # TODO: add shared memory - probably one per process w/the main process
         # After batching all data is merged together to create a single big
         # batch.
 
@@ -92,11 +91,7 @@ class Algorithm(object):
         )
 
         self.workers = []
-        self.workers_id = []
         for _id in range(self.num_rollout_workers):
-            # Get pipe connection
-            parent_conn, child_conn = self.pipes[_id]
-
             # Calculate worker_iterations
             if remaining_iterations > 0:
                 worker_iterations = iterations_per_worker + 1
@@ -104,7 +99,7 @@ class Algorithm(object):
             else:
                 worker_iterations = iterations_per_worker
 
-            worker = RolloutWorker(
+            self.workers.append(RolloutWorker.remote(
                 rollout_fragment_length=rollout_fragment_length,
                 batch_iterations=worker_iterations,
                 policies_config=self.policies_config,
@@ -117,17 +112,8 @@ class Algorithm(object):
                 experiment_name=self.experiment_name,
             )
 
-            self.workers_id.append(_id)
+            ))
 
-            p = Process(
-                target=run_rollout_worker,
-                name=f"RolloutWorker-{_id}",
-                args=(child_conn, worker, _id),
-            )
-
-            self.workers.append(p)
-            p.start()
-            parent_conn.send(self.main_rollout_worker.get_weights())
 
         print("Rollout workers built!")
 
@@ -144,7 +130,7 @@ class Algorithm(object):
             return "a"
         return "p"
 
-    # @exec_time
+    @exec_time
     def train_one_step(self):
         """
         Train all policies.
@@ -153,27 +139,26 @@ class Algorithm(object):
         `self.policy_mapping_fun` and trained respectivly to the
         corrisponding policy.
         """
+        # FIXME: remove this deepcopy and prepare data in a more effective way
+        models_weiths = ray.put(deepcopy(ray.get(self.main_rollout_worker.get_weights.remote())))
+        
+        for worker in self.workers:
+            worker.set_weights.remote(models_weiths)
+
         # Get batches and create a single "big" batch
-        # Bad way to do semaphores
-        print("bad semaphores")
-        _ = [pipe[0].recv() for pipe in self.pipes]
-
-        # Open all files in a list of `file`
-        # _time = time.perf_counter()
-        for file_name in self.workers_id:
-            file = open(f"/tmp/{self.experiment_name}_{file_name}.bin", "rb")
-            rollout = pickle.load(file)
-
-            for key in self.policy_keys:
-                self.memory[key].extend(rollout[key])
-
-            file.close()
-
-        # print(f"UNPICKLING TIME: {time.perf_counter()-_time}")
+        # batch_ref = [ worker.batch.remote() for worker in self.workers]
+        start = time.time()        
+        results = ray.get([worker.batch.remote() for worker in self.workers])
+        print(f"{time.time() - start}")
+        # for rollout in results:
+        #     for key in self.policy_keys:
+        #         self.memory[key].extend(rollout[key])
+        # start = time.time()        
+        # mem = ray.put(results)
 
         # Update main worker policy
         self.main_rollout_worker.learn(memory=self.memory)
-        print("learned!")
+
         # Send updated policy to all rollout workers
         for pipe in self.pipes:
             pipe[0].send(self.main_rollout_worker.get_weights())
@@ -200,7 +185,7 @@ class Algorithm(object):
             policy_action
             policy_logprob
         """
-        policy_action, policy_logprob = self.main_rollout_worker.get_actions(obs=obs)
+        policy_action, policy_logprob = ray.get(self.main_rollout_worker.get_actions.remote(obs=obs))
 
         return policy_action, policy_logprob
 

@@ -17,7 +17,7 @@ from tqdm import tqdm
 torch.multiprocessing.set_start_method("fork")
 
 if __name__ == "__main__":
-    ray.init()
+    ray.init(num_cpus=12)
 
     EXPERIMENT_NAME = int(time.time())
     print(f"EXPERIMENT_NAME: {EXPERIMENT_NAME}")
@@ -30,9 +30,9 @@ if __name__ == "__main__":
     # 24/1/23 with files in disk: Function train_one_step Took 6.888880795999967 seconds - 6k batch - 12 workers - 200
     # 25/1/23 with files in disk: Function train_one_step Took 4.844272016000104 seconds - 6k batch - 12 workers - 200
     # 14:55
-    
-    EPOCHS = 1
-    BATCH_SIZE = 200
+
+    EPOCHS = 5
+    BATCH_SIZE = 6000
     SEED = 1
     NUM_WORKERS = 1
     ROLLOUT_FRAGMENT_LENGTH = 200
@@ -81,4 +81,4 @@ if __name__ == "__main__":
         obs, rew, done, info = env.step(actions)
         algorithm.train_one_step()
 
-    algorithm.close_workers()
+    # algorithm.close_workers()

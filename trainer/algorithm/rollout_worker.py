@@ -1,6 +1,7 @@
 """
 Rollout worker. This good guy manages its policy and creates a batch
 """
+import sys
 import ray
 import pickle
 from typing import Dict, Tuple
@@ -9,6 +10,7 @@ from trainer.policies import EmptyPolicy, PpoPolicy
 from trainer.utils.execution_time import exec_time
 from trainer.utils.rollout_buffer import RolloutBuffer
 
+from copy import deepcopy
 
 def build_policy(policy_config):
     """
@@ -64,7 +66,7 @@ class RolloutWorker:
         experiment_name=None,
     ):
         # TODO: config validation
-        self.env = env
+        self.env = deepcopy(env)
         self.id = id
 
         # Set worker's env seed
@@ -83,6 +85,7 @@ class RolloutWorker:
         for key in self.policy_keys:
             self.policies[key] = build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
+
 
         # TODO: add csv header
         # Create csv file
@@ -127,9 +130,11 @@ class RolloutWorker:
                 )
 
             obs = next_obs
+        return self.memory
+        # return ray.put(self.memory)
 
-        # Dump memory in file
-        self.pickle_memory()
+    def get_memory(self):
+            return self.memory
 
     def save_csv(self):
         """
@@ -140,14 +145,7 @@ class RolloutWorker:
         csv.write(f"{','.join(map(str, rewards))}\n")
         csv.close()
 
-    # @exec_time
-    def pickle_memory(self):
-        """
-        Dumps data in a file so it can be read by process' father
-        """
-        data_file = open(f"/tmp/{self.experiment_name}_{self.id}.bin", "wb")
-        pickle.dump(self.memory, data_file)
-        data_file.close()
+    
         
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
@@ -174,9 +172,20 @@ class RolloutWorker:
         """
         TODO: docs
         """
+        # # Clear internal memory bf any futher action
+        for memory in self.memory.values():
+            memory.clear()
+        
+        # Set new memory
+        # data = [ray.get(rollout) for rollout in memory]
+        # # print(len(memory['a'].actions))
+        # for rollout in data:
+        #     for key in self.policy_keys:
+        #         self.memory[key].extend(ray.get(rollout)[key])
+
         losses = []
         for key in self.policies:
-            losses.append(self.policies[key].learn(rollout_buffer=memory[key]))
+            losses.append(self.policies[key].learn(rollout_buffer=self.memory[key]))
 
         csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
         # rewards = [*m for m in losses]
