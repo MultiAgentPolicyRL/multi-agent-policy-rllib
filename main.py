@@ -10,11 +10,14 @@ from trainer.algorithm import Algorithm
 from trainer.environment import get_environment
 from trainer.policies import EmptyPolicy, PpoPolicy
 
+import ray
+
 from tqdm import tqdm
 
 torch.multiprocessing.set_start_method("fork")
 
 if __name__ == "__main__":
+    ray.init()
 
     EXPERIMENT_NAME = int(time.time())
     print(f"EXPERIMENT_NAME: {EXPERIMENT_NAME}")

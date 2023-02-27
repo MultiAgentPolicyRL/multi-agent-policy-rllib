@@ -1,6 +1,7 @@
 """
 Rollout worker. This good guy manages its policy and creates a batch
 """
+import ray
 import pickle
 from typing import Dict, Tuple
 
@@ -30,6 +31,7 @@ def build_policy(policy_config):
     else:
         KeyError(f"Policy {policy_config['policy']} is not in the registry")
 
+@ray.remote
 class RolloutWorker:
     """
     Rollout worker. It manages its policy and creates a batch.
