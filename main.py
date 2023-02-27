@@ -35,7 +35,6 @@ if __name__ == "__main__":
 
     PLOTTING = True
 
-
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = 'cuda'
     DEVICE = "cpu"
@@ -49,7 +48,7 @@ if __name__ == "__main__":
         "a": {
             "policy": PpoPolicy,
             "observation_space": env.observation_space,
-            "action_space": 50,
+            "action_space": [50],
             "K_epochs": K_EPOCHS,
             "device": DEVICE,
         },

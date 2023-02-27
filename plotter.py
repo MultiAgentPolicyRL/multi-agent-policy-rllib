@@ -3,7 +3,7 @@ import pandas
 import torch
 import numpy
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     EXPERIMENT_NAME = 1675706364
 
     # Stati data:
@@ -16,8 +16,8 @@ if __name__ == '__main__':
     losses = pandas.read_csv(f"logs/{EXPERIMENT_NAME}_-1.csv")
     # a_actor_loss,a_critic_loss,p_a_loss,p_c_loss
 
-    plt.plot(losses['a_actor_loss'].to_numpy(), label="Total Loss")
-    plt.plot(losses['a_critic_loss'].to_numpy(), label="Critic Loss")
+    plt.plot(losses["a_actor_loss"].to_numpy(), label="Total Loss")
+    plt.plot(losses["a_critic_loss"].to_numpy(), label="Critic Loss")
 
     plt.xlabel("Steps")
     plt.ylabel("Loss")
@@ -30,11 +30,13 @@ if __name__ == '__main__':
     plt.close()
 
     # Rewards
-    rewards = [pandas.read_csv(f"logs/{EXPERIMENT_NAME}_{id}.csv") for id in range(n_workers)]
+    rewards = [
+        pandas.read_csv(f"logs/{EXPERIMENT_NAME}_{id}.csv") for id in range(n_workers)
+    ]
     rewards = sum(rewards)
 
-    plt.plot(rewards['a'], label="Agents reward", color="blue")
-    plt.plot(rewards['p'], label="Planner reward", color="red")
+    plt.plot(rewards["a"], label="Agents reward", color="blue")
+    plt.plot(rewards["p"], label="Planner reward", color="red")
     plt.xlabel("Steps")
     plt.ylabel("Batch Reward")
     plt.title(

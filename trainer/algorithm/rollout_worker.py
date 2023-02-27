@@ -113,7 +113,7 @@ class RolloutWorker:
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
-            if done['__all__']==True:
+            if done["__all__"] == True:
                 next_obs = self.env.reset()
 
             # save new_observation, reward, done, action, action_logprob in rollout_buffer
@@ -148,7 +148,7 @@ class RolloutWorker:
         data_file = open(f"/tmp/{self.experiment_name}_{self.id}.bin", "wb")
         pickle.dump(self.memory, data_file)
         data_file.close()
-        
+
     def get_actions(self, obs: dict) -> Tuple[dict, dict]:
         """
         Build action dictionary using actions taken from all policies.
@@ -186,7 +186,6 @@ class RolloutWorker:
                 rewards.append(k)
         csv.write(f"{','.join(map(str, rewards))}\n")
         csv.close()
-        
 
     def get_weights(self) -> dict:
         """

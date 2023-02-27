@@ -5,6 +5,7 @@ AI-Economist inspired pytorch model
 import copy
 import torch
 import torch.nn as nn
+
 # from torch.autograd import Variable
 
 WORLD_MAP = "world-map"
@@ -12,16 +13,17 @@ WORLD_IDX_MAP = "world-idx_map"
 ACTION_MASK = "action_mask"
 
 N_DIMS = {
-    'world-map': 4,
-    'world-idx_map':4,
-    'flat':2,
-    'time':2,
-    'action_mask':2,
-    'p0':2,
-    'p1':2,
-    'p2':2,
-    'p3':2,
+    "world-map": 4,
+    "world-idx_map": 4,
+    "flat": 2,
+    "time": 2,
+    "action_mask": 2,
+    "p0": 2,
+    "p1": 2,
+    "p2": 2,
+    "p3": 2,
 }
+
 
 class LSTMModel(nn.Module):
     """
@@ -61,7 +63,7 @@ class LSTMModel(nn.Module):
         ].shape
 
         self.conv_idx_channels = obs_space.spaces[WORLD_IDX_MAP].shape[0] * self.emb_dim
-        
+
         ### Embedding layers
 
         self.embed_map_idx_policy = nn.Embedding(
@@ -115,7 +117,9 @@ class LSTMModel(nn.Module):
 
         self.conv_dims = 192 if self.action_space == 50 else 320
         self.flatten_dims = (
-            self.conv_dims + obs_space.spaces["flat"].shape[0] + obs_space.spaces["time"].shape[0]
+            self.conv_dims
+            + obs_space.spaces["flat"].shape[0]
+            + obs_space.spaces["time"].shape[0]
         )
 
         if self.action_space == 22:
@@ -193,10 +197,10 @@ class LSTMModel(nn.Module):
     def __forward(self, obs):
         """
         Calculates action probability from the model.
-        
+
         Args:
             obs: environment observation
-            
+
         Returns:
             probability: ...
         """
@@ -279,7 +283,7 @@ class LSTMModel(nn.Module):
         # self.hidden_state_h_p, self.hidden_state_c_p = hidden[0].detach(), hidden[1].detach()
         lstm_out, _ = self.lstm_policy(layer_norm_out)
         logits = self.output_policy(lstm_out)
-    
+
         return logits
 
     def act(self, obs):
@@ -293,7 +297,7 @@ class LSTMModel(nn.Module):
         """
         for key in obs.keys():
             obs[key] = torch.from_numpy(obs[key]).to(self.device).unsqueeze(0)
-                
+
         logits = self.__forward(obs)
 
         _action_mask = obs[ACTION_MASK].int()
@@ -315,8 +319,6 @@ class LSTMModel(nn.Module):
         else:
             action, action_logprob = self.apply_logit_mask(logits, _action_mask)
 
-        
-
         return action, action_logprob
 
     def evaluate(self, obs, act):
@@ -332,7 +334,7 @@ class LSTMModel(nn.Module):
         """
         for key in obs.keys():
             # if key in ['world-map', 'world-idx_map']:
-            if key == 'time':
+            if key == "time":
                 if len(obs[key].shape) < 2:
                     obs[key] = obs[key].unsqueeze(-1)
                 elif len(obs[key].shape) > 2:
@@ -394,7 +396,6 @@ class LSTMModel(nn.Module):
                 axis=1,
             )
 
-
         # Concatenate the map and the idx map
         conv_input = torch.cat([conv_input_map, map_embedd], axis=-1)
 
@@ -436,7 +437,7 @@ class LSTMModel(nn.Module):
         Return:
             actor_weights, critic_weights
         """
-        actor_weights = (self.state_dict(keep_vars=True))
+        actor_weights = self.state_dict(keep_vars=True)
         critic_weights = 0
         optimizer_weights = 0
 

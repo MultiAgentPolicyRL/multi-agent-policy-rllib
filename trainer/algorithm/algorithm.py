@@ -63,7 +63,7 @@ class Algorithm(object):
             env=env,
             device=device,
             seed=seed,
-            experiment_name=experiment_name
+            experiment_name=experiment_name,
         )
 
         self.memory = {}
@@ -125,7 +125,6 @@ class Algorithm(object):
             self.workers.append(p)
             p.start()
             parent_conn.send(self.main_rollout_worker.get_weights())
-
 
         print("Rollout workers built!")
 

@@ -19,11 +19,11 @@ class PpoPolicy(Policy):
             action_space=action_space,
         )
         self.K_epochs = K_epochs  # update policy for K epochs in one PPO update
-        self.eps_clip = 10 # 0.2 # clip parameter for PPO
+        self.eps_clip = 10  # 0.2 # clip parameter for PPO
         self.gamma = 0.998  # discount factor
         self.device = device
         # Environment and PPO parameters
-        self.Model: PytorchLinear = LSTMModel(
+        self.Model: PytorchLinear = PytorchLinear(
             obs_space=self.observation_space,
             action_space=self.action_space,
             device=self.device,
@@ -113,11 +113,11 @@ class PpoPolicy(Policy):
             )
 
             critic_loss = self.MseLoss(state_values, rewards)
-            
+
             # final loss of clipped objective PPO w/AI-Economist hyperparameters
             loss = -torch.min(surr1, surr2) + 0.05 * critic_loss - 0.025 * dist_entropy
 
-            # My original loss 
+            # My original loss
             # loss = -torch.min(surr1, surr2) + 0.5 * critic_loss - 0.01 * dist_entropy
 
             # take gradient step
