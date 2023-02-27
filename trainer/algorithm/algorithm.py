@@ -143,7 +143,7 @@ class Algorithm(object):
             return "a"
         return "p"
 
-    # @exec_time
+    @exec_time
     def train_one_step(self):
         """
         Train all policies.
@@ -157,7 +157,7 @@ class Algorithm(object):
         _ = [pipe[0].recv() for pipe in self.pipes]
 
         # Open all files in a list of `file`
-        # _time = time.perf_counter()
+        _time = time.perf_counter()
         for file_name in self.workers_id:
             file = open(f"/tmp/{self.experiment_name}_{file_name}.bin", "rb")
             rollout = pickle.load(file)
@@ -167,10 +167,12 @@ class Algorithm(object):
 
             file.close()
 
-        # print(f"UNPICKLING TIME: {time.perf_counter()-_time}")
+        print(f"UNPICKLING TIME: {time.perf_counter()-_time}")
+        # print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
 
         # Update main worker policy
-        self.main_rollout_worker.learn(memory=self.memory)
+        # FIXME: annotato oggi 6 feb 23
+        # self.main_rollout_worker.learn(memory=self.memory)
 
         # Send updated policy to all rollout workers
         for pipe in self.pipes:
