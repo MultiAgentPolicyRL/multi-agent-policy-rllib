@@ -26,8 +26,8 @@ if __name__ == "__main__":
     # 24/1/23 with files in disk: Function train_one_step Took 6.888880795999967 seconds - 6k batch - 12 workers - 200
     # 25/1/23 with files in disk: Function train_one_step Took 4.844272016000104 seconds - 6k batch - 12 workers - 200
 
-    EPOCHS = 1
-    BATCH_SIZE = 6000
+    EPOCHS = 200
+    BATCH_SIZE = 1000
     SEED = 1
     
     NUM_WORKERS = 12
@@ -74,11 +74,9 @@ if __name__ == "__main__":
         load_saved_models = LOAD_SAVED_MODELS
     )
 
-    del env
-
     for i in tqdm(range(EPOCHS)):
-        # actions, _ = algorithm.get_actions(obs)
-        # obs, rew, done, info = env.step(actions)
+        actions, _ = algorithm.get_actions(obs)
+        obs, rew, done, info = env.step(actions)
         algorithm.train_one_step()
 
     algorithm.save_models()
