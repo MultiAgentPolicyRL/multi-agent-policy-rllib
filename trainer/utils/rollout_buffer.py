@@ -83,4 +83,3 @@ class RolloutBuffer:
             observation_tensored[key] = torch.from_numpy(data[key])
 
         return observation_tensored
-    

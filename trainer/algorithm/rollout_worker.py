@@ -59,7 +59,6 @@ class RolloutWorker:
         actor_keys: list,
         env,
         seed: int,
-        device: str = "cpu",
         id: int = -1,
         experiment_name=None,
     ):
@@ -206,12 +205,16 @@ class RolloutWorker:
         Save the model of each policy.
         """
         for key in self.policies.keys():
-            self.policies[key].save_model(name=str(self.experiment_name)+key)
+            self.policies[key].save_model(name=str(self.experiment_name) + key)
 
     def load_models(self, experiment_name):
         """
         Load the model of each policy.
+
+        It doesn't load 'p' policy.
         """
         for key in self.policies.keys():
-            self.policies[key].load_model(name=str(experiment_name)+key)
+            if key is not "p":
+                self.policies[key].load_model(name=str(experiment_name) + key)
+
         print("Models loaded!")

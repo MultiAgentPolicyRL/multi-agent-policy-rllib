@@ -605,5 +605,5 @@ if __name__ == "__main__":
         [EpsGreedyLeaf],
         [i / divisor for i in range(0, max_constant, step_size)],
     ).genotype_to_str(list_)
-    
+
     print(phenotype)

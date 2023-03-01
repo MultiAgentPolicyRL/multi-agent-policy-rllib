@@ -78,4 +78,3 @@ class EmptyPolicy(Policy):
         """
         Load policy's model.
         """
-        

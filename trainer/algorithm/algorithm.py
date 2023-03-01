@@ -39,12 +39,11 @@ class Algorithm(object):
         train_batch_size: int,
         policies_config: Dict[str, Policy],
         env,
-        device: str,
         num_rollout_workers: int,
         rollout_fragment_length: int,
         experiment_name,
         seed: int,
-        load_saved_models : int = 0,
+        load_saved_models: int = 0,
     ):
         self.policies_config = policies_config
         self.train_batch_size = train_batch_size
@@ -62,7 +61,6 @@ class Algorithm(object):
             actor_keys=self.actor_keys,
             policy_mapping_function=self.policy_mapping_function,
             env=env,
-            device=device,
             seed=seed,
             experiment_name=experiment_name,
         )
@@ -112,7 +110,6 @@ class Algorithm(object):
                 actor_keys=self.actor_keys,
                 policy_mapping_function=self.policy_mapping_function,
                 env=env,
-                device=device,
                 id=_id,
                 seed=seed,
                 experiment_name=self.experiment_name,

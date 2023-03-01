@@ -4,9 +4,7 @@ Wrapper for making the gather-trade-build environment an OpenAI compatible envir
 import os
 import pickle
 import random
-import sys
 import warnings
-from typing import Dict
 
 import numpy as np
 import ai_economist.foundation as foundation
@@ -14,20 +12,17 @@ import ai_economist.foundation as foundation
 from gym import spaces
 from gym.utils import seeding
 from trainer.environment import env_config
-from tensordict import TensorDict
 
 _BIG_NUMBER = 1e20
 
-# TODO: linting and cleaning
 
-
-def get_environment(device):
+def get_environment():
     """
     Returns builded environment with `env_config` config
     """
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = 'cpu'
-    return EnvWrapper(env_config=env_config, device=device)
+    return EnvWrapper(env_config=env_config)
 
 
 def recursive_list_to_np_array(d):
@@ -60,8 +55,7 @@ class EnvWrapper:
     and adapts the reset and step functions to run with RLlib.
     """
 
-    def __init__(self, env_config, device, verbose=False):
-        self.device = device
+    def __init__(self, env_config, verbose=False):
         self.env_config_dict = env_config["env_config_dict"]
 
         # Adding env id in the case of multiple environments

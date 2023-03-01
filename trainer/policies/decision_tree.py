@@ -2,6 +2,7 @@ import numpy as np
 
 from ai_economist_ppo_dt.torch.models.actor_critic import LSTMModel
 
+
 def string_to_dict(x):
     """
     This function splits a string into a dict.
