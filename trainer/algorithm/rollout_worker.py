@@ -84,9 +84,6 @@ class RolloutWorker:
             self.policies[key] = build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
 
-        # TODO: add csv header
-        # Create csv file
-        # rew: 0,1,2,3,p
         csv = open(f"logs/{self.experiment_name}_{self.id}.csv", "a")
         if self.id != -1:
             csv.write(f"{','.join(map(str, self.policy_keys))}\n")
@@ -106,14 +103,14 @@ class RolloutWorker:
         for memory in self.memory.values():
             memory.clear()
 
-        for counter in range(self.batch_size):
+        for _ in range(self.batch_size):
             # get actions, action_logprob for all agents in each policy* wrt observation
             policy_action, policy_logprob = self.get_actions(obs)
 
             # get new_observation, reward, done from stepping the environment
             next_obs, rew, done, _ = self.env.step(policy_action)
 
-            if done["__all__"] == True:
+            if done["__all__"] is True:
                 next_obs = self.env.reset()
 
             # save new_observation, reward, done, action, action_logprob in rollout_buffer
@@ -203,3 +200,18 @@ class RolloutWorker:
         """
         for key in self.policies.keys():
             self.policies[key].set_weights(weights[key])
+
+    def save_models(self):
+        """
+        Save the model of each policy.
+        """
+        for key in self.policies.keys():
+            self.policies[key].save_model(name=str(self.experiment_name)+key)
+
+    def load_models(self, experiment_name):
+        """
+        Load the model of each policy.
+        """
+        for key in self.policies.keys():
+            self.policies[key].load_model(name=str(experiment_name)+key)
+        print("Models loaded!")

@@ -44,6 +44,7 @@ class Algorithm(object):
         rollout_fragment_length: int,
         experiment_name,
         seed: int,
+        load_saved_models : int = 0,
     ):
         self.policies_config = policies_config
         self.train_batch_size = train_batch_size
@@ -65,6 +66,9 @@ class Algorithm(object):
             seed=seed,
             experiment_name=experiment_name,
         )
+
+        if load_saved_models != 0:
+            self.main_rollout_worker.load_models(experiment_name=load_saved_models)
 
         self.memory = {}
         for key in self.policy_keys:
@@ -181,6 +185,8 @@ class Algorithm(object):
         """
         Kill and clear all workers.
         """
+        self.delete_data_files()
+
         for worker in self.workers:
             worker.kill()
 
@@ -205,3 +211,9 @@ class Algorithm(object):
         """
         for file_name in range(self.num_rollout_workers):
             remove(f"/tmp/{self.experiment_name}_{file_name}.bin")
+
+    def save_models(self):
+        self.main_rollout_worker.save_models()
+
+    def load_models(self):
+        self.main_rollout_worker.load_models()

@@ -147,11 +147,23 @@ class PpoPolicy(Policy):
         """
         Set policy weights.
         """
-        # FIXME: fix input
-        # FIXME: add args
         # print(f"updating weights")
         self.Model.set_weights(
             actor_weights=weights["a"],
             critic_weights=weights["c"],
             optimizer_weights=weights["o"],
         )
+
+    def save_model(self, name):
+        """
+        Save policy's model.
+        """
+        path = "saved_models/" + name + "_model.pt"
+        torch.save(self.Model, path)
+
+    def load_model(self, name):
+        """
+        Load policy's model.
+        """
+        path = "saved_models/" + name + "_model.pt"
+        self.Model = torch.load(path)

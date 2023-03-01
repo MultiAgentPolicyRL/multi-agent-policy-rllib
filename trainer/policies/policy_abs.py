@@ -56,3 +56,15 @@ class Policy(ABC):
         Set policy weights.
         """
         NotImplementedError("This method must be implemented")
+
+    def save_model(self, name):
+        """
+        Save policy's model.
+        """
+        NotImplementedError("This method must be implemented")
+
+    def load_model(self, name):
+        """
+        Load policy's model.
+        """
+        NotImplementedError("This method must be implemented")

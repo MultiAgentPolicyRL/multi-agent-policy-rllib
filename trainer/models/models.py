@@ -49,7 +49,7 @@ class PytorchLinear(nn.Module):
 
         self.MASK_NAME = "action_mask"
         # FIXME: this doesn't work with [22,22,22,22,22,22] of the planner
-        self.num_outputs = action_space[0]
+        self.num_outputs = action_space
         self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
         ## TMP: parameters

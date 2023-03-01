@@ -27,9 +27,10 @@ if __name__ == "__main__":
     # 25/1/23 with files in disk: Function train_one_step Took 4.844272016000104 seconds - 6k batch - 12 workers - 200
 
     EPOCHS = 1
-    BATCH_SIZE = 1600
+    BATCH_SIZE = 6000
     SEED = 1
-    NUM_WORKERS = 1
+    
+    NUM_WORKERS = 12
     ROLLOUT_FRAGMENT_LENGTH = 200
     K_EPOCHS = 16
 
@@ -38,6 +39,8 @@ if __name__ == "__main__":
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = 'cuda'
     DEVICE = "cpu"
+    LOAD_SAVED_MODELS = 0
+
 
     env = get_environment(DEVICE)
     env.seed(SEED)
@@ -48,14 +51,14 @@ if __name__ == "__main__":
         "a": {
             "policy": PpoPolicy,
             "observation_space": env.observation_space,
-            "action_space": [50],
+            "action_space": 50,
             "K_epochs": K_EPOCHS,
             "device": DEVICE,
         },
         "p": {
             "policy": EmptyPolicy,
             "observation_space": env.observation_space_pl,
-            "action_space": [22, 22, 22, 22, 22, 22, 22],
+            "action_space": [22,22,22,22,22,22,22],
         },
     }
 
@@ -68,11 +71,15 @@ if __name__ == "__main__":
         rollout_fragment_length=ROLLOUT_FRAGMENT_LENGTH,
         experiment_name=EXPERIMENT_NAME,
         seed=SEED,
+        load_saved_models = LOAD_SAVED_MODELS
     )
 
+    del env
+
     for i in tqdm(range(EPOCHS)):
-        actions, _ = algorithm.get_actions(obs)
-        obs, rew, done, info = env.step(actions)
+        # actions, _ = algorithm.get_actions(obs)
+        # obs, rew, done, info = env.step(actions)
         algorithm.train_one_step()
 
+    algorithm.save_models()
     algorithm.close_workers()

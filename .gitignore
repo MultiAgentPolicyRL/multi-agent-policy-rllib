@@ -1,4 +1,7 @@
+# Notes
 *.md
+# Saved models
+*.pt
 
 # Batch dump
 .bin
