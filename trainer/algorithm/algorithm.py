@@ -161,8 +161,6 @@ class Algorithm(object):
 
             file.close()
 
-        # print(f"MEMORY LEN: {len(self.memory['p'].actions)}")
-
         # Update main worker policy
         self.main_rollout_worker.learn(memory=self.memory)
 

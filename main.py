@@ -78,7 +78,7 @@ if __name__ == "__main__":
     )
 
     env = get_environment()
-    trainer = PpoTrainConfig(get_mapping_function, env)
+    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=1)
     
     # Select algorithm and build it correctly
     ## -> if needed load models

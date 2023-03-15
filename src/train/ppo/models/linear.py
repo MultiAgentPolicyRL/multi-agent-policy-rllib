@@ -1,10 +1,7 @@
-import sys
 import torch
 import torch.nn as nn
 from gym.spaces import Box, Dict
 import numpy as np
-from tensordict import TensorDict
-from trainer.utils import exec_time
 
 # pylint: disable=no-member
 
@@ -43,7 +40,7 @@ def apply_logit_mask1(logits, mask):
 class PytorchLinear(nn.Module):
     """A linear (feed-forward) model."""
 
-    def __init__(self, obs_space, action_space, device):
+    def __init__(self, obs_space, action_space, device, learning_rate):
         super().__init__()
         self.device = device
 
@@ -52,9 +49,9 @@ class PytorchLinear(nn.Module):
         self.num_outputs = action_space
         self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
-        ## TMP: parameters
-        lr_actor = 0.0003  # learning rate for actor network 0003
-        lr_critic = 0.0003  # learning rate for critic network 001
+
+        lr_actor = learning_rate  # learning rate for actor network 0003
+        lr_critic = learning_rate  # learning rate for critic network 001
 
         # print(type(obs_space.spaces[self.MASK_NAME].shape))
         # mask = obs_space[self.MASK_NAME]
@@ -64,18 +61,15 @@ class PytorchLinear(nn.Module):
         self.fc_dim = 136
         self.num_fc = 2
 
-        # print(type(obs_space.spaces["flat"]))
-        # # flat = obs_space.spaces["flat"].shape
         self.actor = nn.Sequential(
             nn.Linear(
                 get_flat_obs_size(obs_space.spaces["flat"]),
-                self.num_outputs,  # , dtype=torch.float32
+                self.num_outputs,
             ),
             nn.ReLU(),
-            # nn.Linear(32, self.num_outputs),
         )
 
-        self.fc_layers_val_layers = []  # nn.Sequential()
+        self.fc_layers_val_layers = []
 
         for _ in range(self.num_fc):
             self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
@@ -92,7 +86,6 @@ class PytorchLinear(nn.Module):
             ]
         )
 
-    # @exec_time
     def act(self, obs):
         """
         Args:
@@ -110,7 +103,6 @@ class PytorchLinear(nn.Module):
 
         # Apply logits mask
         logit_mask = self.logit_mask * (self.one_mask - obs["action_mask"])
-        
 
         action_probs = action_probs + logit_mask
 
@@ -158,9 +150,9 @@ class PytorchLinear(nn.Module):
             actor_weights, critic_weights
         """
         actor_weights = self.actor.state_dict(keep_vars=False)
-        
+
         critic_weights = self.critic.state_dict(keep_vars=False)
-        
+
         optimizer_weights = 0
         return actor_weights, critic_weights, optimizer_weights
 

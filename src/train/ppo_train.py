@@ -3,26 +3,28 @@ Defines the configuration for training with offline learning.
 
 Supports PPO.
 """
-from datetime import datetime
 import logging
 import multiprocessing
 import os
 import time
-from src.common import test_mapping
+from datetime import datetime
 
+from torch.multiprocessing import Pipe, Process
+from tqdm import tqdm
 
-# FIXME leggi qui.
-"""
-questi "train" sono i manger di setup e training.
+from src.common import EmptyModel, test_mapping
+from src.train.ppo import PpoPolicy, RolloutWorker
+from src.train.ppo.utils import load_batch, delete_batch
+from src.train.ppo.utils.rollout_buffer import RolloutBuffer
 
-In pratica creano l'environment, gestiscono il multi-agente,
-gestiscono e creano i worker, assemblano la batch e fanno l'apprendimento.
-
-alla fine dell'apprendimento salvano i modelli.
-
-il caricamento dei modelli e' fatto in fase di inizializzazione se
-il flag non e' booleano.
-"""
+def run_rollout_worker(conn, worker: RolloutWorker):
+    while True:
+        weights = conn.recv()
+        worker.set_weights(weights=weights)
+        worker.batch()
+        # Bad way of using semaphores/signals
+        conn.send(1)
+        worker.save_csv()
 
 class PpoTrainConfig:
     """
@@ -32,6 +34,10 @@ class PpoTrainConfig:
         step:
         seed:
 
+        env:
+        rollout_fragment_length:
+
+
         k_epochs:
         eps_clip:
         gamma:
@@ -40,12 +46,16 @@ class PpoTrainConfig:
         num_workers:
         mapping_function:
         mapped_agents:
+        c1: 
+        c2: 
     """
 
     def __init__(
         self,
         mapping_function,
         env,
+        batch_size: int = 6000,
+        rollout_fragment_length : int = 200,
         step: int = 100,
         seed: int = 1,
         k_epochs: int = 16,
@@ -55,9 +65,13 @@ class PpoTrainConfig:
         learning_rate: float = 0.0003,
         num_workers: int = 12,
         mapped_agents: dict = {"a": True, "p": False},
+        c1 : float = 0.05,
+        c2 : float = 0.025
     ):
         ## Save variables
         self.mapping_function = mapping_function
+        self.rollout_fragment_length = rollout_fragment_length
+        self.batch_size = batch_size
         self.step = step
         self.seed = seed
         self.k_epochs = k_epochs
@@ -67,6 +81,10 @@ class PpoTrainConfig:
         self.learning_rate = learning_rate
         self.num_workers = num_workers
         self.mapped_agents = mapped_agents
+        self._c1 = c1
+        self._c2 = c2
+
+        self.policy_keys = mapped_agents.keys()
 
         ## Validate config
         self.validate_config(env=env)
@@ -82,12 +100,199 @@ class PpoTrainConfig:
         )
 
         ## Create directory
-        self.setup_logs_and_dirs()
+        self.experiment_name = self.setup_logs_and_dirs()
 
         ## Build trainer
-        build_workers()
-        maybe_load_models()
+        trainer_config = self.setup_config(env)
+        self.build_workers(trainer_config, env, seed)
 
+        # train()
+        #     sync_weights()
+        #     train_one_step()
+    
+
+    def train(self):
+        """
+        Simple train function.
+        """
+        for _ in tqdm(range(self.step)):
+            self.train_one_step()
+        
+        self.save_models()
+        self.close_workers()
+        
+
+    def maybe_load_models(self):
+        """
+        Load models from another experiment. 
+        IT checks if the mapped agent is not bool, if so it
+        uses its value as the path of the experiment.
+        """
+        models_to_load = {}
+        if not isinstance(self.mapped_agents["a"], bool):
+            models_to_load["a"] = self.mapped_agents["a"]
+        
+        if not isinstance(self.mapped_agents["p"], bool):
+            models_to_load["p"] = self.mapped_agents["p"]
+        
+        self.learn_worker.load_models(models_to_load)
+
+    def build_workers(self, config, env, seed):
+        """
+        Builds workers to learn and create the batch.
+        """
+
+        actor_keys = env.reset().keys()
+
+        self.learn_worker = RolloutWorker(
+            rollout_fragment_length=0,
+            batch_iterations=0,
+            policies_config=config,
+            actor_keys=actor_keys,
+            mapping_function=self.mapping_function(),
+            env=env,
+            seed=seed,
+            experiment_name=self.experiment_name
+        )
+
+        self.maybe_load_models()
+
+        self.memory = {}
+        for key in self.policy_keys:
+            self.memory[key] = RolloutBuffer()
+        
+        # Multi-processing
+        # Spawn secondary workers used in batching
+        self.pipes = [Pipe() for _ in range(self.num_workers)]
+
+        # Calculate batch iterations distribution
+        if self.batch_size % self.rollout_fragment_length != 0:
+            raise ValueError(f"train_batch_size % rollout_fragment_length must be == 0")
+
+        batch_iterations = self.batch_size // self.rollout_fragment_length
+        iterations_per_worker = batch_iterations // self.num_workers
+        remaining_iterations = batch_iterations - (
+            iterations_per_worker * self.num_workers
+        )
+
+        self.workers = []
+        self.workers_id = []
+        for _id in range(self.num_workers):
+            # Get pipe connection
+            parent_conn, child_conn = self.pipes[_id]
+
+            # Calculate worker_iterations
+            if remaining_iterations > 0:
+                worker_iterations = iterations_per_worker + 1
+                remaining_iterations -= 1
+            else:
+                worker_iterations = iterations_per_worker
+
+            worker = RolloutWorker(
+                rollout_fragment_length=self.rollout_fragment_length,
+                batch_iterations=worker_iterations,
+                policies_config=config,
+                actor_keys=actor_keys,
+                mapping_function=self.mapping_function(),
+                env=env,
+                _id=_id,
+                seed=seed,
+                experiment_name=self.experiment_name,
+            )
+
+            self.workers_id.append(_id)
+
+            p = Process(
+                target=run_rollout_worker,
+                name=f"RolloutWorker-{_id}",
+                args=(child_conn, worker),
+            )
+
+            self.workers.append(p)
+            p.start()
+            parent_conn.send(self.learn_worker.get_weights())
+
+        logging.info("Rollout workers built!")
+
+    def train_one_step(self):
+        """
+        Train all policies.
+        It creates a batch of size = `self.batch_size`, then
+        this RolloutBuffer is splitted between each policy following
+        `self.policy_mapping_fun` and trained respectivly to the
+        corrisponding policy.
+        """
+        # Get batches and create a single "big" batch
+        _ = [pipe[0].recv() for pipe in self.pipes]
+
+        # Open all files in a list of `file`
+        for worker_id in self.workers_id:
+            rollout = load_batch(worker_id=worker_id)
+
+            for key in self.policy_keys:
+                self.memory[key].extend(rollout[key])
+
+        # Update main worker policy
+        self.learn_worker.learn(memory=self.memory)
+
+        # Send updated policy to all rollout workers
+        for pipe in self.pipes:
+            pipe[0].send(self.learn_worker.get_weights())
+
+        # Clear memory from used batch
+        for memory in self.memory.values():
+            memory.clear()
+
+    def close_workers(self):
+        """
+        Kill and clear all workers.
+        """
+        delete_batch(self.workers_id)
+
+        for worker in self.workers:
+            worker.kill()
+
+    def setup_config(self, env):
+        """
+        Bad implementation to manage policies.
+        """
+        env.reset()
+        # TODO: use env...shape_of_obs_and_actions to get obs_space and action_space        
+        config = {}
+        config["a"] = {
+            "policy": PpoPolicy,
+            "observation_space": env.observation_space,
+            "action_space": 50,
+            "k_epochs": self.k_epochs,
+            "eps_clip": self.eps_clip,
+            "gamma": self.gamma,
+            "learning_rate": self.learning_rate,
+            "c1": self._c1,
+            "c2": self._c2,
+            "device": self.device,
+            "name": "a",
+        }
+        if self.mapped_agents["p"] is True:
+            config["p"] = {
+            "policy": PpoPolicy,
+            "observation_space": env.observation_space_pl,
+            "action_space": [22,22,22,22,22,22,22],
+            "k_epochs": self.k_epochs,
+            "eps_clip": self.eps_clip,
+            "gamma": self.gamma,
+            "c1": self._c1,
+            "c2": self._c2,
+            "device": self.device,
+            "name": "p",
+        } 
+        else:
+            config["p"] = {
+                "policy": EmptyModel,
+                "observation_space": env.observation_space_pl,
+                "action_space": [22, 22, 22, 22, 22, 22, 22],
+            }
+        
+        return config
 
     def validate_config(self, env):
         """
@@ -137,6 +342,8 @@ class PpoTrainConfig:
                 self.num_workers,
             )
 
+        # TODO: check if "a" == False -> if so raise an error
+
         return
 
     def setup_logs_and_dirs(self):
@@ -145,12 +352,13 @@ class PpoTrainConfig:
         """
         
         date = datetime.today().strftime("%d-%m-%Y")
-
-        path = f"experiments/PPO_{self.phase}_{date}_{int(time.time())}_{self.step}"
+        experiment_name = f"PPO_{self.phase}_{date}_{int(time.time())}_{self.step}"
+        path = f"experiments/{experiment_name}"
 
         if not os.path.exists(path):
             os.makedirs(path)
             os.makedirs(path + "/logs")
+            
 
         # Create config.txt log file
         with open(path + "/config.txt", "w") as config_file:
@@ -158,3 +366,12 @@ class PpoTrainConfig:
             config_file.write(
                 f"k_epochs: {self.k_epochs}\neps_clip: {self.eps_clip}\ngamma: {self.gamma}\ndevice: {self.device}\nlearning_rate: {self.learning_rate}\nnum_workers: {self.num_workers}\nmapped_agents: {self.mapped_agents}\n"
             )
+        
+        return experiment_name
+    
+    def save_models(self):
+        self.learn_worker.save_models()
+
+    def load_models(self):
+        self.learn_worker.load_models()
+    
