@@ -76,10 +76,6 @@ class Algorithm(object):
         # Spawn secondary workers used for batching
         self.pipes = [Pipe() for _ in range(self.num_rollout_workers)]
 
-        # TODO: add shared memory - probably one per process w/the main process
-        # After batching all data is merged together to create a single big
-        # batch.
-
         # Calculate batch iterations distribution
         if self.train_batch_size % self.rollout_fragment_length != 0:
             ValueError(f"train_batch_size % rollout_fragment_length must be == 0")
