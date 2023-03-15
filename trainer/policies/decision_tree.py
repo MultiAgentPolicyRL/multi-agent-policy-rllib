@@ -1,6 +1,7 @@
 import abc
 import numpy as np
 
+from typing import List, Dict, Tuple, Union, Optional, Callable
 
 class DecisionTree:
     def __init__(self):
@@ -102,8 +103,33 @@ class RandomlyInitializedEpsGreedyLeaf(EpsGreedyLeaf):
         self.q = np.random.uniform(low, up, n_actions)
 
 
+class CLeaf(RandomlyInitializedEpsGreedyLeaf):
+    def __init__(
+            self, 
+            n_actions: int,
+            lr: Union[float, str],
+            df: float,
+            eps: float,
+            low: float,
+            up: float
+        ) -> None:
+        super(CLeaf, self).__init__(n_actions, lr, df, eps, low=low, up=up)
+
+
 class PythonDT(DecisionTree):
-    def __init__(self, phenotype, leaf, planner=False):
+    def __init__(
+            self, 
+            phenotype: str, 
+            # leaf: CLeaf, 
+            n_actions: int,
+            lr: Union[float, str],
+            df: float,
+            eps: float,
+            low: float = -100,
+            up: float = 100,
+            planner: bool = False,
+        ) -> None:
+        
         super(PythonDT, self).__init__()
         self.program = phenotype
         self.leaves = {}
@@ -113,14 +139,14 @@ class PythonDT(DecisionTree):
         while "_leaf" in self.program:
             if planner:
                 for i in range(7):
-                    new_leaf = leaf(22)
+                    new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
                     leaf_name = "leaf_{}_{}".format(n_leaves, i)
                     self.leaves[leaf_name] = new_leaf
 
                     self.program = self.program.replace("_leaf", "'{}.get_action()'".format(leaf_name), 1)
                     self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
             else:
-                new_leaf = leaf()
+                new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
                 leaf_name = "leaf_{}".format(n_leaves)
                 self.leaves[leaf_name] = new_leaf
 
