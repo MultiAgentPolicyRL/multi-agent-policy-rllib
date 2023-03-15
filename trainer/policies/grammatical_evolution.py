@@ -178,13 +178,14 @@ def eaSimple(
     fitnesses = [
         *toolbox.map(toolbox.evaluate, invalid_ind)
     ]  # Obviously, it depends directly on the population size!
-    leaves = [f[1] for f in fitnesses]
+    agent_leaves = [f[1] for f in fitnesses]
+    planner_leaves = [f[2] for f in fitnesses]
     fitnesses = [f[0] for f in fitnesses]
     for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
         ind.fitness.values = fit
         if logfile is not None and (best is None or best < fit[0]):
             best = fit[0]
-            best_leaves = leaves[i]
+            best_leaves = (agent_leaves[i], planner_leaves[i])
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -192,8 +193,10 @@ def eaSimple(
                     )
                 )
                 log_.write(str(ind) + "\n")
-                log_.write("Leaves\n")
-                log_.write(str(leaves[i]) + "\n")
+                log_.write("Agent Leaves\n")
+                log_.write(str(agent_leaves[i]) + "\n")
+                log_.write("Planner Leaves\n")
+                log_.write(str(planner_leaves[i]) + "\n")
 
     if halloffame is not None:
         halloffame.update(population)
@@ -384,13 +387,13 @@ def grammatical_evolution(
     selection={"function": "tools.selBest"},
     mutation={"function": "ge_mutate", "attribute": None},
     crossover={"function": "ge_mate", "individual": None},
-    seed=0,
+    # seed=0,
     jobs=1,
     logfile=None,
     timeout=10 * 60,
 ):
-    random.seed(seed)
-    np.random.seed(seed)
+    # random.seed(seed)
+    # np.random.seed(seed)
 
     _max_value = 40000
 
