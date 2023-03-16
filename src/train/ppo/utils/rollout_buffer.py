@@ -53,10 +53,11 @@ class RolloutBuffer:
     # @exec_time
     def to_tensor(self):
         buffer = RolloutBuffer()
-        buffer.actions = torch.tensor((self.actions))
-        buffer.logprobs = torch.tensor((self.logprobs))
-        buffer.rewards = torch.tensor((self.rewards))
-        buffer.is_terminals = torch.tensor((self.is_terminals))
+        print(self.actions)
+        buffer.actions = torch.stack(self.actions)
+        buffer.logprobs = torch.stack(self.logprobs)
+        buffer.rewards = torch.tensor(self.rewards)
+        buffer.is_terminals = torch.tensor(self.is_terminals)
 
         states = []
         for state in self.states:

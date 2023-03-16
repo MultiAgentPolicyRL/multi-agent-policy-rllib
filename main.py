@@ -79,8 +79,8 @@ if __name__ == "__main__":
 
     env = get_environment()
 
-    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=12, step=2, mapped_agents={
-        "a": "PPO_P1_16-03-2023_1678954581_2",
+    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=1, step=2, batch_size=10, rollout_fragment_length=10, mapped_agents={
+        "a": True,
         "p": True
     })
     trainer.train()

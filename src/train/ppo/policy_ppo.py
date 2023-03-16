@@ -3,7 +3,7 @@ from typing import List, Tuple
 import torch
 
 from src.common import Model
-from src.train.ppo import PytorchLinear#, RolloutBuffer
+from src.train.ppo import PytorchLinearA, PytorchLinearP #, RolloutBuffer
 from src.train.ppo.utils.rollout_buffer import RolloutBuffer
 
 class PpoPolicy(Model):
@@ -41,8 +41,9 @@ class PpoPolicy(Model):
         self.device = device
         # Environment and PPO parameters
 
+        type = PytorchLinearA if name == "a" else PytorchLinearP
 
-        self.model: PytorchLinear = PytorchLinear(
+        self.model: type = type(
             obs_space=self.observation_space,
             action_space=self.action_space,
             device=self.device,
@@ -70,7 +71,7 @@ class PpoPolicy(Model):
         with torch.no_grad():
             policy_action, policy_probability = self.model.act(observation)
 
-        return policy_action.item(), policy_probability
+        return policy_action, policy_probability
 
     # @exec_time
     def learn(

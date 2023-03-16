@@ -262,7 +262,7 @@ class PpoTrainConfig:
         config["a"] = {
             "policy": PpoPolicy,
             "observation_space": env.observation_space,
-            "action_space": (50),
+            "action_space": 50,
             "k_epochs": self.k_epochs,
             "eps_clip": self.eps_clip,
             "gamma": self.gamma,
