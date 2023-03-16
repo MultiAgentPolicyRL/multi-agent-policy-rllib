@@ -55,11 +55,12 @@ class PytorchLinear(nn.Module):
 
         # print(type(obs_space.spaces[self.MASK_NAME].shape))
         # mask = obs_space[self.MASK_NAME]
-        self.mask_input = obs_space.spaces[self.MASK_NAME].shape
+        # self.mask_input = obs_space.spaces[self.MASK_NAME].shape
 
         # Fully connected values:
         self.fc_dim = 136
         self.num_fc = 2
+
 
         self.actor = nn.Sequential(
             nn.Linear(

@@ -69,10 +69,7 @@ class EmptyModel(Model):
         """
         Save policy's model.
         """
-        path = "saved_models/" + name + "_model.pt"
-        data_file = open(path, "w")
-        data_file.write(path)
-        data_file.close()
+        
 
     def load_model(self, name):
         """

@@ -53,6 +53,7 @@ class PpoPolicy(Model):
 
         self.name = name
 
+
     def act(self, observation: dict):
         """
         Given an observation, returns `policy_action`, `policy_probability` and `vf_action` from the model.
@@ -170,23 +171,21 @@ class PpoPolicy(Model):
         """
         Set policy weights.
         """
-        # print(f"updating weights")
+
         self.model.set_weights(
             actor_weights=weights["a"],
             critic_weights=weights["c"],
             optimizer_weights=weights["o"],
         )
 
-    def save_model(self):
+    def save_model(self, path):
         """
         Save policy's model.
         """
-        path = "saved_models/" + self.name + "_model.pt"
         torch.save(self.model, path)
 
-    def load_model(self):
+    def load_model(self, path):
         """
         Load policy's model.
         """
-        path = "saved_models/" + self.name + "_model.pt"
         self.model = torch.load(path)

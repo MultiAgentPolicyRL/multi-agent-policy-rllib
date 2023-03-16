@@ -74,15 +74,13 @@ def get_mapping_function():
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.DEBUG, format="%(process)d-%(levelname)s-%(message)s"
+        level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
     )
 
     env = get_environment()
-    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=1)
-    
-    # Select algorithm and build it correctly
-    ## -> if needed load models
 
-    # do Training
-
-    # save models
+    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=12, step=2, mapped_agents={
+        "a": "PPO_P1_16-03-2023_1678954581_2",
+        "p": True
+    })
+    trainer.train()

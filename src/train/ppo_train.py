@@ -65,8 +65,8 @@ class PpoTrainConfig:
         learning_rate: float = 0.0003,
         num_workers: int = 12,
         mapped_agents: dict = {"a": True, "p": False},
-        c1 : float = 0.05,
-        c2 : float = 0.025
+        _c1 : float = 0.05,
+        _c2 : float = 0.025
     ):
         ## Save variables
         self.mapping_function = mapping_function
@@ -81,8 +81,8 @@ class PpoTrainConfig:
         self.learning_rate = learning_rate
         self.num_workers = num_workers
         self.mapped_agents = mapped_agents
-        self._c1 = c1
-        self._c2 = c2
+        self._c1 = _c1
+        self._c2 = _c2
 
         self.policy_keys = mapped_agents.keys()
 
@@ -104,16 +104,15 @@ class PpoTrainConfig:
 
         ## Build trainer
         trainer_config = self.setup_config(env)
-        self.build_workers(trainer_config, env, seed)
 
-        # train()
-        #     sync_weights()
-        #     train_one_step()
+        self.build_workers(trainer_config, env, seed)
+        logging.debug("Ready! -- Everything built!")
     
 
     def train(self):
         """
-        Simple train function.
+        Simple train function that does training for `self.step` steps,
+        saves all models and closes workers.
         """
         for _ in tqdm(range(self.step)):
             self.train_one_step()
@@ -137,6 +136,8 @@ class PpoTrainConfig:
         
         self.learn_worker.load_models(models_to_load)
 
+        logging.info(f"Loaded models {models_to_load.keys()}")
+
     def build_workers(self, config, env, seed):
         """
         Builds workers to learn and create the batch.
@@ -154,7 +155,6 @@ class PpoTrainConfig:
             seed=seed,
             experiment_name=self.experiment_name
         )
-
         self.maybe_load_models()
 
         self.memory = {}
@@ -262,7 +262,7 @@ class PpoTrainConfig:
         config["a"] = {
             "policy": PpoPolicy,
             "observation_space": env.observation_space,
-            "action_space": 50,
+            "action_space": (50),
             "k_epochs": self.k_epochs,
             "eps_clip": self.eps_clip,
             "gamma": self.gamma,
@@ -276,10 +276,11 @@ class PpoTrainConfig:
             config["p"] = {
             "policy": PpoPolicy,
             "observation_space": env.observation_space_pl,
-            "action_space": [22,22,22,22,22,22,22],
+            "action_space": (7,22),
             "k_epochs": self.k_epochs,
             "eps_clip": self.eps_clip,
             "gamma": self.gamma,
+            "learning_rate": self.learning_rate,
             "c1": self._c1,
             "c2": self._c2,
             "device": self.device,
@@ -343,7 +344,7 @@ class PpoTrainConfig:
             )
 
         # TODO: check if "a" == False -> if so raise an error
-
+        logging.info("Configuration validated: OK")
         return
 
     def setup_logs_and_dirs(self):
@@ -358,6 +359,8 @@ class PpoTrainConfig:
         if not os.path.exists(path):
             os.makedirs(path)
             os.makedirs(path + "/logs")
+            os.makedirs(path + "/models")
+            os.makedirs(path + "/plots")
             
 
         # Create config.txt log file
@@ -367,11 +370,13 @@ class PpoTrainConfig:
                 f"k_epochs: {self.k_epochs}\neps_clip: {self.eps_clip}\ngamma: {self.gamma}\ndevice: {self.device}\nlearning_rate: {self.learning_rate}\nnum_workers: {self.num_workers}\nmapped_agents: {self.mapped_agents}\n"
             )
         
+        logging.info("Directories created")
         return experiment_name
     
     def save_models(self):
         self.learn_worker.save_models()
+        logging.info("Models saved")
 
     def load_models(self):
         self.learn_worker.load_models()
-    
+        # logging.info("Models loaded")

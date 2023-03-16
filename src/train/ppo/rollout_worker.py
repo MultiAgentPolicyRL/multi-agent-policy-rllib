@@ -57,6 +57,8 @@ class RolloutWorker:
         for key in policy_keys:
             self.policies[key] = self._build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
+        
+        logging.debug("Rollout Worker %s built", self._id)
 
     def _build_policy(self, policy_config: dict):
         if policy_config["policy"] == EmptyModel:
@@ -183,7 +185,7 @@ class RolloutWorker:
         Save the model of each policy.
         """
         for key in self.policies.keys():
-            self.policies[key].save_model(name=str(self.experiment_name) + f"/models/{key}.pt")
+            self.policies[key].save_model("experiments/"+self.experiment_name+f"/models/{key}.pt")
 
     def load_models(self, models_to_load:dict):
         """
@@ -192,6 +194,6 @@ class RolloutWorker:
         It doesn't load 'p' policy.
         """
         for key in models_to_load.keys():
-            self.policies[key].load_model(models_to_load[key]+f"/models/{key}.pt")
+            self.policies[key].load_model("experiments/"+models_to_load[key]+f"/models/{key}.pt")
 
         logging.info("Models loaded!")

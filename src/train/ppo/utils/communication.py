@@ -25,7 +25,7 @@ def load_batch(worker_id):
         batch
     """
     with open(f"/dev/shm/{worker_id}.bin", "rb") as data_file:
-        return pickle.load(data_file, pickle.HIGHEST_PROTOCOL)
+        return pickle.load(data_file)
 
 def delete_batch(workers_id: list):
     """
