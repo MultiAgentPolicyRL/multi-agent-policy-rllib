@@ -45,8 +45,7 @@ class PytorchLinear(nn.Module):
         self.device = device
 
         self.MASK_NAME = "action_mask"
-        # FIXME: this doesn't work with [22,22,22,22,22,22] of the planner
-        self.num_outputs = action_space
+        self.num_outputs = action_space if isinstance(action_space, int) else action_space[0] * action_space[1]
         self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
@@ -64,8 +63,8 @@ class PytorchLinear(nn.Module):
 
         self.actor = nn.Sequential(
             nn.Linear(
-                get_flat_obs_size(obs_space.spaces["flat"]),
-                self.num_outputs,
+                in_features=get_flat_obs_size(obs_space.spaces["flat"]),
+                out_features=self.num_outputs,
             ),
             nn.ReLU(),
         )
