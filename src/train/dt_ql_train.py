@@ -69,8 +69,8 @@ class DtTrainConfig:
     def __init__(
         self,
         env: EnvWrapper,
-        agent: bool = True,
-        planner: bool = True,
+        agent: Union[bool, str] = True,
+        planner: Union[bool, str] = True,
         seed: int = 1,
         lr: Union[float, str] = "auto",
         df: float = 0.9,
@@ -99,6 +99,8 @@ class DtTrainConfig:
         types: List[Tuple[int, int, int, int]] = None,
     ):
         self.env = env
+        self.agent = agent
+        self.planner = planner
 
         # Set seeds
         assert seed >= 1, "Seed must be greater than 0"
@@ -174,7 +176,8 @@ class DtTrainConfig:
         # Log the configuration
         with open(self.logfile, "a") as f:
             f.write("Configuration:\n")
-            f.write(f"Environment: {self.env.__class__}, configuration at the bottom\n")
+            f.write(
+                f"Environment: {self.env.__class__}, configuration at the bottom\n")
             f.write(f"Seed: {seed}\n")
             f.write(f"Phase {1 if not planner else 2}\n")
             f.write(f"Episodes: {episodes}\n")
@@ -219,10 +222,12 @@ class DtTrainConfig:
         """
         Checks if all variables are set.
         """
-        assert not isinstance(
-            self.env, EnvWrapper), "{} is not known".format(type(self.env))
-        assert self.lr == 'auto' or isinstance(
-            self.lr, float), "{} is not known".format(type(self.lr))
+        # assert not isinstance(
+        #     self.env, EnvWrapper), "{} is not known".format(type(self.env))
+        assert self.agent == True or (isinstance(
+            self.agent, str) and os.path.exists(os.path.join("experiments", self.agent))), "The agent must be trained or loaded from existing directory, received {}".format(self.agent)
+        assert self.lr == 'auto' or (isinstance(
+            self.lr, float) and self.lr > 0 and self.lr < 1), "{} is not known or not in the right range ({})".format(type(self.lr), self.lr)
         assert self.df > 0 and self.df < 1, "df must be between 0 and 1"
         assert self.eps > 0 and self.eps < 1, "eps must be between 0 and 1"
         assert self.low < self.up, "low must be smaller than up"
@@ -233,6 +238,13 @@ class DtTrainConfig:
         assert self.cxp > 0 and self.cxp < 1, "Crossover probability must be between 0 and 1"
         assert self.mp > 0 and self.mp < 1, "Mutation probability must be between 0 and 1"
         assert self.genotype_len > 0, "Genotype length must be greater than 0"
+
+        if not os.path.exists(self.logdir):
+            os.makedirs(self.logdir, exist_ok=True)
+
+        models_dir = os.path.join(self.logdir, "models")
+        if not os.path.exists(models_dir):
+            os.makedirs(models_dir, exist_ok=True)
 
     def evaluate_fitness(
         self,
@@ -264,6 +276,13 @@ class DtTrainConfig:
             self.up,
             True,
         )
+        if isinstance(self.agent, str) and os.path.exists(os.path.join("experiments", self.agent)):
+            dt.load(os.path.join("experiments", self.agent))
+
+        if isinstance(self.planner, str) and os.path.exists(os.path.join("experiments", self.planner)):
+            dt_p.load(os.path.join("experiments", self.planner), planner=True)
+        elif self.planner == False:
+            dt_p = None
 
         # Evaluate the fitness
         return fitness_function(dt, dt_p)
@@ -279,23 +298,17 @@ class DtTrainConfig:
 
             # Start the episode
             agent.new_episode()
-            planner.new_episode()
+            if planner is not None:
+                planner.new_episode()
 
             # Initialize some variables
             cum_rew = 0
 
             # Run the episode
             for t in range(self.episode_len):
-                actions = {}
-                for k_agent, _obs in obs.items():
-                    if k_agent == "p":
-                        actions[k_agent] = planner(_obs.get("flat"))
-                        if actions[k_agent] is None:
-                            actions[k_agent] = [0 for _ in range(7)]
-                    else:
-                        actions[k_agent] = agent(_obs.get("flat"))
-                        if actions[k_agent] is None:
-                            actions[k_agent] = 0
+                actions = agent.get_actions(obs)
+                if planner is not None:
+                    actions["p"] = planner(obs.get('p').get('flat'))
 
                 if any([a is None for a in actions.values()]):
                     break
@@ -305,7 +318,8 @@ class DtTrainConfig:
                 # self.env.render() # FIXME: This is not working, see if needed
                 agent.set_reward(sum([rew.get(k, 0)
                                  for k in rew.keys() if k != "p"]))
-                planner.set_reward(rew.get("p", 0))
+                if planner is not None:
+                    planner.set_reward(rew.get("p", 0))
 
                 # cum_rew += rew
                 cum_rew += sum([rew.get(k, 0) for k in rew.keys()])
@@ -313,15 +327,12 @@ class DtTrainConfig:
                 if done:
                     break
 
-            # FIXME: I added this but I think it is wrong
-            # agent.set_reward(sum([rew.get(k, 0) for k in rew.keys() if k != "p"]))
-            # planner.set_reward(rew.get("p", 0))
-
-            for k_agent, _obs in obs.items():
-                if k_agent == "p":
-                    planner(_obs.get("flat"))
-                else:
-                    agent(_obs.get("flat"))
+            # FIXME: Why should be done this?
+            # for k_agent, _obs in obs.items():
+            #     if k_agent == "p":
+            #         planner(_obs.get("flat"))
+            #     else:
+            #         agent(_obs.get("flat"))
             global_cumulative_rewards.append(cum_rew)
         # except Exception as ex:
         #     raise ex

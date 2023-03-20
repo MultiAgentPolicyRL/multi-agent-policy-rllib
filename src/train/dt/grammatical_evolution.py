@@ -20,7 +20,8 @@ from deap import base, creator, tools
 from deap.tools import mutShuffleIndexes, mutUniformInt
 from joblib import Parallel, delayed
 
-from .decision_tree import EpsGreedyLeaf
+from .decision_tree import EpsGreedyLeaf, PythonDT
+from typing import List
 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
@@ -178,14 +179,20 @@ def eaSimple(
     fitnesses = [
         *toolbox.map(toolbox.evaluate, invalid_ind)
     ]  # Obviously, it depends directly on the population size!
-    agent_leaves = [f[1] for f in fitnesses]
-    planner_leaves = [f[2] for f in fitnesses]
-    fitnesses = [f[0] for f in fitnesses]
+    new_fitnesses = []
+    agent_leaves = []
+    planner_leaves = []
+    for fit, agent, planner in fitnesses:
+        agent_leaves.append(agent)
+        new_fitnesses.append(fit)
+        planner_leaves.append(planner)
+    fitnesses = new_fitnesses
     for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
         ind.fitness.values = fit
         if logfile is not None and (best is None or best < fit[0]):
             best = fit[0]
-            best_leaves = (agent_leaves[i], planner_leaves[i])
+            best_leaves = agent_leaves[i].leaves if planner_leaves[i] is None else (
+                agent_leaves[i].leaves, planner_leaves[i].leaves)
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -194,9 +201,16 @@ def eaSimple(
                 )
                 log_.write(str(ind) + "\n")
                 log_.write("Agent Leaves\n")
-                log_.write(str(agent_leaves[i]) + "\n")
-                log_.write("Planner Leaves\n")
-                log_.write(str(planner_leaves[i]) + "\n")
+                log_.write(str(agent_leaves[i].leaves) + "\n")
+                if planner_leaves[i] is not None:
+                    log_.write("Planner Leaves\n")
+                    log_.write(str(planner_leaves[i].leaves) + "\n")
+
+            agent_leaves[i].save(save_path=os.path.join(
+                os.path.dirname(logfile), "models"))
+            if planner_leaves[i] is not None:
+                planner_leaves[i].save(save_path=os.path.join(
+                    os.path.dirname(logfile), "models"))
 
     if halloffame is not None:
         halloffame.update(population)
@@ -217,15 +231,25 @@ def eaSimple(
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = [*toolbox.map(toolbox.evaluate, invalid_ind)]
-        leaves = [f[1].leaves for f in fitnesses]
-        fitnesses = [f[0].leaves for f in fitnesses]
+        fitnesses: List[float, PythonDT, PythonDT] = [
+            *toolbox.map(toolbox.evaluate, invalid_ind)
+        ]
+
+        new_fitnesses = []
+        agent_leaves = []
+        planner_leaves = []
+        for fit, agent, planner in fitnesses:
+            agent_leaves.append(agent)
+            planner_leaves.append(planner)
+            new_fitnesses.append(fit)
+        fitnesses = new_fitnesses
 
         for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
             ind.fitness.values = fit
             if logfile is not None and (best is None or best < fit[0]):
                 best = fit[0]
-                best_leaves = leaves[i]
+                best_leaves = agent_leaves[i].leaves if planner_leaves[i] is None else (
+                    agent_leaves[i].leaves, planner_leaves[i].leaves)
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{}] New best at generation {} with fitness {}\n".format(
@@ -233,8 +257,17 @@ def eaSimple(
                         )
                     )
                     log_.write(str(ind) + "\n")
-                    log_.write("Leaves\n")
-                    log_.write(str(leaves[i]) + "\n")
+                    log_.write("Agent leaves\n")
+                    log_.write(str(agent_leaves[i]) + "\n")
+                    if planner_leaves[i] is not None:
+                        log_.write("Planner leaves\n")
+                        log_.write(str(planner_leaves[i]) + "\n")
+
+                agent_leaves[i].save(save_path=os.path.join(
+                    os.path.dirname(logfile), "models"))
+                if planner_leaves[i] is not None:
+                    planner_leaves[i].save(save_path=os.path.join(
+                        os.path.dirname(logfile), "models"))
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
@@ -254,10 +287,7 @@ def eaSimple(
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         if verbose:
             print(logbook.stream)
-
-    for f in fitnesses:
-        f[0].save(save_path=os.path.dirname(logfile))
-        f[1].save(save_path=os.path.dirname(logfile))
+            
 
     return population, logbook, best_leaves
 
@@ -571,7 +601,8 @@ def differential_evolution(
         if "individual" in d:
             d["individual"] = creator.Individual
 
-    toolbox.register("mate", de_mate, CR=CR, F=F, individual=creator.Individual)
+    toolbox.register("mate", de_mate, CR=CR, F=F,
+                     individual=creator.Individual)
     toolbox.register("select", tools.selRandom)
 
     pop = toolbox.population(n=individuals)
