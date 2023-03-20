@@ -149,6 +149,7 @@ class PythonDT(DecisionTree):
         self.leaves = {}
         self.planner = planner
         n_leaves = 0
+        self.rewards = []
 
         while "_leaf" in self.program:
             if planner:
@@ -225,6 +226,12 @@ class PythonDT(DecisionTree):
                 actions[agent] = self.get_action(x.get('flat'))
 
         return actions
+
+    def clear_rewards(self):
+        self.rewards = []
+
+    def add_rewards(self, rewards: Dict[str, float]):
+        self.rewards.append(rewards)
 
     def save(self, save_path: str):
         data = {

@@ -246,6 +246,14 @@ class DtTrainConfig:
         if not os.path.exists(models_dir):
             os.makedirs(models_dir, exist_ok=True)
 
+        rewards_dir = os.path.join(self.logdir, "rewards")
+        if not os.path.exists(rewards_dir):
+            os.makedirs(rewards_dir, exist_ok=True)
+
+        rewards_csv_file = os.path.join(rewards_dir, "-1.csv")
+        with open(rewards_csv_file, "w") as f:
+            f.write("0,1,2,3,p\n")
+
     def evaluate_fitness(
         self,
         fitness_function: callable,
@@ -314,6 +322,11 @@ class DtTrainConfig:
                     break
 
                 obs, rew, done, _ = self.env.step(actions)
+
+                # Add reward to list
+                agent.add_rewards(rewards=rew)
+                if planner is not None:
+                    planner.add_rewards(rewards=rew)
 
                 # self.env.render() # FIXME: This is not working, see if needed
                 agent.set_reward(sum([rew.get(k, 0)
@@ -387,5 +400,5 @@ class DtTrainConfig:
             log_.write(phenotype + "\n")
             log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
 
-        with open(os.path.join(self.logdir, "fitness.tsv"), "w") as f:
+        with open(os.path.join(self.logdir, '', "fitness.tsv"), "w") as f:
             f.write(str(log))

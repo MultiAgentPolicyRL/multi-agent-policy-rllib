@@ -193,6 +193,7 @@ def eaSimple(
             best = fit[0]
             best_leaves = agent_leaves[i].leaves if planner_leaves[i] is None else (
                 agent_leaves[i].leaves, planner_leaves[i].leaves)
+            best_rewards = agent_leaves[i].rewards #if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -211,6 +212,12 @@ def eaSimple(
             if planner_leaves[i] is not None:
                 planner_leaves[i].save(save_path=os.path.join(
                     os.path.dirname(logfile), "models"))
+
+    # Save rewards
+    with open(os.path.join(os.path.dirname(logfile), 'rewards', '-1.csv'), 'a') as f:
+        for rew in best_rewards:
+            f.write(
+                f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
 
     if halloffame is not None:
         halloffame.update(population)
@@ -250,6 +257,7 @@ def eaSimple(
                 best = fit[0]
                 best_leaves = agent_leaves[i].leaves if planner_leaves[i] is None else (
                     agent_leaves[i].leaves, planner_leaves[i].leaves)
+                best_rewards = agent_leaves[i].rewards #if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{}] New best at generation {} with fitness {}\n".format(
@@ -269,6 +277,12 @@ def eaSimple(
                     planner_leaves[i].save(save_path=os.path.join(
                         os.path.dirname(logfile), "models"))
 
+        # Save rewards
+        with open(os.path.join(os.path.dirname(logfile), 'rewards', '-1.csv'), 'a') as f:
+            for rew in best_rewards:
+                f.write(
+                    f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
             halloffame.update(offspring)
@@ -287,7 +301,6 @@ def eaSimple(
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         if verbose:
             print(logbook.stream)
-            
 
     return population, logbook, best_leaves
 
