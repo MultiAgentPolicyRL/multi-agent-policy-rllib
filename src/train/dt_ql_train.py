@@ -13,9 +13,9 @@ from datetime import datetime
 
 from src.common import get_environment
 from typing import Dict, List, Tuple, Union
-from trainer.policies.decision_tree import PythonDT
-from ai_economist.foundation.base.base_env import BaseEnvironment
-from trainer.policies.grammatical_evolution import (
+from src.train.dt import PythonDT
+from src.common.env import EnvWrapper
+from src.train.dt import (
     GrammaticalEvolutionTranslator,
     grammatical_evolution,
 )
@@ -26,7 +26,7 @@ class DtTrainConfig:
     Endpoint to setup DT_ql's training configuration.
 
     Args:
-        env: BaseEnvironment
+        env: EnvWrapper
             The environment to train on. Should be the AI-Economist environment.
         seed: int
             The seed to use for reproducibility.
@@ -65,9 +65,12 @@ class DtTrainConfig:
         types: List[Tuple[int, int, int, int]]
             The types to use for the decision tree.
     """
+
     def __init__(
         self,
-        env: BaseEnvironment,
+        env: EnvWrapper,
+        agent: bool = True,
+        planner: bool = True,
         seed: int = 1,
         lr: Union[float, str] = "auto",
         df: float = 0.9,
@@ -95,17 +98,19 @@ class DtTrainConfig:
         genotype_len: int = 100,
         types: List[Tuple[int, int, int, int]] = None,
     ):
+        self.env = env
 
         # Set seeds
         assert seed >= 1, "Seed must be greater than 0"
         np.random.seed(seed)
         random.seed(seed)
+        self.env.seed(seed)
 
         # Add important variables to self
         self.episodes = episodes
         self.episode_len = episode_len
         # For the leaves
-        self.n_actions = { 
+        self.n_actions = {
             'a': env.action_space.n,
             'p': env.action_space_pl.nvec[0].item(),
         }
@@ -124,8 +129,9 @@ class DtTrainConfig:
         self.types = types
 
         # Create the log directory
-        date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.logdir = "experiments/dt/{}_{}".format(date, "".join(np.random.choice(list(string.ascii_lowercase), size=8)))
+        phase = 'P1' if agent and not planner else 'P2'
+        date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        self.logdir = "experiments/DT_{}_{}_{}".format(phase, date, episodes)
         self.logfile = os.path.join(self.logdir, "log.txt")
         os.makedirs(self.logdir)
 
@@ -167,17 +173,56 @@ class DtTrainConfig:
 
         # Log the configuration
         with open(self.logfile, "a") as f:
-            vars_ = locals().copy()
-            for k, v in vars_.items():
-                f.write("{}: {}\n".format(k, v))
+            f.write("Configuration:\n")
+            f.write(f"Environment: {self.env.__class__}, configuration at the bottom\n")
+            f.write(f"Seed: {seed}\n")
+            f.write(f"Phase {1 if not planner else 2}\n")
+            f.write(f"Episodes: {episodes}\n")
+            f.write(f"Episode Length: {episode_len}\n")
+            f.write(f"Generations: {generations}\n")
+            f.write(f"Crossover Probability: {cxp}\n")
+            f.write(f"Mutation Probability: {mp}\n")
+            f.write(f"Genotype Length: {genotype_len}\n")
+            f.write(f"Types: {types}\n")
+            f.write(f"Mutation:\n")
+            for key, value in self.mutation.items():
+                f.write(f"\t{key}: {value}\n")
+            f.write(f"Crossover:\n")
+            for key, value in self.crossover.items():
+                f.write(f"\t{key}: {value}\n")
+            f.write(f"Selection:\n")
+            for key, value in self.selection.items():
+                f.write(f"\t{key}: {value}\n")
+            f.write(f"Learning Rate: {lr}\n")
+            f.write(f"Discount Factor: {df}\n")
+            f.write(f"Epsilon: {eps}\n")
+            f.write(f"Low: {low}\n")
+            f.write(f"Up: {up}\n")
+            f.write(f"Lambda: {lambda_}\n")
+            f.write(f"Input Space: {input_space}\n")
+            f.write(f"Grammar:\n")
+            for key, value in self.grammar.items():
+                f.write(f"\t{key}: {value}\n")
+            f.write(f"\n{'':=^50}\n\nEnvironment config:\n")
+            for key, value in self.env.env_config_dict.items():
+                if key == 'components':
+                    for v in value:
+                        f.write(f"\t\t{v}\n")
+                else:
+                    f.write(f"\t{key}: {value}\n")
+            f.write("\n")
 
-        
+        # Check the variables
+        self.__check_variables()
+
     def __check_variables(self):
         """
         Checks if all variables are set.
         """
-        assert not isinstance(self.env, BaseEnvironment), "{} is not known".format(type(self.env))
-        assert self.lr == 'auto' or isinstance(self.lr, float), "{} is not known".format(type(self.lr))
+        assert not isinstance(
+            self.env, EnvWrapper), "{} is not known".format(type(self.env))
+        assert self.lr == 'auto' or isinstance(
+            self.lr, float), "{} is not known".format(type(self.lr))
         assert self.df > 0 and self.df < 1, "df must be between 0 and 1"
         assert self.eps > 0 and self.eps < 1, "eps must be between 0 and 1"
         assert self.low < self.up, "low must be smaller than up"
@@ -188,7 +233,6 @@ class DtTrainConfig:
         assert self.cxp > 0 and self.cxp < 1, "Crossover probability must be between 0 and 1"
         assert self.mp > 0 and self.mp < 1, "Mutation probability must be between 0 and 1"
         assert self.genotype_len > 0, "Genotype length must be greater than 0"
-
 
     def evaluate_fitness(
         self,
@@ -226,13 +270,12 @@ class DtTrainConfig:
 
     def fitness(self, agent: PythonDT, planner: PythonDT):
         global_cumulative_rewards = []
-        e = get_environment()
 
         # try:
         for iteration in range(self.episodes):
             # Set the seed and reset the environment
-            e.seed(iteration)
-            obs: Dict[str, Dict[str, np.ndarray]] = e.reset()
+            self.env.seed(iteration)
+            obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
 
             # Start the episode
             agent.new_episode()
@@ -257,10 +300,11 @@ class DtTrainConfig:
                 if any([a is None for a in actions.values()]):
                     break
 
-                obs, rew, done, _ = e.step(actions)
+                obs, rew, done, _ = self.env.step(actions)
 
-                # e.render() # FIXME: This is not working, see if needed
-                agent.set_reward(sum([rew.get(k, 0) for k in rew.keys() if k != "p"]))
+                # self.env.render() # FIXME: This is not working, see if needed
+                agent.set_reward(sum([rew.get(k, 0)
+                                 for k in rew.keys() if k != "p"]))
                 planner.set_reward(rew.get("p", 0))
 
                 # cum_rew += rew
@@ -286,7 +330,7 @@ class DtTrainConfig:
         # e.close()
 
         fitness = (np.mean(global_cumulative_rewards),)
-        return fitness, agent.leaves, planner.leaves
+        return fitness, agent, planner
 
     def train(
         self,
