@@ -1,6 +1,7 @@
 import pickle
 import os
 
+
 def save_batch(data, worker_id):
     """
     Save the batch in ram as a binary.
@@ -12,6 +13,7 @@ def save_batch(data, worker_id):
     """
     with open(f"/dev/shm/{worker_id}.bin", "wb") as data_file:
         pickle.dump(data, data_file, pickle.HIGHEST_PROTOCOL)
+
 
 def load_batch(worker_id):
     """
@@ -27,12 +29,14 @@ def load_batch(worker_id):
     with open(f"/dev/shm/{worker_id}.bin", "rb") as data_file:
         return pickle.load(data_file)
 
+
 def delete_batch(workers_id: list):
     """
     Deletes workers batch from ram.
     """
     for _id in workers_id:
         os.remove(f"/dev/shm/{_id}.bin")
+
 
 def data_logging(data, experiment_id, id):
     """

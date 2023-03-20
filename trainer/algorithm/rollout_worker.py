@@ -2,6 +2,7 @@
 Rollout worker. This good guy manages its policy and creates a batch
 """
 # import dill as pickle
+import logging
 import pickle
 from typing import Dict, Tuple
 
@@ -217,4 +218,4 @@ class RolloutWorker:
             if key is not "p":
                 self.policies[key].load_model(name=str(experiment_name) + key)
 
-        print("Models loaded!")
+        logging.info("Models loaded!")

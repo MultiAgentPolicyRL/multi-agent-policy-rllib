@@ -9,6 +9,7 @@ class RolloutBuffer:
     """
     Buffer used to store batched data
     """
+
     def __init__(self):
         self.actions = []
         self.states = []
@@ -53,7 +54,7 @@ class RolloutBuffer:
     # @exec_time
     def to_tensor(self):
         buffer = RolloutBuffer()
-        print(self.actions)
+
         buffer.actions = torch.stack(self.actions)
         buffer.logprobs = torch.stack(self.logprobs)
         buffer.rewards = torch.tensor(self.rewards)

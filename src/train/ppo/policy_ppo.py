@@ -3,13 +3,15 @@ from typing import List, Tuple
 import torch
 
 from src.common import Model
-from src.train.ppo import PytorchLinearA, PytorchLinearP #, RolloutBuffer
+from src.train.ppo import PytorchLinearA, PytorchLinearP  # , RolloutBuffer
 from src.train.ppo.utils.rollout_buffer import RolloutBuffer
+
 
 class PpoPolicy(Model):
     """
     PPO Main Optimization Algorithm
     """
+
     # TODO: fix experiment_name and model saving/loading
     def __init__(
         self,
@@ -22,7 +24,7 @@ class PpoPolicy(Model):
         c2: float = 0.01,
         learning_rate: float = 0.0003,
         device: str = "cpu",
-        name: str = None # as an "a" or a "p"
+        name: str = None,  # as an "a" or a "p"
     ):
         super().__init__(
             observation_space=observation_space,
@@ -37,7 +39,6 @@ class PpoPolicy(Model):
         # Hyperparameters in loss
         self._c1, self._c2 = c1, c2
 
-
         self.device = device
         # Environment and PPO parameters
 
@@ -47,13 +48,12 @@ class PpoPolicy(Model):
             obs_space=self.observation_space,
             action_space=self.action_space,
             device=self.device,
-            learning_rate=learning_rate
+            learning_rate=learning_rate,
         ).to(self.device)
 
         self.mse_loss = torch.nn.MSELoss()
 
         self.name = name
-
 
     def act(self, observation: dict):
         """
@@ -130,7 +130,7 @@ class PpoPolicy(Model):
             ratios = torch.exp(logprobs - old_logprobs.detach())
 
             # Finding Surrogate Loss
-            advantages = rewards - state_values.detach()
+            advantages = (rewards - state_values.detach()).unsqueeze(-1)
             surr1 = ratios * advantages
             surr2 = (
                 torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages

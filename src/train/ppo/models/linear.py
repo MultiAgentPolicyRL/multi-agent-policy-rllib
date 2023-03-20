@@ -46,7 +46,7 @@ class PytorchLinearA(nn.Module):
 
         self.MASK_NAME = "action_mask"
         self.num_outputs = action_space
-        self.logit_mask = (torch.ones(self.num_outputs).to(self.device) * -10000000)
+        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
         lr_actor = learning_rate  # learning rate for actor network 0003
@@ -55,7 +55,6 @@ class PytorchLinearA(nn.Module):
         # Fully connected values:
         self.fc_dim = 136
         self.num_fc = 2
-
 
         self.actor = nn.Sequential(
             nn.Linear(
@@ -98,7 +97,9 @@ class PytorchLinearA(nn.Module):
         action_probs = self.actor(obs2["flat"])
 
         # Apply logits mask
-        logit_mask = self.logit_mask * (self.one_mask - obs["action_mask"].reshape(self.num_outputs))
+        logit_mask = self.logit_mask * (
+            self.one_mask - obs["action_mask"].reshape(self.num_outputs)
+        )
         action_probs = action_probs + logit_mask
 
         dist = torch.distributions.Categorical(logits=action_probs)
@@ -170,21 +171,20 @@ class PytorchLinearP(nn.Module):
         super().__init__()
         self.device = device
 
-        self.MASK_NAME = "action_mask"
-        self.num_outputs = action_space # if isinstance(action_space, int) else action_space[0] * action_space[1]
-        self.logit_mask = (torch.ones(self.num_outputs).to(self.device) * -10000000)
+        self.mask_name = "action_mask"
+        self.num_outputs = action_space
+        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
         lr_actor = learning_rate  # learning rate for actor network 0003
         lr_critic = learning_rate  # learning rate for critic network 001
 
         # Fully connected values:
-        self.fc_dim = 136
+        self.fc_dim = 86
         self.num_fc = 2
 
-
         self.actor = nn.Sequential(
-            MultiDimLinear(
+            nn.Linear(
                 get_flat_obs_size(obs_space.spaces["flat"]),
                 self.num_outputs,
             ),
@@ -224,13 +224,21 @@ class PytorchLinearP(nn.Module):
         action_probs = self.actor(obs2["flat"])
 
         # Apply logits mask
-        logit_mask = self.logit_mask * (self.one_mask - obs["action_mask"].reshape(self.num_outputs))
+        logit_mask = self.logit_mask * (
+            self.one_mask - obs["action_mask"].reshape(self.num_outputs)
+        )
         action_probs = action_probs + logit_mask
 
-        dist = torch.distributions.Categorical(logits=action_probs)
+        action_probs = torch.split(action_probs, 22)
 
-        action = dist.sample()
-        action_logprob = dist.log_prob(action)
+        action = torch.zeros(7)
+        action_logprob = torch.zeros(7)
+
+        for i, sub_prob in enumerate(action_probs):
+            dist = torch.distributions.Categorical(logits=sub_prob)
+
+            action[i] = dist.sample()
+            action_logprob[i] = dist.log_prob(action[i])
 
         return action.detach(), action_logprob.detach()
 
@@ -247,11 +255,22 @@ class PytorchLinearP(nn.Module):
         """
         # TODO optimize memory so data doesn't need to be squeezed
         action_probs = self.actor(obs["flat"].squeeze())
-        dist = torch.distributions.Categorical(action_probs)
+        action_probs = torch.split(action_probs, 22)
 
-        action_logprobs = dist.log_prob(act)
-        dist_entropy = dist.entropy()
+        dist_entropy = torch.zeros((7, len(act)))
+        action_logprobs = torch.zeros((7, len(act)))
+
+        for i, sub_prob in enumerate(action_probs):
+            dist = torch.distributions.Categorical(logits=sub_prob)
+
+            action_logprobs[i] = dist.log_prob(act[:, i])
+            dist_entropy[i] = dist.entropy()
+
         state_values = self.critic(obs["flat"].squeeze())
+
+        action_logprobs = action_logprobs.transpose(0, 1)
+        dist_entropy = dist_entropy.transpose(0, 1)
+        state_values = state_values.transpose(0, 1)
 
         return action_logprobs, state_values, dist_entropy
 
@@ -287,15 +306,3 @@ class PytorchLinearP(nn.Module):
         """
         self.actor.load_state_dict(actor_weights)
         self.critic.load_state_dict(critic_weights)
-
-class MultiDimLinear(torch.nn.Linear):
-    def __init__(self, in_features, out_shape, **kwargs):
-        self.out_shape = out_shape
-        out_features = np.prod(out_shape)
-        super().__init__(in_features, out_features, **kwargs)
-
-    def forward(self, x):
-        out = super().forward(x)
-        print(len(x))
-        # return out.reshape(*self.out_shape)
-        return out.reshape((len(x), *self.out_shape))

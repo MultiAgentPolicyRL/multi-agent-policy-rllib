@@ -14,7 +14,8 @@ import logging
 import multiprocessing
 from src.common import get_environment
 
-from src import PpoTrainConfig
+from src import PpoTrainConfig, DtTrainConfig, InteractConfig
+
 # pylint: disable=pointless-string-statement
 
 ### Configuration declaration
@@ -79,8 +80,17 @@ if __name__ == "__main__":
 
     env = get_environment()
 
-    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=1, step=2, batch_size=10, rollout_fragment_length=10, mapped_agents={
-        "a": True,
-        "p": True
+    # trainer = PpoTrainConfig(get_mapping_function, env, num_workers=1, step=2, batch_size=10, rollout_fragment_length=10, mapped_agents={
+    # "a": True,
+    # "p": True
+    # })
+    # trainer.train()
+
+    # trainer = DtTrainConfig()
+    # trainer.train()
+
+    interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
+        "a": "PPO_P2_20-03-2023_1679306248_2/",
+        "p": "PPO_P2_20-03-2023_1679306248_2/",
     })
-    trainer.train()
+

@@ -4,6 +4,7 @@ Rollout worker.Manages a policy and creates a batch.
 import logging
 import sys
 from typing import Tuple
+
 # from src.train.ppo import RolloutBuffer
 from src.common import EmptyModel
 from src.train.ppo import PpoPolicy
@@ -57,7 +58,7 @@ class RolloutWorker:
         for key in policy_keys:
             self.policies[key] = self._build_policy(policies_config[key])
             self.memory[key] = RolloutBuffer()
-        
+
         logging.debug("Rollout Worker %s built", self._id)
 
     def _build_policy(self, policy_config: dict):
@@ -185,15 +186,19 @@ class RolloutWorker:
         Save the model of each policy.
         """
         for key in self.policies.keys():
-            self.policies[key].save_model("experiments/"+self.experiment_name+f"/models/{key}.pt")
+            self.policies[key].save_model(
+                "experiments/" + self.experiment_name + f"/models/{key}.pt"
+            )
 
-    def load_models(self, models_to_load:dict):
+    def load_models(self, models_to_load: dict):
         """
         Load the model of each policy.
 
         It doesn't load 'p' policy.
         """
         for key in models_to_load.keys():
-            self.policies[key].load_model("experiments/"+models_to_load[key]+f"/models/{key}.pt")
+            self.policies[key].load_model(
+                "experiments/" + models_to_load[key] + f"/models/{key}.pt"
+            )
 
         logging.info("Models loaded!")

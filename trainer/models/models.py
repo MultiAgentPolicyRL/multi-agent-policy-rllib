@@ -110,7 +110,6 @@ class PytorchLinear(nn.Module):
 
         # Apply logits mask
         logit_mask = self.logit_mask * (self.one_mask - obs["action_mask"])
-        
 
         action_probs = action_probs + logit_mask
 
@@ -158,9 +157,9 @@ class PytorchLinear(nn.Module):
             actor_weights, critic_weights
         """
         actor_weights = self.actor.state_dict(keep_vars=False)
-        
+
         critic_weights = self.critic.state_dict(keep_vars=False)
-        
+
         optimizer_weights = 0
         return actor_weights, critic_weights, optimizer_weights
 

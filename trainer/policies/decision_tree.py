@@ -3,6 +3,7 @@ import numpy as np
 
 from typing import List, Dict, Tuple, Union, Optional, Callable
 
+
 class DecisionTree:
     def __init__(self):
         self.current_reward = 0
@@ -11,7 +12,7 @@ class DecisionTree:
     @abc.abstractmethod
     def get_action(self, input):
         pass
-    
+
     def set_reward(self, reward):
         self.current_reward = reward
 
@@ -45,11 +46,16 @@ class QLearningLeaf(Leaf):
 
     def update(self, reward, qprime):
         if self.last_action is not None:
-            lr = self.learning_rate if not callable(self.learning_rate) else self.learning_rate(self.iteration[self.last_action])
+            lr = (
+                self.learning_rate
+                if not callable(self.learning_rate)
+                else self.learning_rate(self.iteration[self.last_action])
+            )
             if lr == "auto":
-                lr = 1/self.iteration[self.last_action]
+                lr = 1 / self.iteration[self.last_action]
             self.q[self.last_action] += lr * (
-                        reward + self.discount_factor * qprime - self.q[self.last_action])
+                reward + self.discount_factor * qprime - self.q[self.last_action]
+            )
 
     def next_iteration(self):
         self.iteration[self.last_action] += 1
@@ -73,7 +79,7 @@ class EpsGreedyLeaf(QLearningLeaf):
             # Get the argmax. If there are equal values, choose randomly between them
             best = [None]
             max_ = -float("inf")
-            
+
             for i, v in enumerate(self.q):
                 if v > max_:
                     max_ = v
@@ -87,8 +93,11 @@ class EpsGreedyLeaf(QLearningLeaf):
         self.next_iteration()
         return action
 
+
 class RandomlyInitializedEpsGreedyLeaf(EpsGreedyLeaf):
-    def __init__(self, n_actions, learning_rate, discount_factor, epsilon, low=-100, up=100):
+    def __init__(
+        self, n_actions, learning_rate, discount_factor, epsilon, low=-100, up=100
+    ):
         """
         Initialize the leaf.
         Params:
@@ -99,37 +108,39 @@ class RandomlyInitializedEpsGreedyLeaf(EpsGreedyLeaf):
             - low: lower bound for the initialization
             - up: upper bound for the initialization
         """
-        super(RandomlyInitializedEpsGreedyLeaf, self).__init__(n_actions, learning_rate, discount_factor, epsilon)
+        super(RandomlyInitializedEpsGreedyLeaf, self).__init__(
+            n_actions, learning_rate, discount_factor, epsilon
+        )
         self.q = np.random.uniform(low, up, n_actions)
 
 
 class CLeaf(RandomlyInitializedEpsGreedyLeaf):
     def __init__(
-            self, 
-            n_actions: int,
-            lr: Union[float, str],
-            df: float,
-            eps: float,
-            low: float,
-            up: float
-        ) -> None:
+        self,
+        n_actions: int,
+        lr: Union[float, str],
+        df: float,
+        eps: float,
+        low: float,
+        up: float,
+    ) -> None:
         super(CLeaf, self).__init__(n_actions, lr, df, eps, low=low, up=up)
 
 
 class PythonDT(DecisionTree):
     def __init__(
-            self, 
-            phenotype: str, 
-            # leaf: CLeaf, 
-            n_actions: int,
-            lr: Union[float, str],
-            df: float,
-            eps: float,
-            low: float = -100,
-            up: float = 100,
-            planner: bool = False,
-        ) -> None:
-        
+        self,
+        phenotype: str,
+        # leaf: CLeaf,
+        n_actions: int,
+        lr: Union[float, str],
+        df: float,
+        eps: float,
+        low: float = -100,
+        up: float = 100,
+        planner: bool = False,
+    ) -> None:
+
         super(PythonDT, self).__init__()
         self.program = phenotype
         self.leaves = {}
@@ -143,19 +154,25 @@ class PythonDT(DecisionTree):
                     leaf_name = "leaf_{}_{}".format(n_leaves, i)
                     self.leaves[leaf_name] = new_leaf
 
-                    self.program = self.program.replace("_leaf", "'{}.get_action()'".format(leaf_name), 1)
-                    self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
+                    self.program = self.program.replace(
+                        "_leaf", "'{}.get_action()'".format(leaf_name), 1
+                    )
+                    self.program = self.program.replace(
+                        "_leaf", "{}".format(leaf_name), 1
+                    )
             else:
                 new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
                 leaf_name = "leaf_{}".format(n_leaves)
                 self.leaves[leaf_name] = new_leaf
 
-                self.program = self.program.replace("_leaf", "'{}.get_action()'".format(leaf_name), 1)
+                self.program = self.program.replace(
+                    "_leaf", "'{}.get_action()'".format(leaf_name), 1
+                )
                 self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
 
                 n_leaves += 1
         self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
-    
+
     def get_action(self, input):
         if len(self.program) == 0:
             return None
@@ -178,7 +195,7 @@ class PythonDT(DecisionTree):
                 self.last_leaf = current_leaf
 
                 actions.append(current_leaf.get_action())
-            
+
             return actions
 
         exec(self.exec_, variables)
@@ -187,10 +204,10 @@ class PythonDT(DecisionTree):
         current_q_value = max(current_leaf.q)
         if self.last_leaf is not None:
             self.last_leaf.update(self.current_reward, current_q_value)
-        self.last_leaf = current_leaf 
-        
+        self.last_leaf = current_leaf
+
         return current_leaf.get_action()
-    
+
     def __call__(self, x):
         return self.get_action(x)
 

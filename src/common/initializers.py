@@ -2,6 +2,7 @@
 Common functions used by all (both train and interact) modules.
 """
 
+
 def test_mapping(mapping_function, mapped_agents: dict, env) -> None:
     """
     Checks if mapping between a mapping function and the environment
@@ -11,7 +12,7 @@ def test_mapping(mapping_function, mapped_agents: dict, env) -> None:
         mapping_function: function that maps agents id (key) to 'mapped_agents' keys.
         mapped_agents: mapped agents dictionary.
         env: RL environment with Gym interface.
-    
+
     Raise:
         ValueError if mapping is not correct.
     """
