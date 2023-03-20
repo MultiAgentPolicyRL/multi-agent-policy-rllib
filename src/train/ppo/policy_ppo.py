@@ -91,8 +91,9 @@ class PpoPolicy(Model):
             rollout_buffer: RolloutBuffer for this specific policy.
         """
         buffer = rollout_buffer.to_tensor()
-        a_loss, c_loss = self.__update(buffer=buffer)
-        return a_loss, c_loss
+        print("converted")
+        a_loss, c_loss, entropy = self.__update(buffer=buffer)
+        return a_loss, c_loss, entropy
 
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
@@ -107,15 +108,18 @@ class PpoPolicy(Model):
             discounted_reward = reward + (self.gamma * discounted_reward)
             rewards.insert(0, discounted_reward)
 
+        print("1")
         # Normalizing the rewards
         rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
+        print("2")
 
         old_states = buffer.states
         old_actions = buffer.actions
         old_logprobs = buffer.logprobs
 
-        a_loss, c_loss = [], []
+        a_loss, c_loss, ac_entropy = [], [], []
+        print("3")
 
         # Optimize policy for K epochs
         for _ in range(self.k_epochs):
@@ -125,9 +129,11 @@ class PpoPolicy(Model):
             )
             # match state_values tensor dimensions with rewards tensor
             state_values = torch.squeeze(state_values)
+            print("4a")
 
             # Finding the ratio pi_theta / pi_theta_old
             ratios = torch.exp(logprobs - old_logprobs.detach())
+            print("4b")
 
             # Finding Surrogate Loss
             advantages = (rewards - state_values.detach()).unsqueeze(-1)
@@ -135,6 +141,7 @@ class PpoPolicy(Model):
             surr2 = (
                 torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             )
+            print("4c")
 
             critic_loss = self.mse_loss(state_values, rewards)
 
@@ -144,19 +151,25 @@ class PpoPolicy(Model):
                 + self._c1 * critic_loss
                 - self._c2 * dist_entropy
             )
+            print("4d")
 
             # take gradient step
             self.model.optimizer.zero_grad()
             loss.mean().backward()
             self.model.optimizer.step()
 
+            print("4e")
+
             c_loss.append(torch.mean(critic_loss))
             a_loss.append(torch.mean(loss))
+            ac_entropy.append(torch.mean(dist_entropy))
+            print("4f")
 
         a_loss = torch.mean(torch.tensor(a_loss)).numpy()
         c_loss = torch.mean(torch.tensor(c_loss)).numpy()
+        ac_entropy = torch.mean(torch.tensor(ac_entropy)).numpy()
 
-        return a_loss, c_loss
+        return a_loss, c_loss, ac_entropy
 
     def get_weights(self) -> dict:
         """

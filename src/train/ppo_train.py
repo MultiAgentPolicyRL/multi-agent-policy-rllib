@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import time
 from datetime import datetime
+import toml
 
 from torch.multiprocessing import Pipe, Process
 from tqdm import tqdm
@@ -25,7 +26,7 @@ def run_rollout_worker(conn, worker: RolloutWorker):
         worker.batch()
         # Bad way of using semaphores/signals
         conn.send(1)
-        worker.save_csv()
+        worker.log_rewards()
 
 
 class PpoTrainConfig:
@@ -225,20 +226,22 @@ class PpoTrainConfig:
         # Get batches and create a single "big" batch
         _ = [pipe[0].recv() for pipe in self.pipes]
 
+        print("1")
+
         # Open all files in a list of `file`
         for worker_id in self.workers_id:
             rollout = load_batch(worker_id=worker_id)
-
             for key in self.policy_keys:
                 self.memory[key].extend(rollout[key])
+            print("2")
 
         # Update main worker policy
         self.learn_worker.learn(memory=self.memory)
-
+        print("3")
         # Send updated policy to all rollout workers
         for pipe in self.pipes:
             pipe[0].send(self.learn_worker.get_weights())
-
+        print("4")
         # Clear memory from used batch
         for memory in self.memory.values():
             memory.clear()
@@ -363,11 +366,29 @@ class PpoTrainConfig:
             os.makedirs(path + "/plots")
 
         # Create config.txt log file
-        with open(path + "/config.txt", "w") as config_file:
-            config_file.write(f"algorithm: PPO\nstep: {self.step}\nseed: {self.seed}\n")
-            config_file.write(
-                f"k_epochs: {self.k_epochs}\neps_clip: {self.eps_clip}\ngamma: {self.gamma}\ndevice: {self.device}\nlearning_rate: {self.learning_rate}\nnum_workers: {self.num_workers}\nmapped_agents: {self.mapped_agents}\n"
-            )
+        with open(path + "/config.toml", "w") as config_file:
+            config_dict = {
+                "common": {
+                    "algorithm_name": "PPO",
+                    "phase": self.phase,
+                    "step": self.step,
+                    "seed": self.seed,
+                    "device": self.device,
+                    "mapped_agents": self.mapped_agents,
+                },
+                "algorithm_specific": {
+                    "rollout_fragment_length": self.rollout_fragment_length,
+                    "batch_size": self.batch_size,
+                    "k_epochs": self.k_epochs,
+                    "eps_clip": self.eps_clip,
+                    "gamma": self.gamma,
+                    "learning_rate": self.learning_rate,
+                    "num_workers": self.num_workers,
+                    "c1": self._c1,
+                    "c2": self._c2,
+                }
+            }
+            toml.dump(config_dict, config_file)
 
         logging.info("Directories created")
         return experiment_name

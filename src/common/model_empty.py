@@ -46,7 +46,7 @@ class EmptyModel(Model):
         """
         This policy doesn't have to learn anything. It will just do nothing.
         """
-        return 0.0, 0.0
+        return 0.0, 0.0, 0.0
 
     def get_weights(self):
         """

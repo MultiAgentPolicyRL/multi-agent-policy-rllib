@@ -75,22 +75,22 @@ def get_mapping_function():
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
+        level=logging.DEBUG, format="%(process)d-%(levelname)s-%(message)s"
     )
 
     env = get_environment()
 
-    # trainer = PpoTrainConfig(get_mapping_function, env, num_workers=1, step=2, batch_size=10, rollout_fragment_length=10, mapped_agents={
-    # "a": True,
-    # "p": True
-    # })
-    # trainer.train()
+    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=12, step=10, batch_size=6000, rollout_fragment_length=200, mapped_agents={
+    "a": True,
+    "p": False
+    })
+    trainer.train()
 
     # trainer = DtTrainConfig()
     # trainer.train()
 
-    interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-        "a": "PPO_P2_20-03-2023_1679306248_2/",
-        "p": "PPO_P2_20-03-2023_1679306248_2/",
-    })
+    # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
+    #     "a": "PPO_P2_20-03-2023_1679306248_2",
+    #     "p": "PPO_P2_20-03-2023_1679306248_2",
+    # })
 

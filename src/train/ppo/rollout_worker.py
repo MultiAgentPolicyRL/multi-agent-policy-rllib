@@ -44,12 +44,13 @@ class RolloutWorker:
 
         policy_keys = policies_config.keys()
         env.seed(seed + _id)
+        env_keys = env.reset().keys()
 
         if self._id != -1:
-            string = f"{','.join(map(str, policy_keys))}\n"
+            string = f"{','.join(map(str, env_keys))}\n"
             data_logging(data=string, experiment_id=self.experiment_name, id=self._id)
         else:
-            string = "a_actor_loss,a_critic_loss,p_a_loss,p_c_loss\n"
+            string = "a_actor_loss,a_critic_loss,a_entropy,p_a_loss,p_c_loss,p_entropy\n"
             data_logging(data=string, experiment_id=self.experiment_name, id=self._id)
 
         # Build policices
@@ -145,24 +146,35 @@ class RolloutWorker:
         losses = []
         for key in self.policies:
             losses.append(self.policies[key].learn(rollout_buffer=memory[key]))
-
+        print("a")
         rewards = []
         for _m in losses:
             for _k in _m:
                 rewards.append(_k)
-
+        print("b")
         data = f"{','.join(map(str, rewards))}\n"
 
         data_logging(data=data, experiment_id=self.experiment_name, id=self._id)
 
-    def save_csv(self):
+    def log_rewards(self):
         """
         Append agent's total reward for this batch
         """
-        rewards = [sum(m.rewards) for m in self.memory.values()]
-        rewards = f"{','.join(map(str, rewards))}\n"
+        
+        # if we are accessing self.memory['a']:
+        # split data irt the agents
+        # for i in range(4):
+        data = [(self.memory["a"].rewards[i::4]) for i in range(4)]
+        
+        # if we are accessing self.memory['p']:
+        # just return that data
+        data.append((self.memory["p"].rewards))
 
-        data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
+        # rewards = [sum(m.rewards) for m in self.memory.values()]
+        for i in range(len(data[4])):
+            splitted_data = [data[0][i], data[1][i], data[2][i], data[3][i], data[4][i]]
+            rewards = f"{','.join(map(str, splitted_data))}\n"
+            data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
 
     def get_weights(self) -> dict:
         """
