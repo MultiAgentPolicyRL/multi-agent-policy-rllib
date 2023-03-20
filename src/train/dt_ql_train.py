@@ -98,15 +98,14 @@ class DtTrainConfig:
         },
         genotype_len: int = 100,
         types: List[Tuple[int, int, int, int]] = None,
-        mapped_agents: Dict[str, Union[bool, str]] =
-        {
-            'a': True,
-            'p': True,
+        mapped_agents: Dict[str, Union[bool, str]] = {
+            "a": True,
+            "p": True,
         },
     ):
         self.env = env
-        self.agent = mapped_agents['a']
-        self.planner = mapped_agents['p']
+        self.agent = mapped_agents["a"]
+        self.planner = mapped_agents["p"]
 
         # Set seeds
         assert seed >= 1, "Seed must be greater than 0"
@@ -119,8 +118,8 @@ class DtTrainConfig:
         self.episode_len = episode_len
         # For the leaves
         self.n_actions = {
-            'a': env.action_space.n,
-            'p': env.action_space_pl.nvec[0].item(),
+            "a": env.action_space.n,
+            "p": env.action_space_pl.nvec[0].item(),
         }
         self.lr = lr
         self.df = df
@@ -137,7 +136,7 @@ class DtTrainConfig:
         self.types = types
 
         # Create the log directory
-        phase = 'P1' if agent and not planner else 'P2'
+        phase = "P1" if agent and not planner else "P2"
         date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         self.logdir = "experiments/DT_{}_{}_{}".format(phase, date, episodes)
         self.logfile = os.path.join(self.logdir, "log.txt")
@@ -181,13 +180,13 @@ class DtTrainConfig:
 
         # Log the configuration
         with open(os.path.join(self.logdir, "config.toml"), "w") as f:
-            config_dict={
+            config_dict = {
                 "common": {
                     "algorithm_name": "DT",
                     "phase": 1 if not planner else 2,
                     "step": self.episode_len,
                     "seed": seed,
-                    "device": 'cpu',
+                    "device": "cpu",
                     "mapped_agents": mapped_agents,
                 },
                 "algorithm_specific": {
@@ -208,7 +207,7 @@ class DtTrainConfig:
                     "lambda_": lambda_,
                     "input_space": input_space,
                     "grammar": self.grammar,
-                }
+                },
             }
             toml.dump(config_dict, f)
 
@@ -219,10 +218,17 @@ class DtTrainConfig:
         """
         Checks if all variables are set.
         """
-        assert self.agent == True or (isinstance(
-            self.agent, str) and os.path.exists(os.path.join("experiments", self.agent))), "The agent must be trained or loaded from existing directory, received {}".format(self.agent)
-        assert self.lr == 'auto' or (isinstance(
-            self.lr, float) and self.lr > 0 and self.lr < 1), "{} is not known or not in the right range ({})".format(type(self.lr), self.lr)
+        assert self.agent == True or (
+            isinstance(self.agent, str)
+            and os.path.exists(os.path.join("experiments", self.agent))
+        ), "The agent must be trained or loaded from existing directory, received {}".format(
+            self.agent
+        )
+        assert self.lr == "auto" or (
+            isinstance(self.lr, float) and self.lr > 0 and self.lr < 1
+        ), "{} is not known or not in the right range ({})".format(
+            type(self.lr), self.lr
+        )
         assert self.df > 0 and self.df < 1, "df must be between 0 and 1"
         assert self.eps > 0 and self.eps < 1, "eps must be between 0 and 1"
         assert self.low < self.up, "low must be smaller than up"
@@ -230,8 +236,12 @@ class DtTrainConfig:
         assert self.episode_len > 0, "episode_len must be greater than 0"
         assert self.lambda_ > 0, "lambda must be greater than 0"
         assert self.generations > 0, "generations must be greater than 0"
-        assert self.cxp > 0 and self.cxp < 1, "Crossover probability must be between 0 and 1"
-        assert self.mp > 0 and self.mp < 1, "Mutation probability must be between 0 and 1"
+        assert (
+            self.cxp > 0 and self.cxp < 1
+        ), "Crossover probability must be between 0 and 1"
+        assert (
+            self.mp > 0 and self.mp < 1
+        ), "Mutation probability must be between 0 and 1"
         assert self.genotype_len > 0, "Genotype length must be greater than 0"
 
         if not os.path.exists(self.logdir):
@@ -255,7 +265,7 @@ class DtTrainConfig:
         genotype: List[int],
     ) -> float:
         # Get the phenotype
-        phenotype, _=GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(
+        phenotype, _ = GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(
             genotype
         )
 
@@ -279,10 +289,14 @@ class DtTrainConfig:
             self.up,
             True,
         )
-        if isinstance(self.agent, str) and os.path.exists(os.path.join("experiments", self.agent)):
+        if isinstance(self.agent, str) and os.path.exists(
+            os.path.join("experiments", self.agent)
+        ):
             dt.load(os.path.join("experiments", self.agent))
 
-        if isinstance(self.planner, str) and os.path.exists(os.path.join("experiments", self.planner)):
+        if isinstance(self.planner, str) and os.path.exists(
+            os.path.join("experiments", self.planner)
+        ):
             dt_p.load(os.path.join("experiments", self.planner), planner=True)
         elif self.planner == False:
             dt_p = None
@@ -311,7 +325,7 @@ class DtTrainConfig:
             for t in range(self.episode_len):
                 actions = agent.get_actions(obs)
                 if planner is not None:
-                    actions["p"] = planner(obs.get('p').get('flat'))
+                    actions["p"] = planner(obs.get("p").get("flat"))
 
                 if any([a is None for a in actions.values()]):
                     break
@@ -324,8 +338,7 @@ class DtTrainConfig:
                     planner.add_rewards(rewards=rew)
 
                 # self.env.render() # FIXME: This is not working, see if needed
-                agent.set_reward(sum([rew.get(k, 0)
-                                 for k in rew.keys() if k != "p"]))
+                agent.set_reward(sum([rew.get(k, 0) for k in rew.keys() if k != "p"]))
                 if planner is not None:
                     planner.set_reward(rew.get("p", 0))
 

@@ -6,7 +6,6 @@ import numpy
 if __name__ == "__main__":
     EXPERIMENT_NAME = "INT_PPO_20-03-2023_1679324015_PPO_P2_20-03-2023_1679306248_2"
 
-    
     # Stati data:
     EPOCHS = 200
     BATCH_SIZE = 1000

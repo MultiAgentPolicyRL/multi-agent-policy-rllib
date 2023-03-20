@@ -56,8 +56,7 @@ class QLearningLeaf(Leaf):
             if lr == "auto":
                 lr = 1 / self.iteration[self.last_action]
             self.q[self.last_action] += lr * (
-                reward + self.discount_factor *
-                qprime - self.q[self.last_action]
+                reward + self.discount_factor * qprime - self.q[self.last_action]
             )
 
     def next_iteration(self):
@@ -172,8 +171,7 @@ class PythonDT(DecisionTree):
                 self.program = self.program.replace(
                     "_leaf", "'{}.get_action()'".format(leaf_name), 1
                 )
-                self.program = self.program.replace(
-                    "_leaf", "{}".format(leaf_name), 1)
+                self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
 
                 n_leaves += 1
         self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
@@ -222,8 +220,8 @@ class PythonDT(DecisionTree):
     def get_actions(self, inputs: Dict[str, Dict[str, np.ndarray]]):
         actions = {}
         for agent, x in inputs.items():
-            if agent != 'p':
-                actions[agent] = self.get_action(x.get('flat'))
+            if agent != "p":
+                actions[agent] = self.get_action(x.get("flat"))
 
         return actions
 
@@ -240,12 +238,20 @@ class PythonDT(DecisionTree):
         }
 
         # Save self as a pickle
-        with open(os.path.join(save_path, "dt_{}.pkl".format('p' if self.planner else 'a')), "wb") as f:
+        with open(
+            os.path.join(save_path, "dt_{}.pkl".format("p" if self.planner else "a")),
+            "wb",
+        ) as f:
             pickle.dump(data, f)
 
     def load(self, load_path: str, planner: bool = False):
         # Load self from a pickle
-        with open(os.path.join(load_path, "models", "dt_{}.pkl".format('p' if planner else 'a')), "rb") as f:
+        with open(
+            os.path.join(
+                load_path, "models", "dt_{}.pkl".format("p" if planner else "a")
+            ),
+            "rb",
+        ) as f:
             data = pickle.load(f)
             self.leaves = data.get("leaves")
             self.program = data.get("program")

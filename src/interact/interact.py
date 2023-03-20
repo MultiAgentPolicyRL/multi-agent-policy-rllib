@@ -37,7 +37,7 @@ class InteractConfig:
         device: str = "cpu",
         seed: int = 1,
     ):
-        self.mapping_function = mapping_function #
+        self.mapping_function = mapping_function  #
         self.env = env  #
         self.device = device  #
         self.trainer = trainer  #
@@ -60,7 +60,9 @@ class InteractConfig:
             # Load models. If P1: load `a`, if P2: load `a`,`p`
             if self.phase == "P1":
                 self.models = {
-                    "a": torch.load("/experiments/" + self.mapped_agents("a")+"/models/a.pt"),
+                    "a": torch.load(
+                        "/experiments/" + self.mapped_agents("a") + "/models/a.pt"
+                    ),
                     "p": EmptyModel(
                         self.env.observation_space_pl,
                         [22, 22, 22, 22, 22, 22, 22],
@@ -68,15 +70,21 @@ class InteractConfig:
                 }
             else:
                 self.models = {
-                    "a": torch.load("experiments/" + self.mapped_agents["a"]+"/models/a.pt"),
-                    "p": torch.load("experiments/" + self.mapped_agents["p"]+"/models/p.pt"),
+                    "a": torch.load(
+                        "experiments/" + self.mapped_agents["a"] + "/models/a.pt"
+                    ),
+                    "p": torch.load(
+                        "experiments/" + self.mapped_agents["p"] + "/models/p.pt"
+                    ),
                 }
 
             def stepper():
                 def get_actions(obs: dict):
                     actions = {}
                     for key in obs.keys():
-                        actions[key], _ = self.models[self.mapping_function(key)].act(obs[key])
+                        actions[key], _ = self.models[self.mapping_function(key)].act(
+                            obs[key]
+                        )
 
                     return actions
 
@@ -114,7 +122,9 @@ class InteractConfig:
 
         date = datetime.today().strftime("%d-%m-%Y")
         algorithm_name = "PPO" if self.trainer == PpoTrainConfig else "DT"
-        experiment_name = f"INT_{algorithm_name}_{date}_{int(time.time())}_{self.mapped_agents['a']}"
+        experiment_name = (
+            f"INT_{algorithm_name}_{date}_{int(time.time())}_{self.mapped_agents['a']}"
+        )
         self.path = f"experiments/{experiment_name}"
 
         if not os.path.exists(self.path):
@@ -138,14 +148,13 @@ class InteractConfig:
             if algorithm_name == {"PPO"}:
                 # TODO: save PPO's config
                 # (learning rate but it's kinda useless)
-                                
+
                 pass
             else:
                 # TODO: save DT's config
                 pass
 
             toml.dump(config_dict, config_file)
-
 
         with open(self.path + "/logs/-1.csv", "a+") as log_file:
             log_file.write("0,1,2,3,p\n")

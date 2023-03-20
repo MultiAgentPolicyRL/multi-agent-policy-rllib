@@ -226,22 +226,19 @@ class PpoTrainConfig:
         # Get batches and create a single "big" batch
         _ = [pipe[0].recv() for pipe in self.pipes]
 
-        print("1")
-
         # Open all files in a list of `file`
         for worker_id in self.workers_id:
             rollout = load_batch(worker_id=worker_id)
             for key in self.policy_keys:
                 self.memory[key].extend(rollout[key])
-            print("2")
 
         # Update main worker policy
         self.learn_worker.learn(memory=self.memory)
-        print("3")
+
         # Send updated policy to all rollout workers
         for pipe in self.pipes:
             pipe[0].send(self.learn_worker.get_weights())
-        print("4")
+
         # Clear memory from used batch
         for memory in self.memory.values():
             memory.clear()
@@ -386,7 +383,7 @@ class PpoTrainConfig:
                     "num_workers": self.num_workers,
                     "c1": self._c1,
                     "c2": self._c2,
-                }
+                },
             }
             toml.dump(config_dict, config_file)
 

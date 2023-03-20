@@ -191,9 +191,14 @@ def eaSimple(
         ind.fitness.values = fit
         if logfile is not None and (best is None or best < fit[0]):
             best = fit[0]
-            best_leaves = agent_leaves[i].leaves if planner_leaves[i] is None else (
-                agent_leaves[i].leaves, planner_leaves[i].leaves)
-            best_rewards = agent_leaves[i].rewards #if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
+            best_leaves = (
+                agent_leaves[i].leaves
+                if planner_leaves[i] is None
+                else (agent_leaves[i].leaves, planner_leaves[i].leaves)
+            )
+            best_rewards = agent_leaves[
+                i
+            ].rewards  # if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -207,17 +212,18 @@ def eaSimple(
                     log_.write("Planner Leaves\n")
                     log_.write(str(planner_leaves[i].leaves) + "\n")
 
-            agent_leaves[i].save(save_path=os.path.join(
-                os.path.dirname(logfile), "models"))
+            agent_leaves[i].save(
+                save_path=os.path.join(os.path.dirname(logfile), "models")
+            )
             if planner_leaves[i] is not None:
-                planner_leaves[i].save(save_path=os.path.join(
-                    os.path.dirname(logfile), "models"))
+                planner_leaves[i].save(
+                    save_path=os.path.join(os.path.dirname(logfile), "models")
+                )
 
     # Save rewards
-    with open(os.path.join(os.path.dirname(logfile), 'rewards', '-1.csv'), 'a') as f:
+    with open(os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a") as f:
         for rew in best_rewards:
-            f.write(
-                f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+            f.write(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
 
     if halloffame is not None:
         halloffame.update(population)
@@ -255,9 +261,14 @@ def eaSimple(
             ind.fitness.values = fit
             if logfile is not None and (best is None or best < fit[0]):
                 best = fit[0]
-                best_leaves = agent_leaves[i].leaves if planner_leaves[i] is None else (
-                    agent_leaves[i].leaves, planner_leaves[i].leaves)
-                best_rewards = agent_leaves[i].rewards #if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
+                best_leaves = (
+                    agent_leaves[i].leaves
+                    if planner_leaves[i] is None
+                    else (agent_leaves[i].leaves, planner_leaves[i].leaves)
+                )
+                best_rewards = agent_leaves[
+                    i
+                ].rewards  # if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{}] New best at generation {} with fitness {}\n".format(
@@ -271,17 +282,20 @@ def eaSimple(
                         log_.write("Planner leaves\n")
                         log_.write(str(planner_leaves[i]) + "\n")
 
-                agent_leaves[i].save(save_path=os.path.join(
-                    os.path.dirname(logfile), "models"))
+                agent_leaves[i].save(
+                    save_path=os.path.join(os.path.dirname(logfile), "models")
+                )
                 if planner_leaves[i] is not None:
-                    planner_leaves[i].save(save_path=os.path.join(
-                        os.path.dirname(logfile), "models"))
+                    planner_leaves[i].save(
+                        save_path=os.path.join(os.path.dirname(logfile), "models")
+                    )
 
         # Save rewards
-        with open(os.path.join(os.path.dirname(logfile), 'rewards', '-1.csv'), 'a') as f:
+        with open(
+            os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a"
+        ) as f:
             for rew in best_rewards:
-                f.write(
-                    f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+                f.write(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
@@ -478,17 +492,17 @@ def grammatical_evolution(
     toolbox.register(
         "mate",
         eval(crossover["function"]),
-        **{k: v for k, v in crossover.items() if k != "function"}
+        **{k: v for k, v in crossover.items() if k != "function"},
     )
     toolbox.register(
         "mutate",
         eval(mutation["function"]),
-        **{k: v for k, v in mutation.items() if k != "function"}
+        **{k: v for k, v in mutation.items() if k != "function"},
     )
     toolbox.register(
         "select",
         eval(selection["function"]),
-        **{k: v for k, v in selection.items() if k != "function"}
+        **{k: v for k, v in selection.items() if k != "function"},
     )
 
     pop = toolbox.population(n=individuals)
@@ -614,8 +628,7 @@ def differential_evolution(
         if "individual" in d:
             d["individual"] = creator.Individual
 
-    toolbox.register("mate", de_mate, CR=CR, F=F,
-                     individual=creator.Individual)
+    toolbox.register("mate", de_mate, CR=CR, F=F, individual=creator.Individual)
     toolbox.register("select", tools.selRandom)
 
     pop = toolbox.population(n=individuals)

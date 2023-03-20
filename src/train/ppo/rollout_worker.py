@@ -10,6 +10,7 @@ from src.common import EmptyModel
 from src.train.ppo import PpoPolicy
 from src.train.ppo import save_batch, data_logging
 from trainer.utils.rollout_buffer import RolloutBuffer  # , load_batch
+from src.train.ppo.utils.execution_time import exec_time
 
 # pylint: disable=consider-using-dict-items,consider-iterating-dictionary
 
@@ -42,6 +43,13 @@ class RolloutWorker:
         self.policy_mapping_function = mapping_function
         self.experiment_name = experiment_name
 
+        logging.debug(
+            "Length: %s, iter:%s, batch_size:%s",
+            self.rollout_fragment_length,
+            self.batch_iterations,
+            self.batch_size,
+        )
+
         policy_keys = policies_config.keys()
         env.seed(seed + _id)
         env_keys = env.reset().keys()
@@ -50,7 +58,9 @@ class RolloutWorker:
             string = f"{','.join(map(str, env_keys))}\n"
             data_logging(data=string, experiment_id=self.experiment_name, id=self._id)
         else:
-            string = "a_actor_loss,a_critic_loss,a_entropy,p_a_loss,p_c_loss,p_entropy\n"
+            string = (
+                "a_actor_loss,a_critic_loss,a_entropy,p_a_loss,p_c_loss,p_entropy\n"
+            )
             data_logging(data=string, experiment_id=self.experiment_name, id=self._id)
 
         # Build policices
@@ -82,6 +92,7 @@ class RolloutWorker:
                 name=policy_config["name"],
             )
 
+    @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
@@ -146,12 +157,12 @@ class RolloutWorker:
         losses = []
         for key in self.policies:
             losses.append(self.policies[key].learn(rollout_buffer=memory[key]))
-        print("a")
+
         rewards = []
         for _m in losses:
             for _k in _m:
                 rewards.append(_k)
-        print("b")
+
         data = f"{','.join(map(str, rewards))}\n"
 
         data_logging(data=data, experiment_id=self.experiment_name, id=self._id)
@@ -160,12 +171,11 @@ class RolloutWorker:
         """
         Append agent's total reward for this batch
         """
-        
         # if we are accessing self.memory['a']:
         # split data irt the agents
         # for i in range(4):
         data = [(self.memory["a"].rewards[i::4]) for i in range(4)]
-        
+
         # if we are accessing self.memory['p']:
         # just return that data
         data.append((self.memory["p"].rewards))

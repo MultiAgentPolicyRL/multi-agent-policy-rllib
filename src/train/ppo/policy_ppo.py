@@ -5,6 +5,7 @@ import torch
 from src.common import Model
 from src.train.ppo import PytorchLinearA, PytorchLinearP  # , RolloutBuffer
 from src.train.ppo.utils.rollout_buffer import RolloutBuffer
+from src.train.ppo.utils.execution_time import exec_time
 
 
 class PpoPolicy(Model):
@@ -42,9 +43,9 @@ class PpoPolicy(Model):
         self.device = device
         # Environment and PPO parameters
 
-        type = PytorchLinearA if name == "a" else PytorchLinearP
+        _type = PytorchLinearA if name == "a" else PytorchLinearP
 
-        self.model: type = type(
+        self.model: _type = _type(
             obs_space=self.observation_space,
             action_space=self.action_space,
             device=self.device,
@@ -73,7 +74,7 @@ class PpoPolicy(Model):
 
         return policy_action, policy_probability
 
-    # @exec_time
+    @exec_time
     def learn(
         self,
         rollout_buffer: List[RolloutBuffer],
@@ -91,10 +92,11 @@ class PpoPolicy(Model):
             rollout_buffer: RolloutBuffer for this specific policy.
         """
         buffer = rollout_buffer.to_tensor()
-        print("converted")
+
         a_loss, c_loss, entropy = self.__update(buffer=buffer)
         return a_loss, c_loss, entropy
 
+    @exec_time
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
         rewards = []
@@ -108,18 +110,15 @@ class PpoPolicy(Model):
             discounted_reward = reward + (self.gamma * discounted_reward)
             rewards.insert(0, discounted_reward)
 
-        print("1")
         # Normalizing the rewards
         rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
-        print("2")
 
         old_states = buffer.states
         old_actions = buffer.actions
         old_logprobs = buffer.logprobs
 
         a_loss, c_loss, ac_entropy = [], [], []
-        print("3")
 
         # Optimize policy for K epochs
         for _ in range(self.k_epochs):
@@ -129,41 +128,37 @@ class PpoPolicy(Model):
             )
             # match state_values tensor dimensions with rewards tensor
             state_values = torch.squeeze(state_values)
-            print("4a")
 
             # Finding the ratio pi_theta / pi_theta_old
             ratios = torch.exp(logprobs - old_logprobs.detach())
-            print("4b")
 
             # Finding Surrogate Loss
+            # FIXME: .unsqueeze needs to be removed
             advantages = (rewards - state_values.detach()).unsqueeze(-1)
             surr1 = ratios * advantages
             surr2 = (
                 torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             )
-            print("4c")
 
             critic_loss = self.mse_loss(state_values, rewards)
 
             # final loss of clipped objective PPO w/AI-Economist hyperparameters
+            actor_loss = -torch.min(surr1, surr2)
+
             loss = (
-                -torch.min(surr1, surr2)
+                actor_loss
                 + self._c1 * critic_loss
                 - self._c2 * dist_entropy
             )
-            print("4d")
 
             # take gradient step
             self.model.optimizer.zero_grad()
             loss.mean().backward()
             self.model.optimizer.step()
 
-            print("4e")
-
             c_loss.append(torch.mean(critic_loss))
-            a_loss.append(torch.mean(loss))
+            a_loss.append(torch.mean(actor_loss))
             ac_entropy.append(torch.mean(dist_entropy))
-            print("4f")
 
         a_loss = torch.mean(torch.tensor(a_loss)).numpy()
         c_loss = torch.mean(torch.tensor(c_loss)).numpy()
