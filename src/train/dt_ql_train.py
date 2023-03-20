@@ -10,10 +10,10 @@ import numpy as np
 
 
 from datetime import datetime
-# from joblib import parallel_backend
 from src.common import get_environment
 from typing import Dict, List, Tuple, Union
 from trainer.policies.decision_tree import PythonDT
+from ai_economist.foundation.base.base_env import BaseEnvironment
 from trainer.policies.grammatical_evolution import GrammaticalEvolutionTranslator, grammatical_evolution
 
 class DtTrainConfig:
@@ -21,13 +21,49 @@ class DtTrainConfig:
     Endpoint to setup DT_ql's training configuration.
 
     Args:
-
+        env: BaseEnvironment
+            The environment to train on. Should be the AI-Economist environment.
+        seed: int
+            The seed to use for reproducibility.
+        lr: Union[float, str]
+            The learning rate to use. If "auto", the learning rate will be automatically determined.
+        df: float
+            The discount factor to use.
+        eps: float
+            The epsilon value to use for epsilon-greedy.
+        low: float
+            The lower bound for the action space.
+        up: float
+            The upper bound for the action space.
+        input_space: int
+            The number of inputs to the decision tree.
+        episodes: int
+            The number of episodes to train for.
+        episode_len: int
+            The number of steps per episode.
+        lambda_: int
+            The lambda value to use for the evolution.
+        generations: int
+            The number of generations to train for.
+        cxp: float
+            The crossover probability to use.
+        mp: float
+            The mutation probability to use.
+        mutation: Dict[str, Union[str, int, float]]
+            The mutation function to use.
+        crossover: Dict[str, Union[str, int, float]]
+            The crossover function to use.
+        selection: Dict[str, Union[str, int, float]]
+            The selection function to use.
+        genotype_len: int
+            The length of the genotype.
+        types: List[Tuple[int, int, int, int]]
+            The types to use for the decision tree.
     """
-
     def __init__(
             self,
+            env: BaseEnvironment,
             seed: int = 1,
-            # n_actions: int = 50, # TODO: Handle this manually or not
             lr: Union[float, str] = "auto",
             df: float = 0.9,
             eps: float = 0.05,
@@ -46,7 +82,10 @@ class DtTrainConfig:
             genotype_len: int = 100,
             types: List[Tuple[int, int, int, int]] = None,
         ):
+        self.__check_variables()
+        self.env = env
         # Set seeds
+        assert seed >= 1, "Seed must be greater than 0"
         np.random.seed(seed)
         random.seed(seed)
 
@@ -54,9 +93,9 @@ class DtTrainConfig:
         self.episodes = episodes
         self.episode_len = episode_len
         # For the leaves
-        self.n_actions = { # TODO: We could take this from the environment
-            'a': 50,
-            'p': 22
+        self.n_actions = { 
+            'a': env.action_space.n,
+            'p': env.action_space_pl.nvec[0].item(),
         }
         self.lr = lr
         self.df = df
@@ -71,8 +110,9 @@ class DtTrainConfig:
         self.genotype_len = genotype_len
         self.types = types
 
+        # Create the log directory
         date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.logdir = "logs/dt/{}_{}".format(date, "".join(np.random.choice(list(string.ascii_lowercase), size=8)))
+        self.logdir = "experiments/dt/{}_{}".format(date, "".join(np.random.choice(list(string.ascii_lowercase), size=8)))
         self.logfile = os.path.join(self.logdir, "log.txt")
         os.makedirs(self.logdir)
 
@@ -107,6 +147,25 @@ class DtTrainConfig:
             vars_ = locals().copy()
             for k, v in vars_.items():
                 f.write("{}: {}\n".format(k, v))
+
+        
+    def __check_variables(self):
+        """
+        Checks if all variables are set.
+        """
+        assert not isinstance(self.env, BaseEnvironment), "{} is not known".format(type(self.env))
+        assert self.lr == 'auto' or isinstance(self.lr, float), "{} is not known".format(type(self.lr))
+        assert self.df > 0 and self.df < 1, "df must be between 0 and 1"
+        assert self.eps > 0 and self.eps < 1, "eps must be between 0 and 1"
+        assert self.low < self.up, "low must be smaller than up"
+        assert self.episodes > 0, "episodes must be greater than 0"
+        assert self.episode_len > 0, "episode_len must be greater than 0"
+        assert self.lambda_ > 0, "lambda must be greater than 0"
+        assert self.generations > 0, "generations must be greater than 0"
+        assert self.cxp > 0 and self.cxp < 1, "Crossover probability must be between 0 and 1"
+        assert self.mp > 0 and self.mp < 1, "Mutation probability must be between 0 and 1"
+        assert self.genotype_len > 0, "Genotype length must be greater than 0"
+
 
     def evaluate_fitness(
             self, 
@@ -208,9 +267,7 @@ class DtTrainConfig:
             selection=self.selection
         )
 
-
         # Log best individual
-
         with open(self.logfile, "a") as log_:
             phenotype, _ = GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(hof[0])
             phenotype = phenotype.replace('leaf="_leaf"', '')
