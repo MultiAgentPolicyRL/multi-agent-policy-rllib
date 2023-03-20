@@ -147,7 +147,7 @@ class PpoPolicy(Policy):
         """
         Set policy weights.
         """
-        # print(f"updating weights")
+
         self.Model.set_weights(
             actor_weights=weights["a"],
             critic_weights=weights["c"],

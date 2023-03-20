@@ -123,7 +123,6 @@ class Algorithm(object):
             p.start()
             parent_conn.send(self.main_rollout_worker.get_weights())
 
-
     def policy_mapping_function(self, key: str) -> str:
         """
         It differenciates between two types of agents:

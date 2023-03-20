@@ -69,7 +69,6 @@ class EmptyModel(Model):
         """
         Save policy's model.
         """
-        
 
     def load_model(self, name):
         """
