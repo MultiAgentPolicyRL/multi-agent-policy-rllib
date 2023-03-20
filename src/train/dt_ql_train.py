@@ -4,6 +4,7 @@ Defines the configuration for training with online learning.
 Supports DT_ql.
 """
 import os
+import toml
 import string
 import random
 import numpy as np
@@ -97,10 +98,15 @@ class DtTrainConfig:
         },
         genotype_len: int = 100,
         types: List[Tuple[int, int, int, int]] = None,
+        mapped_agents: Dict[str, Union[bool, str]] =
+        {
+            'a': True,
+            'p': True,
+        },
     ):
         self.env = env
-        self.agent = agent
-        self.planner = planner
+        self.agent = mapped_agents['a']
+        self.planner = mapped_agents['p']
 
         # Set seeds
         assert seed >= 1, "Seed must be greater than 0"
@@ -174,46 +180,37 @@ class DtTrainConfig:
         self.grammar = grammar
 
         # Log the configuration
-        with open(self.logfile, "a") as f:
-            f.write("Configuration:\n")
-            f.write(
-                f"Environment: {self.env.__class__}, configuration at the bottom\n")
-            f.write(f"Seed: {seed}\n")
-            f.write(f"Phase {1 if not planner else 2}\n")
-            f.write(f"Episodes: {episodes}\n")
-            f.write(f"Episode Length: {episode_len}\n")
-            f.write(f"Generations: {generations}\n")
-            f.write(f"Crossover Probability: {cxp}\n")
-            f.write(f"Mutation Probability: {mp}\n")
-            f.write(f"Genotype Length: {genotype_len}\n")
-            f.write(f"Types: {types}\n")
-            f.write(f"Mutation:\n")
-            for key, value in self.mutation.items():
-                f.write(f"\t{key}: {value}\n")
-            f.write(f"Crossover:\n")
-            for key, value in self.crossover.items():
-                f.write(f"\t{key}: {value}\n")
-            f.write(f"Selection:\n")
-            for key, value in self.selection.items():
-                f.write(f"\t{key}: {value}\n")
-            f.write(f"Learning Rate: {lr}\n")
-            f.write(f"Discount Factor: {df}\n")
-            f.write(f"Epsilon: {eps}\n")
-            f.write(f"Low: {low}\n")
-            f.write(f"Up: {up}\n")
-            f.write(f"Lambda: {lambda_}\n")
-            f.write(f"Input Space: {input_space}\n")
-            f.write(f"Grammar:\n")
-            for key, value in self.grammar.items():
-                f.write(f"\t{key}: {value}\n")
-            f.write(f"\n{'':=^50}\n\nEnvironment config:\n")
-            for key, value in self.env.env_config_dict.items():
-                if key == 'components':
-                    for v in value:
-                        f.write(f"\t\t{v}\n")
-                else:
-                    f.write(f"\t{key}: {value}\n")
-            f.write("\n")
+        with open(os.path.join(self.logdir, "config.toml"), "w") as f:
+            config_dict={
+                "common": {
+                    "algorithm_name": "DT",
+                    "phase": 1 if not planner else 2,
+                    "step": self.episode_len,
+                    "seed": seed,
+                    "device": 'cpu',
+                    "mapped_agents": mapped_agents,
+                },
+                "algorithm_specific": {
+                    "episodes": episodes,
+                    "generations": generations,
+                    "cxp": cxp,
+                    "mp": mp,
+                    "genotype_len": genotype_len,
+                    "types": types,
+                    "mutation": self.mutation,
+                    "crossover": self.crossover,
+                    "selection": self.selection,
+                    "lr": lr,
+                    "df": df,
+                    "eps": eps,
+                    "low": low,
+                    "up": up,
+                    "lambda_": lambda_,
+                    "input_space": input_space,
+                    "grammar": self.grammar,
+                }
+            }
+            toml.dump(config_dict, f)
 
         # Check the variables
         self.__check_variables()
@@ -222,8 +219,6 @@ class DtTrainConfig:
         """
         Checks if all variables are set.
         """
-        # assert not isinstance(
-        #     self.env, EnvWrapper), "{} is not known".format(type(self.env))
         assert self.agent == True or (isinstance(
             self.agent, str) and os.path.exists(os.path.join("experiments", self.agent))), "The agent must be trained or loaded from existing directory, received {}".format(self.agent)
         assert self.lr == 'auto' or (isinstance(
@@ -260,7 +255,7 @@ class DtTrainConfig:
         genotype: List[int],
     ) -> float:
         # Get the phenotype
-        phenotype, _ = GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(
+        phenotype, _=GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(
             genotype
         )
 
