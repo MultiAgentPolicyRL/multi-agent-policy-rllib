@@ -233,17 +233,17 @@ class EnvWrapper:
                 raise TypeError
         return spaces.Dict(dict_of_spaces)
 
-    def __rew_to_numpy(self, rew:dict):
+    def __rew_to_numpy(self, rew: dict):
         rew_numpy = {}
 
         for key in rew.keys():
             rew_numpy[key] = np.full(1, rew[key], dtype=float)
-        
+
         return rew_numpy
-    
-    def __done_to_numpy(self, done:dict):
-        done = {'__all__': np.full(1, done['__all__'], dtype=bool)}
-        
+
+    def __done_to_numpy(self, done: dict):
+        done = {"__all__": np.full(1, done["__all__"], dtype=bool)}
+
         return done
 
     @property
@@ -308,4 +308,9 @@ class EnvWrapper:
         obs, rew, done, info = self.env.step(action_dict)
         assert isinstance(obs[self.sample_agent_idx]["action_mask"], np.ndarray)
 
-        return recursive_list_to_np_array(obs), self.__rew_to_numpy(rew), self.__done_to_numpy(done), info
+        return (
+            recursive_list_to_np_array(obs),
+            self.__rew_to_numpy(rew),
+            self.__done_to_numpy(done),
+            info,
+        )

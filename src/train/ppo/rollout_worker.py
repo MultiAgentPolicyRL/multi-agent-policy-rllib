@@ -2,16 +2,13 @@
 Rollout worker.Manages a policy and creates a batch.
 """
 import logging
-import sys
 from typing import Tuple
 
-# from src.train.ppo import RolloutBuffer
 from src.common import EmptyModel
-from src.train.ppo import PpoPolicy
-from src.train.ppo import save_batch, data_logging
-# from trainer.utils.rollout_buffer import RolloutBuffer  # , load_batch
-from src.train.ppo.utils.execution_time import exec_time
 from src.common.rollout_buffer import RolloutBuffer
+from src.train.ppo import PpoPolicy, data_logging, save_batch
+from src.train.ppo.utils.execution_time import exec_time
+
 # pylint: disable=consider-using-dict-items,consider-iterating-dictionary
 
 
@@ -68,10 +65,9 @@ class RolloutWorker:
         self.memory = {}
         for key in policy_keys:
             self.policies[key] = self._build_policy(policies_config[key])
-        
+
         obs = env.reset()
         for key0, key1 in zip(["0", "p"], ["a", "p"]):
-        # for key in obs.keys()
             self.memory[key1] = RolloutBuffer(obs[key0])
 
         logging.debug("Rollout Worker %s built", self._id)
@@ -96,7 +92,7 @@ class RolloutWorker:
                 name=policy_config["name"],
             )
 
-    @exec_time
+    # @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
@@ -156,7 +152,7 @@ class RolloutWorker:
 
     def learn(self, memory):
         """
-        TODO: docs
+        Call the learning function for each policy.
         """
         losses = []
         for key in self.policies:
@@ -176,16 +172,9 @@ class RolloutWorker:
         """
         Append agent's total reward for this batch
         """
-        # if we are accessing self.memory['a']:
-        # split data irt the agents
-        # for i in range(4):
         data = [(self.memory["a"].rewards[i::4]) for i in range(4)]
-
-        # if we are accessing self.memory['p']:
-        # just return that data
         data.append((self.memory["p"].rewards))
 
-        # rewards = [sum(m.rewards) for m in self.memory.values()]
         for i in range(len(data[4])):
             splitted_data = [data[0][i], data[1][i], data[2][i], data[3][i], data[4][i]]
             rewards = f"{','.join(map(str, splitted_data))}\n"

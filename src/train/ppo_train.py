@@ -159,7 +159,7 @@ class PpoTrainConfig:
         self.maybe_load_models()
 
         self.memory = {}
-        for key0, key1 in zip(["0","p"], ["a","p"]):
+        for key0, key1 in zip(["0", "p"], ["a", "p"]):
             self.memory[key1] = RolloutBuffer(obs[key0])
 
         # Multi-processing
@@ -257,7 +257,7 @@ class PpoTrainConfig:
         Bad implementation to manage policies.
         """
         env.reset()
-        # TODO: use env...shape_of_obs_and_actions to get obs_space and action_space
+
         config = {}
         config["a"] = {
             "policy": PpoPolicy,
@@ -343,7 +343,6 @@ class PpoTrainConfig:
                 self.num_workers,
             )
 
-        # TODO: check if "a" == False -> if so raise an error
         logging.info("Configuration validated: OK")
         return
 
@@ -396,4 +395,3 @@ class PpoTrainConfig:
 
     def load_models(self):
         self.learn_worker.load_models()
-        # logging.info("Models loaded")

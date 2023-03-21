@@ -9,10 +9,10 @@ is not under a real policy. Every action is set to 0.
 from typing import Tuple
 
 import numpy as np
-from src.common import Model
 
-# from trainer.utils import RolloutBuffer, exec_time
+from src.common import Model
 from src.common.rollout_buffer import RolloutBuffer
+
 
 class EmptyModel(Model):
     """

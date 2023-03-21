@@ -4,6 +4,7 @@ Abstract algorithm class
 
 from abc import ABC, abstractmethod
 from typing import Tuple
+
 from src.common.rollout_buffer import RolloutBuffer
 
 
