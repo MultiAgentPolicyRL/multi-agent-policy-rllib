@@ -12,10 +12,13 @@ import numpy as np
 
 from datetime import datetime
 
+from tqdm import tqdm
+
 from src.common import get_environment
 from typing import Dict, List, Tuple, Union
 from src.train.dt import PythonDT
 from src.common.env import EnvWrapper
+from ai_economist.foundation.base.base_env import BaseEnvironment
 from src.train.dt import (
     GrammaticalEvolutionTranslator,
     grammatical_evolution,
@@ -304,6 +307,45 @@ class DtTrainConfig:
         # Evaluate the fitness
         return fitness_function(dt, dt_p)
 
+    def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None):
+        """
+        Stepper used for the `interact.py`
+        """
+        agent = PythonDT(load_path=agent_path)
+        planner = PythonDT(load_path=planner_path,
+                           planner=True) if planner_path is not None else None
+
+        # Initialize some variables
+        obs: Dict[str, Dict[str, np.ndarray]] = env.reset()
+
+        # Start the episode
+        agent.new_episode()
+        if planner is not None:
+            planner.new_episode()
+
+        # Run the episode
+        for t in tqdm(range(env.env.episode_length), desc="DecisionTree Replay"):
+            actions = agent.get_actions(obs)
+            if planner is not None:
+                actions["p"] = planner(obs.get("p").get("flat"))
+
+            obs, rew, done, _ = env.step(actions)
+
+            # Add reward to list
+            agent.add_rewards(rewards=rew)
+            if planner is not None:
+                planner.add_rewards(rewards=rew)
+
+            agent.set_reward(sum([rew.get(k, 0)
+                            for k in rew.keys() if k != "p"]))
+            if planner is not None:
+                planner.set_reward(rew.get("p", 0))
+
+            if done["__all__"] is True:
+                break
+
+        return agent.rewards, env.env.previous_episode_dense_log
+
     def fitness(self, agent: PythonDT, planner: PythonDT):
         global_cumulative_rewards = []
 
@@ -338,14 +380,15 @@ class DtTrainConfig:
                     planner.add_rewards(rewards=rew)
 
                 # self.env.render() # FIXME: This is not working, see if needed
-                agent.set_reward(sum([rew.get(k, 0) for k in rew.keys() if k != "p"]))
+                agent.set_reward(sum([rew.get(k, 0)
+                                 for k in rew.keys() if k != "p"]))
                 if planner is not None:
                     planner.set_reward(rew.get("p", 0))
 
                 # cum_rew += rew
                 cum_rew += sum([rew.get(k, 0) for k in rew.keys()])
 
-                if done:
+                if done["__all__"] is True:
                     break
 
             # FIXME: Why should be done this?
