@@ -132,17 +132,16 @@ class CLeaf(RandomlyInitializedEpsGreedyLeaf):
 class PythonDT(DecisionTree):
     def __init__(
         self,
-        phenotype: str,
-        # leaf: CLeaf,
-        n_actions: int,
-        lr: Union[float, str],
-        df: float,
-        eps: float,
+        phenotype: str = None,
+        n_actions: int = 0,
+        lr: Union[float, str] = 'auto',
+        df: float = 0.9,
+        eps: float = 0.05,
         low: float = -100,
         up: float = 100,
         planner: bool = False,
+        load_path: str = None,
     ) -> None:
-
         super(PythonDT, self).__init__()
         self.program = phenotype
         self.leaves = {}
@@ -150,30 +149,39 @@ class PythonDT(DecisionTree):
         n_leaves = 0
         self.rewards = []
 
-        while "_leaf" in self.program:
-            if planner:
-                for i in range(7):
+        if load_path is not None:
+            self.load(load_path, planner)
+            
+        else:
+            if phenotype is None:
+                raise ValueError("Phenotype is None and load_path is None")
+            assert n_actions > 0, "n_actions must be greater than 0"
+
+            while "_leaf" in self.program:
+                if planner:
+                    for i in range(7):
+                        new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
+                        leaf_name = "leaf_{}_{}".format(n_leaves, i)
+                        self.leaves[leaf_name] = new_leaf
+
+                        self.program = self.program.replace(
+                            "_leaf", "'{}.get_action()'".format(leaf_name), 1
+                        )
+                        self.program = self.program.replace(
+                            "_leaf", "{}".format(leaf_name), 1
+                        )
+                else:
                     new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
-                    leaf_name = "leaf_{}_{}".format(n_leaves, i)
+                    leaf_name = "leaf_{}".format(n_leaves)
                     self.leaves[leaf_name] = new_leaf
 
                     self.program = self.program.replace(
                         "_leaf", "'{}.get_action()'".format(leaf_name), 1
                     )
-                    self.program = self.program.replace(
-                        "_leaf", "{}".format(leaf_name), 1
-                    )
-            else:
-                new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
-                leaf_name = "leaf_{}".format(n_leaves)
-                self.leaves[leaf_name] = new_leaf
+                    self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
 
-                self.program = self.program.replace(
-                    "_leaf", "'{}.get_action()'".format(leaf_name), 1
-                )
-                self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
+                    n_leaves += 1
 
-                n_leaves += 1
         self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
 
     def get_action(self, input):
