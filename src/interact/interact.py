@@ -111,9 +111,49 @@ class InteractConfig:
 
             return stepper
 
-        else:
-            ### DT
-            pass
+        elif self.trainer == DtTrainConfig:
+            if self.phase == "P1":
+                self.models = {
+                    "a": os.path.join(
+                        "experiments",
+                        self.mapped_agents("a"),
+                        "models",
+                        "dt_a.pkl"),
+                    "p": None
+                }
+            else:
+                self.models = {
+                    "a": os.path.join(
+                        "experiments",
+                        self.mapped_agents("a"),
+                        "models",
+                        "dt_a.pkl"),
+                    "p": os.path.join(
+                        "experiments",
+                        self.mapped_agents("p"),
+                        "models",
+                        "dt_p.pkl"),
+                }
+
+            env = self.env
+            env.seed = self.seed
+
+            # Done only for intellisense and to remember types
+            self.trainer: DtTrainConfig
+            
+            rewards, dense_log = self.trainer.stepper(
+                agent_path=self.models["a"],
+                planner_path=self.models["p"],
+                env=env
+            )
+
+            with open(os.path.join(self.path, "logs", "1.csv"), "a") as reward_file:
+                for rew in rewards:
+                    reward_file.write(
+                        f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+            
+            with open(os.path.join(self.path, "logs", "dense_logs.pkl"), "wb") as log_file:
+                    pickle.dump(dense_log, log_file)
 
     def setup_logs_and_dirs(self):
         """

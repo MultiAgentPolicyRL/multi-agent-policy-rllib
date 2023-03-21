@@ -316,7 +316,7 @@ class DtTrainConfig:
                            planner=True) if planner_path is not None else None
 
         # Initialize some variables
-        obs: Dict[str, Dict[str, np.ndarray]] = env.reset()
+        obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
 
         # Start the episode
         agent.new_episode()
