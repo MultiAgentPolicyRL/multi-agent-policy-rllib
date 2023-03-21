@@ -270,7 +270,7 @@ class PytorchLinearP(nn.Module):
 
         action_logprobs = action_logprobs.transpose(0, 1)
         dist_entropy = dist_entropy.transpose(0, 1)
-        state_values = state_values.transpose(0, 1)
+        # state_values = state_values.transpose(0, 1)
 
         return action_logprobs.detach(), state_values.detach(), dist_entropy
 

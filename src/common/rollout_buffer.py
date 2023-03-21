@@ -35,12 +35,15 @@ class RolloutBuffer:
             old_stack: old stack, it's shape must be >= new_tensor's shape
             new_tensor: new tensor that will be appended to `old_stack`
         """
-        # if len(old_stack.shape) == len(new_tensor.shape):
+        shape = (1, 1)
+        if new_tensor.shape:
+            shape  = (1, *new_tensor.shape)
+            
+        nt = np.reshape(new_tensor, shape)
+
         if old_stack is None or old_stack is {}:
-            # return np.stack((old_stack, new_tensor))
-            return np.reshape(new_tensor, (1, *new_tensor.shape))
+            return nt
         else:
-            nt = np.reshape(new_tensor, (1, *new_tensor.shape))
             return np.concatenate((old_stack, nt))
 
     def update(self, action, logprob, state, reward, is_terminal):
@@ -48,10 +51,12 @@ class RolloutBuffer:
         self.actions = self.__append_tensor(self.actions, action)
         self.logprobs = self.__append_tensor(self.logprobs, logprob)
         self.rewards = self.__append_tensor(self.rewards, reward)
-        self.is_terminals = self.__append_tensor(self.is_terminals, is_terminal)
+        self.is_terminals = self.__append_tensor(
+            self.is_terminals, is_terminal)
 
         for key in state.keys():
-            self.states[key] = self.__append_tensor(self.states[key], state[key])
+            self.states[key] = self.__append_tensor(
+                self.states[key], state[key])
 
     def extend(self, other):
         if self.actions is None:
@@ -65,10 +70,12 @@ class RolloutBuffer:
             self.logprobs = np.concatenate((self.logprobs, other.logprobs))
 
             self.rewards = np.concatenate((self.rewards, other.rewards))
-            self.is_terminals = np.concatenate((self.is_terminals, other.is_terminals))
+            self.is_terminals = np.concatenate(
+                (self.is_terminals, other.is_terminals))
 
             for key in self.states.keys():
-                self.states[key] = np.concatenate((self.states[key], other.states[key]))
+                self.states[key] = np.concatenate(
+                    (self.states[key], other.states[key]))
 
     def to_tensor(self):
         _buffer = RolloutBuffer(self.state_keys_dict)
@@ -78,7 +85,8 @@ class RolloutBuffer:
         _buffer.rewards = torch.from_numpy(self.rewards)
         _buffer.is_terminals = torch.from_numpy(self.is_terminals)
 
-        _buffer.states = TensorDict(self.states, batch_size=[len(self.actions)])
+        _buffer.states = TensorDict(
+            self.states, batch_size=[len(self.actions)])
 
         return _buffer
 

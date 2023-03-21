@@ -114,6 +114,7 @@ class PpoPolicy(Model):
 
         # Normalizing the rewards
         rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        rewards = rewards.reshape(*rewards.shape, 1)
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-7)
 
         old_states = buffer.states
