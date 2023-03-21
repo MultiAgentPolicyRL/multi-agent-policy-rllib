@@ -1,18 +1,19 @@
 """
 TODO
 """
-from datetime import datetime
+import logging
 import os
 import pickle
 import time
-import toml
+from datetime import datetime
 
+import toml
+import torch
 from tqdm import tqdm
-from src.common import test_mapping, EmptyModel
+
+from src.common import EmptyModel, test_mapping
 from src.train.dt_ql_train import DtTrainConfig
 from src.train.ppo_train import PpoTrainConfig
-import logging
-import torch
 
 
 class InteractConfig:
@@ -37,13 +38,13 @@ class InteractConfig:
         device: str = "cpu",
         seed: int = 1,
     ):
-        self.mapping_function = mapping_function  #
-        self.env = env  #
-        self.device = device  #
-        self.trainer = trainer  #
-        self.seed = seed  #
+        self.mapping_function = mapping_function
+        self.env = env
+        self.device = device
+        self.trainer = trainer
+        self.seed = seed
         self.config = config
-        self.mapped_agents = mapped_agents  #
+        self.mapped_agents = mapped_agents
 
         self.validate_config(env=env)
         self.setup_logs_and_dirs()
@@ -57,7 +58,6 @@ class InteractConfig:
     def build_stepper(self):
         if self.trainer == PpoTrainConfig:
             ### PPO
-            # Load models. If P1: load `a`, if P2: load `a`,`p`
             if self.phase == "P1":
                 self.models = {
                     "a": torch.load(

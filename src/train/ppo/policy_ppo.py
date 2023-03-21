@@ -1,21 +1,18 @@
-import logging
-import time
 from typing import List, Tuple
 
 import torch
 
 from src.common import Model
-from src.train.ppo import PytorchLinearA, PytorchLinearP  # , RolloutBuffer
-# from src.common.rollout_buffer import RolloutBuffer
-from src.train.ppo.utils.execution_time import exec_time
 from src.common.rollout_buffer import RolloutBuffer
+from src.train.ppo import PytorchLinearA, PytorchLinearP
+from src.train.ppo.utils.execution_time import exec_time
+
 
 class PpoPolicy(Model):
     """
     PPO Main Optimization Algorithm
     """
 
-    # TODO: fix experiment_name and model saving/loading
     def __init__(
         self,
         observation_space,
@@ -98,7 +95,7 @@ class PpoPolicy(Model):
         a_loss, c_loss, entropy = self.__update(buffer=buffer)
         return a_loss, c_loss, entropy
 
-    @exec_time
+    # @exec_time
     def __update(self, buffer: RolloutBuffer):
         # Monte Carlo estimate of returns
         rewards = []
@@ -133,34 +130,29 @@ class PpoPolicy(Model):
             # state_values = torch.squeeze(state_values)
 
             # shape di:
-                # rewards
-                # state_values
-                # logprobs
-                # old_logprobs
+            # rewards
+            # state_values
+            # logprobs
+            # old_logprobs
 
             # Finding the ratio pi_theta / pi_theta_old
-            ratios = torch.exp(logprobs - old_logprobs) #.unsqueeze(-1)
+            ratios = torch.exp(logprobs - old_logprobs)  # .unsqueeze(-1)
 
             # Finding Surrogate Loss
             # FIXME: .unsqueeze needs to be removed
-            advantages = (rewards - state_values) # .unsqueeze(-1)
-            
+            advantages = rewards - state_values  # .unsqueeze(-1)
+
             surr1 = ratios * advantages
             surr2 = (
                 torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             )
-            
+
             critic_loss = self.mse_loss(state_values, rewards)
 
             # final loss of clipped objective PPO w/AI-Economist hyperparameters
             actor_loss = -torch.min(surr1, surr2)
 
-            loss = (
-                actor_loss
-                + self._c1 * critic_loss
-                - self._c2 * dist_entropy
-            )
-
+            loss = actor_loss + self._c1 * critic_loss - self._c2 * dist_entropy
 
             # take gradient step
             self.model.optimizer.zero_grad()
