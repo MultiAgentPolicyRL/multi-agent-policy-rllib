@@ -92,7 +92,7 @@ class RolloutWorker:
                 name=policy_config["name"],
             )
 
-    # @exec_time
+    @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
