@@ -7,10 +7,12 @@ is not under a real policy. Every action is set to 0.
 # pylint: disable=import-error
 
 from typing import Tuple
+
+import numpy as np
 from src.common import Model
 
-from trainer.utils import RolloutBuffer, exec_time
-
+# from trainer.utils import RolloutBuffer, exec_time
+from src.common.rollout_buffer import RolloutBuffer
 
 class EmptyModel(Model):
     """
@@ -34,13 +36,9 @@ class EmptyModel(Model):
         # for _ in self.action_space:
         #   actions.append(torch.zeros((1,)))
 
-        for _ in self.action_space:
-            actions.append(0)
+        actions = np.zeros(self.action_space)
 
-        if len(actions) == 1:
-            actions = actions[0]
-
-        return actions, 0
+        return actions, np.zeros(1)
 
     def learn(self, rollout_buffer: RolloutBuffer) -> Tuple[float, float]:
         """

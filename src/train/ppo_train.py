@@ -16,7 +16,7 @@ from tqdm import tqdm
 from src.common import EmptyModel, test_mapping
 from src.train.ppo import PpoPolicy, RolloutWorker
 from src.train.ppo.utils import load_batch, delete_batch
-from src.train.ppo.utils.rollout_buffer import RolloutBuffer
+from src.common.rollout_buffer import RolloutBuffer
 
 
 def run_rollout_worker(conn, worker: RolloutWorker):
@@ -143,8 +143,8 @@ class PpoTrainConfig:
         """
         Builds workers to learn and create the batch.
         """
-
-        actor_keys = env.reset().keys()
+        obs = env.reset()
+        actor_keys = obs.keys()
 
         self.learn_worker = RolloutWorker(
             rollout_fragment_length=0,
@@ -159,8 +159,8 @@ class PpoTrainConfig:
         self.maybe_load_models()
 
         self.memory = {}
-        for key in self.policy_keys:
-            self.memory[key] = RolloutBuffer()
+        for key0, key1 in zip(["0","p"], ["a","p"]):
+            self.memory[key1] = RolloutBuffer(obs[key0])
 
         # Multi-processing
         # Spawn secondary workers used in batching
@@ -290,7 +290,7 @@ class PpoTrainConfig:
             config["p"] = {
                 "policy": EmptyModel,
                 "observation_space": env.observation_space_pl,
-                "action_space": [22, 22, 22, 22, 22, 22, 22],
+                "action_space": 7,
             }
 
         return config

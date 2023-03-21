@@ -233,33 +233,18 @@ class EnvWrapper:
                 raise TypeError
         return spaces.Dict(dict_of_spaces)
 
-    def data_preprocess(self, observation: dict) -> dict:
-        """
-        Takes as an input a dict of np.arrays and trasforms them to Torch.tensors.
+    def __rew_to_numpy(self, rew:dict):
+        rew_numpy = {}
 
-        Args:
-            observation: observation of the environment
-
-        Returns:
-            observation_tensored: same structure of `observation`, but np.arrays are not
-                torch.tensors
-
-            observation_tensored: {
-                '0': {
-                    'var': Tensor
-                    ...
-                },
-                ...
-            }
-        """
-        # FIXME: add dict_to_tensor_dict
-        # observation_tensored = {}
-        # for key in observation:
-        #     observation_tensored[key] = TensorDict(observation[key], batch_size=[]).to(
-        #         self.device
-        #     )
-        # return observation_tensored
-        return observation
+        for key in rew.keys():
+            rew_numpy[key] = np.full(1, rew[key], dtype=float)
+        
+        return rew_numpy
+    
+    def __done_to_numpy(self, done:dict):
+        done = {'__all__': np.full(1, done['__all__'], dtype=bool)}
+        
+        return done
 
     @property
     def pickle_file(self):
@@ -317,10 +302,10 @@ class EnvWrapper:
 
     def reset(self, *args, **kwargs):
         obs = self.env.reset(*args, **kwargs)
-        return self.data_preprocess(recursive_list_to_np_array(obs))
+        return recursive_list_to_np_array(obs)
 
     def step(self, action_dict):
         obs, rew, done, info = self.env.step(action_dict)
         assert isinstance(obs[self.sample_agent_idx]["action_mask"], np.ndarray)
 
-        return self.data_preprocess(recursive_list_to_np_array(obs)), rew, done, info
+        return recursive_list_to_np_array(obs), self.__rew_to_numpy(rew), self.__done_to_numpy(done), info

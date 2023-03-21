@@ -9,9 +9,9 @@ from typing import Tuple
 from src.common import EmptyModel
 from src.train.ppo import PpoPolicy
 from src.train.ppo import save_batch, data_logging
-from trainer.utils.rollout_buffer import RolloutBuffer  # , load_batch
+# from trainer.utils.rollout_buffer import RolloutBuffer  # , load_batch
 from src.train.ppo.utils.execution_time import exec_time
-
+from src.common.rollout_buffer import RolloutBuffer
 # pylint: disable=consider-using-dict-items,consider-iterating-dictionary
 
 
@@ -68,7 +68,11 @@ class RolloutWorker:
         self.memory = {}
         for key in policy_keys:
             self.policies[key] = self._build_policy(policies_config[key])
-            self.memory[key] = RolloutBuffer()
+        
+        obs = env.reset()
+        for key0, key1 in zip(["0", "p"], ["a", "p"]):
+        # for key in obs.keys()
+            self.memory[key1] = RolloutBuffer(obs[key0])
 
         logging.debug("Rollout Worker %s built", self._id)
 
@@ -156,6 +160,7 @@ class RolloutWorker:
         """
         losses = []
         for key in self.policies:
+            logging.debug("learning actor: %s", key)
             losses.append(self.policies[key].learn(rollout_buffer=memory[key]))
 
         rewards = []

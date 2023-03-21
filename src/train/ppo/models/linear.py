@@ -107,7 +107,7 @@ class PytorchLinearA(nn.Module):
         action = dist.sample()
         action_logprob = dist.log_prob(action)
 
-        return action.detach(), action_logprob.detach()
+        return action.detach().numpy(), action_logprob.detach().numpy()
 
     def evaluate(self, obs, act):
         """
@@ -128,7 +128,7 @@ class PytorchLinearA(nn.Module):
         dist_entropy = dist.entropy()
         state_values = self.critic(obs["flat"].squeeze())
 
-        return action_logprobs, state_values, dist_entropy
+        return action_logprobs.detach(), state_values.detach(), dist_entropy
 
     def forward(
         self,
@@ -240,7 +240,7 @@ class PytorchLinearP(nn.Module):
             action[i] = dist.sample()
             action_logprob[i] = dist.log_prob(action[i])
 
-        return action.detach(), action_logprob.detach()
+        return action.detach().numpy(), action_logprob.detach().numpy()
 
     def evaluate(self, obs, act):
         """
@@ -272,7 +272,7 @@ class PytorchLinearP(nn.Module):
         dist_entropy = dist_entropy.transpose(0, 1)
         state_values = state_values.transpose(0, 1)
 
-        return action_logprobs, state_values, dist_entropy
+        return action_logprobs.detach(), state_values.detach(), dist_entropy
 
     def forward(
         self,

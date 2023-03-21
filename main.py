@@ -80,14 +80,14 @@ if __name__ == "__main__":
 
     env = get_environment()
 
-    # trainer = PpoTrainConfig(get_mapping_function, env, num_workers=10, step=12, batch_size=4000, rollout_fragment_length=200, mapped_agents={
-    # "a": True,
-    # "p": False
-    # })
-    # trainer.train()
-
-    trainer = DtTrainConfig(env)
+    trainer = PpoTrainConfig(get_mapping_function, env, num_workers=12, step=2, batch_size=4000, rollout_fragment_length=200, mapped_agents={
+    "a": True,
+    "p": False
+    })
     trainer.train()
+
+    # trainer = DtTrainConfig(env)
+    # trainer.train()
 
     # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
     #     "a": "PPO_P2_20-03-2023_1679306248_2",
