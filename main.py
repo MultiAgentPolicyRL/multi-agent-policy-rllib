@@ -85,7 +85,7 @@ if __name__ == "__main__":
         env,
         num_workers=12,
         step=1,
-        batch_size=5000,
+        batch_size=6000,
         rollout_fragment_length=200,
         mapped_agents={"a": True, "p": False},
     )

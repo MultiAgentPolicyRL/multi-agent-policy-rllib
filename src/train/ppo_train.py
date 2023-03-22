@@ -158,9 +158,8 @@ class PpoTrainConfig:
         )
         self.maybe_load_models()
 
-        self.memory = {}
-        for key0, key1 in zip(["0", "p"], ["a", "p"]):
-            self.memory[key1] = RolloutBuffer(obs[key0])
+        self.memory = RolloutBuffer(obs, self.mapping_function())
+        self.memory.clear()
 
         # Multi-processing
         # Spawn secondary workers used in batching
@@ -229,19 +228,24 @@ class PpoTrainConfig:
         # Open all files in a list of `file`
         for worker_id in self.workers_id:
             rollout = load_batch(worker_id=worker_id)
-            for key in self.policy_keys:
-                self.memory[key].extend(rollout[key])
+            self.memory.extend(rollout)
 
         # Update main worker policy
-        self.learn_worker.learn(memory=self.memory)
+        # exit("PPO_TRAIN 233")
+        
+        tensored_memory = self.memory.to_tensor()
+
+        """
+        TODO: sumup memory by mapping it so that it can be actually used.
+        """
+        self.learn_worker.learn(memory=tensored_memory)
 
         # Send updated policy to all rollout workers
         for pipe in self.pipes:
             pipe[0].send(self.learn_worker.get_weights())
 
         # Clear memory from used batch
-        for memory in self.memory.values():
-            memory.clear()
+        self.memory.clear()
 
     def close_workers(self):
         """
