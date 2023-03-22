@@ -76,7 +76,7 @@ class PpoPolicy(Model):
     @exec_time
     def learn(
         self,
-        rollout_buffer:SingleBuffer,
+        rollout_buffer: SingleBuffer,
     ) -> Tuple[float, float]:
         """
         Train Policy networks
@@ -90,7 +90,7 @@ class PpoPolicy(Model):
         Args:
             rollout_buffer: RolloutBuffer for this specific policy.
         """
-        
+
         a_loss, c_loss, entropy = self.__update(buffer=rollout_buffer)
         return a_loss, c_loss, entropy
 
@@ -125,21 +125,12 @@ class PpoPolicy(Model):
             logprobs, state_values, dist_entropy = self.model.evaluate(
                 old_states, old_actions
             )
-            # match state_values tensor dimensions with rewards tensor
-            # state_values = torch.squeeze(state_values)
-
-            # shape di:
-            # rewards
-            # state_values
-            # logprobs
-            # old_logprobs
 
             # Finding the ratio pi_theta / pi_theta_old
-            ratios = torch.exp(logprobs - old_logprobs)  # .unsqueeze(-1)
+            ratios = torch.exp(logprobs - old_logprobs)
 
             # Finding Surrogate Loss
-            # FIXME: .unsqueeze needs to be removed
-            advantages = rewards - state_values  # .unsqueeze(-1)
+            advantages = rewards - state_values
 
             surr1 = ratios * advantages
             surr2 = (

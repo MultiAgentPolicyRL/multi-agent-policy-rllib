@@ -6,29 +6,33 @@ import numpy as np
 import torch
 from tensordict import TensorDict
 
+
 class RolloutBuffer:
     """
     MultiAgent Rollout Buffer
 
     Args:
         environment observation -> unmapped.
-        
-    """
-    def __init__(self, state:dict, mapping_function):
-        self.actors_keys = [str(key) for key in state.keys()]
 
+    """
+
+    def __init__(self, state: dict, mapping_function):
+        self.actors_keys = [str(key) for key in state.keys()]
 
         self.buffers = {}
         for key in self.actors_keys:
-            self.buffers[key] : SingleBuffer = SingleBuffer(state[key])
-        
-    
-    def update(self, action:dict, logprob:dict, state:dict, reward:dict, is_terminal:bool):
+            self.buffers[key]: SingleBuffer = SingleBuffer(state[key])
+
+    def update(
+        self, action: dict, logprob: dict, state: dict, reward: dict, is_terminal: bool
+    ):
         """
         Append single iteration to the buffer.
         """
         for key in self.actors_keys:
-            self.buffers[key].update(action[key], logprob[key], state[key], reward[key], is_terminal)
+            self.buffers[key].update(
+                action[key], logprob[key], state[key], reward[key], is_terminal
+            )
 
     def extend(self, other):
         """
@@ -52,12 +56,10 @@ class RolloutBuffer:
 
         return tensored_buffer
 
-
-
-
     def clear(self):
         for key in self.actors_keys:
             self.buffers[key].clear()
+
 
 class SingleBuffer:
     def __init__(self, state: dict):
@@ -117,7 +119,7 @@ class SingleBuffer:
             self.logprobs = other.logprobs
             self.rewards = other.rewards
             self.is_terminals = other.is_terminals
-            
+
             for key in self.states.keys():
                 self.states[key] = other.states[key]
         else:

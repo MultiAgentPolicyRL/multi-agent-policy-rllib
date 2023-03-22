@@ -220,9 +220,9 @@ class RolloutWorker:
         # data.append((self.memory["p"].rewards))
 
         # for i in range(len(data[4])):
-            # splitted_data = [data[0][i], data[1][i], data[2][i], data[3][i], data[4][i]]
-            # rewards = f"{','.join(map(str, splitted_data))}\n"
-            # data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
+        # splitted_data = [data[0][i], data[1][i], data[2][i], data[3][i], data[4][i]]
+        # rewards = f"{','.join(map(str, splitted_data))}\n"
+        # data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
 
     def get_weights(self) -> dict:
         """

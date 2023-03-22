@@ -83,11 +83,11 @@ if __name__ == "__main__":
     trainer = PpoTrainConfig(
         get_mapping_function,
         env,
-        num_workers=12,
+        num_workers=10,
         step=1,
-        batch_size=6000,
+        batch_size=4000,
         rollout_fragment_length=200,
-        mapped_agents={"a": True, "p": False},
+        mapped_agents={"a": True, "p": True},
     )
     trainer.train()
 

@@ -120,12 +120,12 @@ class PytorchLinearA(nn.Module):
             state_values: value function reward prediction
             dist_entropy: entropy of actions distribution
         """
-        action_probs = self.actor(obs["flat"])#.squeeze())
+        action_probs = self.actor(obs["flat"])  # .squeeze())
         dist = torch.distributions.Categorical(action_probs)
 
         action_logprobs = dist.log_prob(act)
         dist_entropy = dist.entropy()
-        state_values = self.critic(obs["flat"])#.squeeze())
+        state_values = self.critic(obs["flat"])  # .squeeze())
 
         return action_logprobs.detach(), state_values.detach(), dist_entropy
 
@@ -253,8 +253,8 @@ class PytorchLinearP(nn.Module):
             dist_entropy: entropy of actions distribution
         """
         # TODO optimize memory so data doesn't need to be squeezed
-        action_probs = self.actor(obs["flat"])#.squeeze())
-        action_probs = torch.split(action_probs, 22)
+        action_probs = self.actor(obs["flat"])  # .squeeze())
+        action_probs = torch.split(action_probs, 22, dim=-1)
 
         dist_entropy = torch.zeros((7, len(act)))
         action_logprobs = torch.zeros((7, len(act)))
@@ -265,7 +265,7 @@ class PytorchLinearP(nn.Module):
             action_logprobs[i] = dist.log_prob(act[:, i])
             dist_entropy[i] = dist.entropy()
 
-        state_values = self.critic(obs["flat"])#.squeeze())
+        state_values = self.critic(obs["flat"])  # .squeeze())
 
         action_logprobs = action_logprobs.transpose(0, 1)
         dist_entropy = dist_entropy.transpose(0, 1)
