@@ -255,9 +255,7 @@ class PythonDT(DecisionTree):
     def load(self, load_path: str, planner: bool = False):
         # Load self from a pickle
         with open(
-            os.path.join(
-                load_path, "models", "dt_{}.pkl".format("p" if planner else "a")
-            ),
+            load_path, 
             "rb",
         ) as f:
             data = pickle.load(f)

@@ -46,7 +46,8 @@ class PytorchLinearA(nn.Module):
 
         self.MASK_NAME = "action_mask"
         self.num_outputs = action_space
-        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
+        self.logit_mask = torch.ones(
+            self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
         lr_actor = learning_rate  # learning rate for actor network 0003
@@ -67,7 +68,8 @@ class PytorchLinearA(nn.Module):
         self.fc_layers_val_layers = []
 
         for _ in range(self.num_fc):
-            self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
+            self.fc_layers_val_layers.append(
+                nn.Linear(self.fc_dim, self.fc_dim))
             self.fc_layers_val_layers.append(nn.ReLU())
 
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
@@ -120,12 +122,12 @@ class PytorchLinearA(nn.Module):
             state_values: value function reward prediction
             dist_entropy: entropy of actions distribution
         """
-        action_probs = self.actor(obs["flat"])#.squeeze())
+        action_probs = self.actor(obs["flat"])  # .squeeze())
         dist = torch.distributions.Categorical(action_probs)
 
         action_logprobs = dist.log_prob(act)
         dist_entropy = dist.entropy()
-        state_values = self.critic(obs["flat"])#.squeeze())
+        state_values = self.critic(obs["flat"])  # .squeeze())
 
         return action_logprobs.detach(), state_values.detach(), dist_entropy
 
@@ -172,7 +174,8 @@ class PytorchLinearP(nn.Module):
 
         self.mask_name = "action_mask"
         self.num_outputs = action_space
-        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
+        self.logit_mask = torch.ones(
+            self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
         lr_actor = learning_rate  # learning rate for actor network 0003
@@ -193,7 +196,8 @@ class PytorchLinearP(nn.Module):
         self.fc_layers_val_layers = []
 
         for _ in range(self.num_fc):
-            self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
+            self.fc_layers_val_layers.append(
+                nn.Linear(self.fc_dim, self.fc_dim))
             self.fc_layers_val_layers.append(nn.ReLU())
 
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
@@ -253,8 +257,8 @@ class PytorchLinearP(nn.Module):
             dist_entropy: entropy of actions distribution
         """
         # TODO optimize memory so data doesn't need to be squeezed
-        action_probs = self.actor(obs["flat"])#.squeeze())
-        action_probs = torch.split(action_probs, 22)
+        action_probs = self.actor(obs["flat"])  # .squeeze())
+        action_probs = torch.split(action_probs, 7, dim=-1)
 
         dist_entropy = torch.zeros((7, len(act)))
         action_logprobs = torch.zeros((7, len(act)))
@@ -265,7 +269,7 @@ class PytorchLinearP(nn.Module):
             action_logprobs[i] = dist.log_prob(act[:, i])
             dist_entropy[i] = dist.entropy()
 
-        state_values = self.critic(obs["flat"])#.squeeze())
+        state_values = self.critic(obs["flat"])  # .squeeze())
 
         action_logprobs = action_logprobs.transpose(0, 1)
         dist_entropy = dist_entropy.transpose(0, 1)

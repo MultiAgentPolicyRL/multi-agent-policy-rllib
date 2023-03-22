@@ -61,12 +61,12 @@ class InteractConfig:
             if self.phase == "P1":
                 self.models = {
                     "a": torch.load(
-                        "/experiments/" +
-                        self.mapped_agents("a") + "/models/a.pt"
+                        "experiments/" +
+                        self.mapped_agents.get("a") + "/models/a.pt"
                     ),
                     "p": EmptyModel(
                         self.env.observation_space_pl,
-                        [22, 22, 22, 22, 22, 22, 22],
+                        7,
                     ),
                 }
             else:
@@ -119,7 +119,7 @@ class InteractConfig:
                 self.models = {
                     "a": os.path.join(
                         "experiments",
-                        self.mapped_agents("a"),
+                        self.mapped_agents.get("a"),
                         "models",
                         "dt_a.pkl"),
                     "p": None
@@ -155,10 +155,10 @@ class InteractConfig:
                         reward_file.write(
                             f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
 
-                with open(os.path.join(self.path, "logs", "dense_logs.pkl"), "wb") as log_file:
+                with open(os.path.join(self.path, "logs", "dense_logs_dt.pkl"), "wb") as log_file:
                     pickle.dump(dense_log, log_file)
             
-        return stepper()
+        return stepper
 
     def setup_logs_and_dirs(self):
         """
@@ -248,7 +248,7 @@ class InteractConfig:
 
         if not isinstance(self.mapped_agents["p"], bool):
             self.phase = "P2"
-            if self.mapped_agents["p"] != self.mapped_agents["a"]:
+            if not isinstance(self.mapped_agents["a"], bool) and self.mapped_agents["p"] != self.mapped_agents["a"]:
                 raise ValueError(
                     "The path for pretrained models must be the same!")
         else:
