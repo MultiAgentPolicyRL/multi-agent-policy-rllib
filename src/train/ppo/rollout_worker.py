@@ -215,14 +215,17 @@ class RolloutWorker:
         """
         Append agent's total reward for this batch
         """
-        # FIXME: fix for new RolloutBuffer
-        # data = [(self.memory["a"].rewards[i::4]) for i in range(4)]
-        # data.append((self.memory["p"].rewards))
+        splitted_data = [None, None, None, None, None]
 
-        # for i in range(len(data[4])):
-        # splitted_data = [data[0][i], data[1][i], data[2][i], data[3][i], data[4][i]]
-        # rewards = f"{','.join(map(str, splitted_data))}\n"
-        # data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
+        for iteration in range(len(self.memory.buffers["0"].rewards)):
+            splitted_data[0]=self.memory.buffers["0"].rewards[iteration].item()
+            splitted_data[1]=self.memory.buffers["1"].rewards[iteration].item()
+            splitted_data[2]=self.memory.buffers["2"].rewards[iteration].item()
+            splitted_data[3]=self.memory.buffers["3"].rewards[iteration].item()
+            splitted_data[4]=self.memory.buffers["p"].rewards[iteration].item()
+            
+            rewards = f"{','.join(map(str, splitted_data))}\n"
+            data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
 
     def get_weights(self) -> dict:
         """

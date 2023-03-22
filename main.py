@@ -75,7 +75,7 @@ def get_mapping_function():
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.DEBUG, format="%(process)d-%(levelname)s-%(message)s"
+        level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
     )
 
     env = get_environment()
@@ -83,11 +83,11 @@ if __name__ == "__main__":
     trainer = PpoTrainConfig(
         get_mapping_function,
         env,
-        num_workers=10,
+        num_workers=2,
         step=1,
-        batch_size=4000,
-        rollout_fragment_length=200,
-        mapped_agents={"a": True, "p": True},
+        batch_size=20,
+        rollout_fragment_length=10,
+        mapped_agents={"a": True, "p": False},
     )
     trainer.train()
 
