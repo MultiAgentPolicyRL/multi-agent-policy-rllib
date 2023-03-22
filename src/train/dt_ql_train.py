@@ -72,7 +72,7 @@ class DtTrainConfig:
 
     def __init__(
         self,
-        env: EnvWrapper,
+        env: EnvWrapper = None,
         agent: Union[bool, str] = True,
         planner: Union[bool, str] = True,
         seed: int = 1,
@@ -82,10 +82,10 @@ class DtTrainConfig:
         low: float = -10,
         up: float = 10,
         input_space: int = 1,
-        episodes: int = 2,  # 500,
-        episode_len: int = 3,  # 1000,
-        lambda_: int = 2,  # 1000,
-        generations: int = 2,  # 1000,
+        episodes: int = 500,
+        episode_len: int = 1000,
+        lambda_: int = 1000,
+        generations: int = 1000,
         cxp: float = 0.5,
         mp: float = 0.5,
         mutation: Dict[str, Union[str, int, float]] = {
@@ -106,116 +106,118 @@ class DtTrainConfig:
             "p": True,
         },
     ):
-        self.env = env
-        self.agent = mapped_agents["a"]
-        self.planner = mapped_agents["p"]
+        if env is not None:
+            self.env = env
+            self.agent = mapped_agents["a"]
+            self.planner = mapped_agents["p"]
 
-        # Set seeds
-        assert seed >= 1, "Seed must be greater than 0"
-        np.random.seed(seed)
-        random.seed(seed)
-        self.env.seed(seed)
+            # Set seeds
+            assert seed >= 1, "Seed must be greater than 0"
+            np.random.seed(seed)
+            random.seed(seed)
+            self.env.seed = seed
+            self.seed = seed
 
-        # Add important variables to self
-        self.episodes = episodes
-        self.episode_len = episode_len
-        # For the leaves
-        self.n_actions = {
-            "a": env.action_space.n,
-            "p": env.action_space_pl.nvec[0].item(),
-        }
-        self.lr = lr
-        self.df = df
-        self.eps = eps
-        self.low = low
-        self.up = up
-
-        # For the evolution
-        self.lambda_ = lambda_
-        self.generations = generations
-        self.cxp = cxp
-        self.mp = mp
-        self.genotype_len = genotype_len
-        self.types = types
-
-        # Create the log directory
-        phase = "P1" if agent and not planner else "P2"
-        date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        self.logdir = "experiments/DT_{}_{}_{}".format(phase, date, episodes)
-        self.logfile = os.path.join(self.logdir, "log.txt")
-        os.makedirs(self.logdir)
-
-        # Convert the string to dict
-        self.mutation = mutation
-        self.crossover = crossover
-        self.selection = selection
-
-        # Initialize some variables
-        grammar = {
-            "bt": ["<if>"],
-            "if": ["if <condition>:{<action>}else:{<action>}"],
-            "condition": [
-                "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space)
-            ],
-            "action": ['out=_leaf;leaf="_leaf"', "<if>"],
-            "comp_op": [" < ", " > "],
-        }
-        types: str = (
-            types
-            if types is not None
-            else ";".join(["0,10,1,10" for _ in range(input_space)])
-        )
-        types: str = types.replace("#", "")
-        assert (
-            len(types.split(";")) == input_space
-        ), "Expected {} types, got {}.".format(input_space, len(types.split(";")))
-
-        for index, type_ in enumerate(types.split(";")):
-            rng = type_.split(",")
-            start, stop, step, divisor = map(int, rng)
-            consts_ = list(
-                map(str, [float(c) / divisor for c in range(start, stop, step)])
-            )
-            grammar["const_type_{}".format(index)] = consts_
-
-        # Add to self
-        self.grammar = grammar
-
-        # Log the configuration
-        with open(os.path.join(self.logdir, "config.toml"), "w") as f:
-            config_dict = {
-                "common": {
-                    "algorithm_name": "DT",
-                    "phase": 1 if not planner else 2,
-                    "step": self.episode_len,
-                    "seed": seed,
-                    "device": "cpu",
-                    "mapped_agents": mapped_agents,
-                },
-                "algorithm_specific": {
-                    "episodes": episodes,
-                    "generations": generations,
-                    "cxp": cxp,
-                    "mp": mp,
-                    "genotype_len": genotype_len,
-                    "types": types,
-                    "mutation": self.mutation,
-                    "crossover": self.crossover,
-                    "selection": self.selection,
-                    "lr": lr,
-                    "df": df,
-                    "eps": eps,
-                    "low": low,
-                    "up": up,
-                    "lambda_": lambda_,
-                    "input_space": input_space,
-                    "grammar": self.grammar,
-                },
+            # Add important variables to self
+            self.episodes = episodes
+            self.episode_len = episode_len
+            # For the leaves
+            self.n_actions = {
+                "a": env.action_space.n,
+                "p": env.action_space_pl.nvec[0].item(),
             }
-            toml.dump(config_dict, f)
+            self.lr = lr
+            self.df = df
+            self.eps = eps
+            self.low = low
+            self.up = up
 
-        # Check the variables
-        self.__check_variables()
+            # For the evolution
+            self.lambda_ = lambda_
+            self.generations = generations
+            self.cxp = cxp
+            self.mp = mp
+            self.genotype_len = genotype_len
+            self.types = types
+
+            # Create the log directory
+            phase = "P1" if agent and not planner else "P2"
+            date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+            self.logdir = "experiments/DT_{}_{}_{}".format(phase, date, episodes)
+            self.logfile = os.path.join(self.logdir, "log.txt")
+            os.makedirs(self.logdir)
+
+            # Convert the string to dict
+            self.mutation = mutation
+            self.crossover = crossover
+            self.selection = selection
+
+            # Initialize some variables
+            grammar = {
+                "bt": ["<if>"],
+                "if": ["if <condition>:{<action>}else:{<action>}"],
+                "condition": [
+                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space)
+                ],
+                "action": ['out=_leaf;leaf="_leaf"', "<if>"],
+                "comp_op": [" < ", " > "],
+            }
+            types: str = (
+                types
+                if types is not None
+                else ";".join(["0,10,1,10" for _ in range(input_space)])
+            )
+            types: str = types.replace("#", "")
+            assert (
+                len(types.split(";")) == input_space
+            ), "Expected {} types, got {}.".format(input_space, len(types.split(";")))
+
+            for index, type_ in enumerate(types.split(";")):
+                rng = type_.split(",")
+                start, stop, step, divisor = map(int, rng)
+                consts_ = list(
+                    map(str, [float(c) / divisor for c in range(start, stop, step)])
+                )
+                grammar["const_type_{}".format(index)] = consts_
+
+            # Add to self
+            self.grammar = grammar
+
+            # Log the configuration
+            with open(os.path.join(self.logdir, "config.toml"), "w") as f:
+                config_dict = {
+                    "common": {
+                        "algorithm_name": "DT",
+                        "phase": 1 if not planner else 2,
+                        "step": self.episode_len,
+                        "seed": seed,
+                        "device": "cpu",
+                        "mapped_agents": mapped_agents,
+                    },
+                    "algorithm_specific": {
+                        "episodes": episodes,
+                        "generations": generations,
+                        "cxp": cxp,
+                        "mp": mp,
+                        "genotype_len": genotype_len,
+                        "types": types,
+                        "mutation": self.mutation,
+                        "crossover": self.crossover,
+                        "selection": self.selection,
+                        "lr": lr,
+                        "df": df,
+                        "eps": eps,
+                        "low": low,
+                        "up": up,
+                        "lambda_": lambda_,
+                        "input_space": input_space,
+                        "grammar": self.grammar,
+                    },
+                }
+                toml.dump(config_dict, f)
+
+            # Check the variables
+            self.__check_variables()
 
     def __check_variables(self):
         """
@@ -352,7 +354,8 @@ class DtTrainConfig:
         # try:
         for iteration in range(self.episodes):
             # Set the seed and reset the environment
-            self.env.seed(iteration)
+            self.seed+=1
+            self.env.seed = self.seed
             obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
 
             # Start the episode

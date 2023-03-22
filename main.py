@@ -83,18 +83,18 @@ if __name__ == "__main__":
     trainer = PpoTrainConfig(
         get_mapping_function,
         env,
-        num_workers=1,
-        step=2,
-        batch_size=200,
+        num_workers=12,
+        step=1,
+        batch_size=4000,
         rollout_fragment_length=200,
         mapped_agents={"a": True, "p": False},
     )
     trainer.train()
 
-    # trainer = DtTrainConfig(env)
-    # trainer.train()
+    trainer = DtTrainConfig(env,episodes=2, episode_len=2, lambda_=2, generations=10)
+    trainer.train()
 
-    # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-    #     "a": "PPO_P2_20-03-2023_1679306248_2",
-    #     "p": "PPO_P2_20-03-2023_1679306248_2",
-    # })
+    interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
+        "a": "None",
+        "p": "None",
+    })

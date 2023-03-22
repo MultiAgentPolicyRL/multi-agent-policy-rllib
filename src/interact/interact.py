@@ -57,11 +57,12 @@ class InteractConfig:
 
     def build_stepper(self):
         if self.trainer == PpoTrainConfig:
-            ### PPO
+            # PPO
             if self.phase == "P1":
                 self.models = {
                     "a": torch.load(
-                        "/experiments/" + self.mapped_agents("a") + "/models/a.pt"
+                        "/experiments/" +
+                        self.mapped_agents("a") + "/models/a.pt"
                     ),
                     "p": EmptyModel(
                         self.env.observation_space_pl,
@@ -71,10 +72,12 @@ class InteractConfig:
             else:
                 self.models = {
                     "a": torch.load(
-                        "experiments/" + self.mapped_agents["a"] + "/models/a.pt"
+                        "experiments/" +
+                        self.mapped_agents["a"] + "/models/a.pt"
                     ),
                     "p": torch.load(
-                        "experiments/" + self.mapped_agents["p"] + "/models/p.pt"
+                        "experiments/" +
+                        self.mapped_agents["p"] + "/models/p.pt"
                     ),
                 }
 
@@ -109,7 +112,7 @@ class InteractConfig:
                 with open(self.path + "/logs/dense_logs", "wb") as dense_logs:
                     pickle.dump(dense_log, dense_logs)
 
-            return stepper
+            # return stepper
 
         elif self.trainer == DtTrainConfig:
             if self.phase == "P1":
@@ -125,35 +128,37 @@ class InteractConfig:
                 self.models = {
                     "a": os.path.join(
                         "experiments",
-                        self.mapped_agents("a"),
-                        "models",
-                        "dt_a.pkl"),
+                        self.mapped_agents.get("a"),
+                    ),
                     "p": os.path.join(
                         "experiments",
-                        self.mapped_agents("p"),
-                        "models",
-                        "dt_p.pkl"),
+                        self.mapped_agents.get("p"),
+                    ),
                 }
 
-            env = self.env
-            env.seed = self.seed
+            def stepper():
 
-            # Done only for intellisense and to remember types
-            self.trainer: DtTrainConfig
-            
-            rewards, dense_log = self.trainer.stepper(
-                agent_path=self.models["a"],
-                planner_path=self.models["p"],
-                env=env
-            )
+                env = self.env
+                env.seed = self.seed
 
-            with open(os.path.join(self.path, "logs", "1.csv"), "a") as reward_file:
-                for rew in rewards:
-                    reward_file.write(
-                        f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
-            
-            with open(os.path.join(self.path, "logs", "dense_logs.pkl"), "wb") as log_file:
+                # Done only for intellisense and to remember types
+                self.trainer = DtTrainConfig()
+
+                rewards, dense_log = self.trainer.stepper(
+                    agent_path=self.models["a"],
+                    planner_path=self.models["p"],
+                    env=env
+                )
+
+                with open(os.path.join(self.path, "logs", "1.csv"), "a") as reward_file:
+                    for rew in rewards:
+                        reward_file.write(
+                            f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+
+                with open(os.path.join(self.path, "logs", "dense_logs.pkl"), "wb") as log_file:
                     pickle.dump(dense_log, log_file)
+            
+        return stepper()
 
     def setup_logs_and_dirs(self):
         """
@@ -244,7 +249,8 @@ class InteractConfig:
         if not isinstance(self.mapped_agents["p"], bool):
             self.phase = "P2"
             if self.mapped_agents["p"] != self.mapped_agents["a"]:
-                raise ValueError("The path for pretrained models must be the same!")
+                raise ValueError(
+                    "The path for pretrained models must be the same!")
         else:
             self.phase = "P1"
 

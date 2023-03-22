@@ -79,7 +79,7 @@ class EpsGreedyLeaf(QLearningLeaf):
             action = np.random.randint(self.n_actions)
         else:
             # Get the argmax. If there are equal values, choose randomly between them
-            best = [None]
+            best = []
             max_ = -float("inf")
 
             for i, v in enumerate(self.q):
