@@ -18,7 +18,7 @@ from src import PpoTrainConfig, DtTrainConfig, InteractConfig
 
 # pylint: disable=pointless-string-statement
 
-### Configuration declaration
+# Configuration declaration
 """
 Select how the manager should work: training or interaction with
 pre-trained model(s) -> mode = 'train' or 'interaction'.
@@ -91,10 +91,23 @@ if __name__ == "__main__":
     )
     trainer.train()
 
-    # trainer = DtTrainConfig(env)
+    # trainer = DtTrainConfig(
+    #     env,
+    #     episodes=2,
+    #     episode_len=100,
+    #     lambda_=2,
+    #     generations=2,
+    #     mapped_agents={"a": True, "p": True},
+    # )
     # trainer.train()
 
     # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-    #     "a": "PPO_P2_20-03-2023_1679306248_2",
-    #     "p": "PPO_P2_20-03-2023_1679306248_2",
+    #     "a": "PPO_P1_22-03-2023_1679498536_1",
+    #     "p": False,
+    # })
+
+
+    # interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
+    #     "a": "DT_P2_2023-03-22_163328_2",
+    #     "p": False,
     # })
