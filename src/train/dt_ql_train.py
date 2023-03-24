@@ -354,7 +354,7 @@ class DtTrainConfig:
         global_cumulative_rewards = []
 
         # try:
-        for iteration in tqdm(range(self.episodes)):
+        for iteration in range(self.episodes):
             # Set the seed and reset the environment
             self.seed+=1
             self.env.seed = self.seed
