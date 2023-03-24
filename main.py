@@ -73,17 +73,14 @@ def get_mapping_function():
 
     return mapping_function
 
-
-def get_args():
-    args = argparse.ArgumentParser()
-    args.add_argument('--mode', type=str, default='train',
-                      help='Mode of the experiment')
-    args.add_argument('--type', type=str, default='PPO',
-                      help='Type of the algorithm')
-    args.add_argument('--path', type=str, default=None,
-                      help='Path of the model weights')
-    args.parse_args()
-    return args
+parser = argparse.ArgumentParser()
+parser.add_argument('--mode', type=str, default='train',
+                    help='Mode of the experiment')
+parser.add_argument('--type', type=str, default='PPO',
+                    help='Type of the algorithm')
+parser.add_argument('--path', type=str, default=None,
+                    help='Path of the model weights')
+args = parser.parse_args()
 
 
 if __name__ == "__main__":
@@ -93,10 +90,8 @@ if __name__ == "__main__":
 
     env = get_environment()
 
-    arguments = get_args()
-
-    if arguments.mode == "train":
-        if arguments.type == "PPO":
+    if args.mode == "train":
+        if args.type == "PPO":
             trainer = PpoTrainConfig(
                 get_mapping_function,
                 env,
@@ -104,17 +99,17 @@ if __name__ == "__main__":
                 step=1000,
                 batch_size=6000,
                 rollout_fragment_length=200,
-                mapped_agents={"a": True, "p": True},
+                mapped_agents={"a": True, "p": False},
             )
             trainer.train()
-        elif arguments.type == "DT_ql":
+        elif args.type == "DT_ql":
             trainer = DtTrainConfig(
                 env,
                 episodes=60,
                 episode_len=1000,
                 lambda_=500,
                 generations=1000,
-                mapped_agents={"a": True, "p": True},
+                mapped_agents={"a": True, "p": False},
             )
             trainer.train()
         else:
