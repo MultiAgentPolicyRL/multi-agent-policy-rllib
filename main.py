@@ -10,6 +10,7 @@ families:
 - offline learning
     - PPO
 """
+import argparse
 import logging
 import multiprocessing
 from src.common import get_environment
@@ -25,7 +26,7 @@ pre-trained model(s) -> mode = 'train' or 'interaction'.
 Then select the type of algorithm you want to use, so you can select
 online learning: 'online', or offline learning: 'offline'. Select how many
 steps of training will be done.
-After that there are specific parameters that needs to be setup. 
+After that there are specific parameters that needs to be setup.
 Seed.
 
 If you are doing 'interaction' mode you have to set the 'path' of
@@ -73,6 +74,18 @@ def get_mapping_function():
     return mapping_function
 
 
+def get_args():
+    args = argparse.ArgumentParser()
+    args.add_argument('--mode', type=str, default='train',
+                      help='Mode of the experiment')
+    args.add_argument('--type', type=str, default='PPO',
+                      help='Type of the algorithm')
+    args.add_argument('--path', type=str, default=None,
+                      help='Path of the model weights')
+    args.parse_args()
+    return args
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
@@ -80,34 +93,40 @@ if __name__ == "__main__":
 
     env = get_environment()
 
-    trainer = PpoTrainConfig(
-        get_mapping_function,
-        env,
-        num_workers=1,
-        step=1,
-        batch_size=100,
-        rollout_fragment_length=20,
-        mapped_agents={"a": True, "p": True},
-    )
-    trainer.train()
+    arguments = get_args()
 
-    # trainer = DtTrainConfig(
-    #     env,
-    #     episodes=2,
-    #     episode_len=100,
-    #     lambda_=2,
-    #     generations=2,
-    #     mapped_agents={"a": True, "p": True},
-    # )
-    # trainer.train()
+    if arguments.mode == "train":
+        if arguments.type == "PPO":
+            trainer = PpoTrainConfig(
+                get_mapping_function,
+                env,
+                num_workers=12,
+                step=1000,
+                batch_size=6000,
+                rollout_fragment_length=200,
+                mapped_agents={"a": True, "p": True},
+            )
+            trainer.train()
+        elif arguments.type == "DT_ql":
+            trainer = DtTrainConfig(
+                env,
+                episodes=60,
+                episode_len=1000,
+                lambda_=500,
+                generations=1000,
+                mapped_agents={"a": True, "p": True},
+            )
+            trainer.train()
+        else:
+            raise ValueError("Invalid type of algorithm")
+    else:
+        raise NotImplementedError(f"Interaction mode not implemented yet")
+        # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
+        #     "a": "PPO_P1_22-03-2023_1679498536_1",
+        #     "p": False,
+        # })
 
-    # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-    #     "a": "PPO_P1_22-03-2023_1679498536_1",
-    #     "p": False,
-    # })
-
-
-    # interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
-    #     "a": "DT_P2_2023-03-22_163328_2",
-    #     "p": False,
-    # })
+        # interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
+        #     "a": "DT_P2_2023-03-22_163328_2",
+        #     "p": False,
+        # })
