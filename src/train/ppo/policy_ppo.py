@@ -3,7 +3,7 @@ from typing import List, Tuple
 import torch
 
 from src.common import Model
-from src.common.rollout_buffer import RolloutBuffer
+from src.common.rollout_buffer import SingleBuffer
 from src.train.ppo import PytorchLinearA, PytorchLinearP
 from src.train.ppo.utils.execution_time import exec_time
 
@@ -76,7 +76,7 @@ class PpoPolicy(Model):
     @exec_time
     def learn(
         self,
-        rollout_buffer: List[RolloutBuffer],
+        rollout_buffer: SingleBuffer,
     ) -> Tuple[float, float]:
         """
         Train Policy networks
@@ -90,13 +90,12 @@ class PpoPolicy(Model):
         Args:
             rollout_buffer: RolloutBuffer for this specific policy.
         """
-        buffer = rollout_buffer.to_tensor()
 
-        a_loss, c_loss, entropy = self.__update(buffer=buffer)
+        a_loss, c_loss, entropy = self.__update(buffer=rollout_buffer)
         return a_loss, c_loss, entropy
 
     # @exec_time
-    def __update(self, buffer: RolloutBuffer):
+    def __update(self, buffer: SingleBuffer):
         # Monte Carlo estimate of returns
         rewards = []
         discounted_reward = 0
@@ -126,21 +125,12 @@ class PpoPolicy(Model):
             logprobs, state_values, dist_entropy = self.model.evaluate(
                 old_states, old_actions
             )
-            # match state_values tensor dimensions with rewards tensor
-            # state_values = torch.squeeze(state_values)
-
-            # shape di:
-            # rewards
-            # state_values
-            # logprobs
-            # old_logprobs
 
             # Finding the ratio pi_theta / pi_theta_old
-            ratios = torch.exp(logprobs - old_logprobs)  # .unsqueeze(-1)
+            ratios = torch.exp(logprobs - old_logprobs)
 
             # Finding Surrogate Loss
-            # FIXME: .unsqueeze needs to be removed
-            advantages = rewards - state_values  # .unsqueeze(-1)
+            advantages = rewards - state_values
 
             surr1 = ratios * advantages
             surr2 = (

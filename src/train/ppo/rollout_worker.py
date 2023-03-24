@@ -41,7 +41,8 @@ class RolloutWorker:
         self.experiment_name = experiment_name
 
         logging.debug(
-            "Length: %s, iter:%s, batch_size:%s",
+            "ID: %s, Length: %s, iter:%s, batch_size:%s",
+            self._id,
             self.rollout_fragment_length,
             self.batch_iterations,
             self.batch_size,
@@ -62,13 +63,18 @@ class RolloutWorker:
 
         # Build policices
         self.policies = {}
-        self.memory = {}
         for key in policy_keys:
             self.policies[key] = self._build_policy(policies_config[key])
 
         obs = env.reset()
-        for key0, key1 in zip(["0", "p"], ["a", "p"]):
-            self.memory[key1] = RolloutBuffer(obs[key0])
+        # self.memory = {}
+        # self.rolling_memory = {}
+        # for key0, key1 in zip(["0", "p"], ["a", "p"]):
+        # self.memory[key1] = RolloutBuffer(obs[key0])
+        # self.rolling_memory[key1] = RolloutBuffer(obs[key0])
+
+        self.memory = RolloutBuffer(obs, self.policy_mapping_function)
+        self.rolling_memory = RolloutBuffer(obs, self.policy_mapping_function)
 
         logging.debug("Rollout Worker %s built", self._id)
 
@@ -92,7 +98,7 @@ class RolloutWorker:
                 name=policy_config["name"],
             )
 
-    # @exec_time
+    @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
@@ -101,31 +107,68 @@ class RolloutWorker:
         obs = self.env.reset()
 
         # reset rollout_buffer
-        for memory in self.memory.values():
-            memory.clear()
+        self.memory.clear()
 
-        for _ in range(self.batch_size):
-            # get actions, action_logprob for all agents in each policy* wrt observation
-            policy_action, policy_logprob = self.get_actions(obs)
+        for i in range(self.batch_iterations):
+            logging.debug(" ID: %s -- iteration: %s", self._id, i)
 
-            # get new_observation, reward, done from stepping the environment
-            next_obs, rew, done, _ = self.env.step(policy_action)
+            for _ in range(self.rollout_fragment_length):
+                # get actions, action_logprob for all agents in each policy* wrt observation
+                policy_action, policy_logprob = self.get_actions(obs)
 
-            if done["__all__"] is True:
-                next_obs = self.env.reset()
+                # get new_observation, reward, done from stepping the environment
+                next_obs, rew, done, _ = self.env.step(policy_action)
 
-            # save new_observation, reward, done, action, action_logprob in rollout_buffer
-            for _id in self.actor_keys:
-                self.memory[self.policy_mapping_function(_id)].update(
-                    state=obs[_id],
-                    action=policy_action[_id],
-                    logprob=policy_logprob[_id],
-                    reward=rew[_id],
+                if done["__all__"] is True:
+                    next_obs = self.env.reset()
+
+                """# save new_observation, reward, done, action, action_logprob in rollout_buffer
+                # for _id in self.actor_keys:
+                #     self.rolling_memory[self.policy_mapping_function(_id)].update(
+                #         state=obs[_id],
+                #         action=policy_action[_id],
+                #         logprob=policy_logprob[_id],
+                #         reward=rew[_id],
+                #         is_terminal=done["__all__"],
+                #     )"""
+
+                self.rolling_memory.update(
+                    action=policy_action,
+                    logprob=policy_logprob,
+                    state=obs,
+                    reward=rew,
                     is_terminal=done["__all__"],
                 )
 
-            obs = next_obs
+                obs = next_obs
 
+            """# logging.debug(
+            #     "rolling memory-ID: %s - %s - iteration: %s",
+            #     self._id,
+            #     self.rolling_memory["a"].states["world-map"].shape,
+            #     i,
+            # )
+
+            # for key in self.memory.keys():
+            #     if key == "a" and self.memory["a"].states["world-map"] is not None:
+            #         logging.debug(
+            #             "before extend: ID %s - %s - iteration: %s",
+            #             self._id,
+            #             self.memory["a"].states["world-map"].shape,
+            #             i,
+            #         )
+
+            #     self.memory[key].extend(self.rolling_memory[key], self._id)"""
+
+            self.memory.extend(self.rolling_memory)
+            self.rolling_memory.clear()
+            """# logging.debug(
+                # "After extend ID: %s - %s - iteration: %s",
+                # self._id,
+                # self.rolling_memory["a"].states["world-map"].shape,
+                # i,
+            # )
+"""
         # Dump memory in ram
         save_batch(data=self.memory, worker_id=self._id)
 
@@ -172,11 +215,15 @@ class RolloutWorker:
         """
         Append agent's total reward for this batch
         """
-        data = [(self.memory["a"].rewards[i::4]) for i in range(4)]
-        data.append((self.memory["p"].rewards))
+        splitted_data = [None, None, None, None, None]
 
-        for i in range(len(data[4])):
-            splitted_data = [data[0][i], data[1][i], data[2][i], data[3][i], data[4][i]]
+        for iteration in range(len(self.memory.buffers["0"].rewards)):
+            splitted_data[0]=self.memory.buffers["0"].rewards[iteration].item()
+            splitted_data[1]=self.memory.buffers["1"].rewards[iteration].item()
+            splitted_data[2]=self.memory.buffers["2"].rewards[iteration].item()
+            splitted_data[3]=self.memory.buffers["3"].rewards[iteration].item()
+            splitted_data[4]=self.memory.buffers["p"].rewards[iteration].item()
+            
             rewards = f"{','.join(map(str, splitted_data))}\n"
             data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
 

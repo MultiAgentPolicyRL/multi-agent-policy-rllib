@@ -1,13 +1,70 @@
 """
     Buffer used to store batched data
 """
+import logging
 import numpy as np
 import torch
 from tensordict import TensorDict
 
 
 class RolloutBuffer:
+    """
+    MultiAgent Rollout Buffer
+
+    Args:
+        environment observation -> unmapped.
+
+    """
+
+    def __init__(self, state: dict, mapping_function):
+        self.actors_keys = [str(key) for key in state.keys()]
+
+        self.buffers = {}
+        for key in self.actors_keys:
+            self.buffers[key]: SingleBuffer = SingleBuffer(state[key])
+
+    def update(
+        self, action: dict, logprob: dict, state: dict, reward: dict, is_terminal: bool
+    ):
+        """
+        Append single iteration to the buffer.
+        """
+        for key in self.actors_keys:
+            self.buffers[key].update(
+                action[key], logprob[key], state[key], reward[key], is_terminal
+            )
+
+    def extend(self, other):
+        """
+        Concatenate current `RolloutBuffer` with anotherone with the same structure.
+        Note: there are no checks on this action.
+        """
+        for key in self.actors_keys:
+            self.buffers[key].extend(other.buffers[key])
+
+    def to_tensor(self):
+        """
+        Could be done better.
+        """
+        tensored_buffer = {}
+        self.buffers["0"].extend(self.buffers["1"])
+        self.buffers["0"].extend(self.buffers["2"])
+        self.buffers["0"].extend(self.buffers["3"])
+
+        tensored_buffer["a"] = self.buffers["0"].to_tensor()
+        tensored_buffer["p"] = self.buffers["p"].to_tensor()
+
+        return tensored_buffer
+
+    def clear(self):
+        for key in self.actors_keys:
+            self.buffers[key].clear()
+
+
+class SingleBuffer:
     def __init__(self, state: dict):
+        self.empty = True
+
         self.actions = None
         self.states = {}
         self.logprobs = None
@@ -19,11 +76,10 @@ class RolloutBuffer:
             self.states[key] = None
             self.state_keys_dict[key] = None
 
-        # TODO: remove this flag
-        if len(state) > 5:
-            self.tag = "p"
-        else:
-            self.tag = "a"
+        # if len(state) > 5:
+        #     self.tag = "p"
+        # else:
+        #     self.tag = "a"
 
     def __append_tensor(self, old_stack, new_tensor):
         """
@@ -47,22 +103,25 @@ class RolloutBuffer:
             return np.concatenate((old_stack, nt))
 
     def update(self, action, logprob, state, reward, is_terminal):
-
         self.actions = self.__append_tensor(self.actions, action)
         self.logprobs = self.__append_tensor(self.logprobs, logprob)
         self.rewards = self.__append_tensor(self.rewards, reward)
         self.is_terminals = self.__append_tensor(self.is_terminals, is_terminal)
 
-        for key in state.keys():
+        for key in self.states.keys():
             self.states[key] = self.__append_tensor(self.states[key], state[key])
+        self.empty = False
 
     def extend(self, other):
-        if self.actions is None:
+        # logging.debug("Extending, Id: %s, is_empty: %s", _id, self.empty)
+        if self.empty is True:
             self.actions = other.actions
             self.logprobs = other.logprobs
             self.rewards = other.rewards
             self.is_terminals = other.is_terminals
-            self.states = other.states
+
+            for key in self.states.keys():
+                self.states[key] = other.states[key]
         else:
             self.actions = np.concatenate((self.actions, other.actions))
             self.logprobs = np.concatenate((self.logprobs, other.logprobs))
@@ -73,8 +132,10 @@ class RolloutBuffer:
             for key in self.states.keys():
                 self.states[key] = np.concatenate((self.states[key], other.states[key]))
 
+        self.empty = False
+
     def to_tensor(self):
-        _buffer = RolloutBuffer(self.state_keys_dict)
+        _buffer = SingleBuffer(self.state_keys_dict)
 
         _buffer.actions = torch.from_numpy(self.actions)
         _buffer.logprobs = torch.from_numpy(self.logprobs)
@@ -93,6 +154,8 @@ class RolloutBuffer:
 
         for key in self.states.keys():
             self.states[key] = None
+
+        self.empty = True
 
 
 # class RolloutBuffer:

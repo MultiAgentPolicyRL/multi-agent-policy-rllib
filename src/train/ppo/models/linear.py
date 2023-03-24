@@ -258,7 +258,7 @@ class PytorchLinearP(nn.Module):
         """
         # TODO optimize memory so data doesn't need to be squeezed
         action_probs = self.actor(obs["flat"])  # .squeeze())
-        action_probs = torch.split(action_probs, 7, dim=-1)
+        action_probs = torch.split(action_probs, 22, dim=-1)
 
         dist_entropy = torch.zeros((7, len(act)))
         action_logprobs = torch.zeros((7, len(act)))
