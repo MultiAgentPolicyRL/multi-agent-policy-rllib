@@ -19,6 +19,7 @@ from deap.algorithms import varAnd
 from deap import base, creator, tools
 from deap.tools import mutShuffleIndexes, mutUniformInt
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
 from .decision_tree import EpsGreedyLeaf, PythonDT
 from typing import List
@@ -187,7 +188,7 @@ def eaSimple(
         new_fitnesses.append(fit)
         planner_leaves.append(planner)
     fitnesses = new_fitnesses
-    for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+    for i, (ind, fit) in tqdm(enumerate(zip(invalid_ind, fitnesses)), desc="Invalid indices progress"):
         ind.fitness.values = fit
         if logfile is not None and (best is None or best < fit[0]):
             best = fit[0]
@@ -234,7 +235,7 @@ def eaSimple(
         print(logbook.stream)
 
     # Begin the generational process
-    for gen in range(1, ngen + 1):
+    for gen in tqdm(range(1, ngen + 1), desc="Generation progress"):
 
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))

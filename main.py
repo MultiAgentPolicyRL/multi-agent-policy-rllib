@@ -105,10 +105,10 @@ if __name__ == "__main__":
         elif args.type == "DT":
             trainer = DtTrainConfig(
                 env,
-                episodes=60,
+                episodes=5,
                 episode_len=1000,
-                lambda_=500,
-                generations=1000,
+                lambda_=60,
+                generations=50,
                 mapped_agents={"a": True, "p": False},
             )
             trainer.train()
