@@ -14,7 +14,7 @@ from datetime import datetime
 
 from tqdm import tqdm
 from deap import base, creator, tools
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_backend
 
 from src.common import get_environment
 from typing import Dict, List, Tuple, Union
@@ -269,7 +269,6 @@ class DtTrainConfig:
 
     def evaluate_fitness(
         self,
-        fitness_function: callable,
         genotype: List[int],
     ) -> float:
         # Get the phenotype
@@ -310,7 +309,7 @@ class DtTrainConfig:
             dt_p = None
 
         # Evaluate the fitness
-        return fitness_function(dt, dt_p)
+        return self.fitness(dt, dt_p)
 
     def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None):
         """
@@ -355,7 +354,7 @@ class DtTrainConfig:
         global_cumulative_rewards = []
 
         # try:
-        for iteration in tqdm(range(self.episodes), desc="DecisionTree Fitness"):
+        for iteration in tqdm(range(self.episodes)):
             # Set the seed and reset the environment
             self.seed+=1
             self.env.seed = self.seed
@@ -416,138 +415,18 @@ class DtTrainConfig:
     def train(
         self,
     ) -> None:
-        def fit_fcn(x: List[int]):
-            return self.evaluate_fitness(self.fitness, x)
-
-        # with parallel_backend("multiprocessing"):
-        pop, log, hof, best_leaves = grammatical_evolution(
-            fit_fcn,
-            individuals=self.lambda_,
-            generations=self.generations,
-            jobs=1,  # TODO: This should be removed because >1 is not working
-            cx_prob=self.cxp,
-            m_prob=self.mp,
-            logfile=self.logfile,
-            # seed=self.seed,  # This is useless since the seed is already set in the __init__
-            mutation=self.mutation,
-            crossover=self.crossover,
-            initial_len=self.genotype_len,
-            selection=self.selection,
-        )
-
-        individuals=self.lambda_
-        generations=self.generations
-        jobs=16  # TODO: This should be removed because >1 is not working
-        cx_prob=self.cxp
-        m_prob=self.mp
-        logfile=self.logfile
-        # seed=self.seed  # This is useless since the seed is already set in the __init__
-        mutation=self.mutation
-        crossover=self.crossover
-        initial_len=self.genotype_len
-        selection=self.selection
-
-        def get_map(jobs, timeout=None):
-            def map_(f, args):
-                return Parallel(jobs, timeout=timeout)(delayed(fit_fcn)(i) for i in args)
-
-            return map_
-
-        _max_value = 40000
-
-        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create(
-            "Individual", ListWithParents, typecode="d", fitness=creator.FitnessMax
-        )
-
-        toolbox = base.Toolbox()
-
-        # Attribute generator
-        toolbox.register("attr_bool", random.randint, 0, _max_value)
-
-        # Structure initializers
-        if jobs > 1:
-            toolbox.register("map", get_map(jobs, 600))
-            # toolbox.register("map", multiprocess.Pool(jobs).map)
-        toolbox.register(
-            "individual",
-            tools.initRepeat,
-            creator.Individual,
-            toolbox.attr_bool,
-            initial_len,
-        )
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-        toolbox.register("evaluate", fit_fcn)
-
-        for d in [mutation, crossover]:
-            if "attribute" in d:
-                d["attribute"] = toolbox.attr_bool
-            if "individual" in d:
-                d["individual"] = creator.Individual
-
-        toolbox.register(
-            "mate",
-            eval(crossover["function"]),
-            **{k: v for k, v in crossover.items() if k != "function"},
-        )
-        toolbox.register(
-            "mutate",
-            eval(mutation["function"]),
-            **{k: v for k, v in mutation.items() if k != "function"},
-        )
-        toolbox.register(
-            "select",
-            eval(selection["function"]),
-            **{k: v for k, v in selection.items() if k != "function"},
-        )
-
-        pop = toolbox.population(n=individuals)
-        hof = tools.HallOfFame(1)
-        stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean)
-        stats.register("std", np.std)
-        stats.register("min", np.min)
-        stats.register("max", np.max)
-
-        pop, log, best_leaves = eaSimple(
-            pop,
-            toolbox,
-            cxpb=cx_prob,
-            mutpb=m_prob,
-            ngen=generations,
-            stats=stats,
-            halloffame=hof,
-            verbose=True,
-            logfile=logfile,
-        )
-
-        # Log best individual
-        # with open(self.logfile, "a") as log_:
-        #     phenotype, _ = GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(
-        #         hof[0]
-        #     )
-        #     phenotype = phenotype.replace('leaf="_leaf"', "")
-
-        #     for k in range(50000):  # Iterate over all possible leaves
-        #         key = "leaf_{}".format(k)
-        #         if key in best_leaves:
-        #             v = best_leaves[key].q
-        #             phenotype = phenotype.replace(
-        #                 "out=_leaf", "out={}".format(np.argmax(v)), 1
-        #             )
-        #         else:
-        #             break
-
-        #     log_.write(str(log) + "\n")
-        #     log_.write(str(hof[0]) + "\n")
-        #     log_.write(phenotype + "\n")
-        #     log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
-
-        # with open(os.path.join(self.logdir, '', "fitness.tsv"), "w") as f:
-        #     f.write(str(log))
-
-class ListWithParents(list):
-    def __init__(self, *iterable):
-        super(ListWithParents, self).__init__(*iterable)
-        self.parents = []
+        with parallel_backend("multiprocessing"):
+            pop, log, hof, best_leaves = grammatical_evolution(
+                self.evaluate_fitness,
+                individuals=self.lambda_,
+                generations=self.generations,
+                jobs=1,  # TODO: This should be removed because >1 is not working
+                cx_prob=self.cxp,
+                m_prob=self.mp,
+                logfile=self.logfile,
+                # seed=self.seed,  # This is useless since the seed is already set in the __init__
+                mutation=self.mutation,
+                crossover=self.crossover,
+                initial_len=self.genotype_len,
+                selection=self.selection,
+            )
