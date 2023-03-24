@@ -102,7 +102,7 @@ if __name__ == "__main__":
                 mapped_agents={"a": True, "p": False},
             )
             trainer.train()
-        elif args.type == "DT_ql":
+        elif args.type == "DT":
             trainer = DtTrainConfig(
                 env,
                 episodes=60,
