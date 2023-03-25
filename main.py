@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 env,
                 episodes=5,
                 episode_len=1000,
-                lambda_=60,
+                lambda_=180,
                 generations=50,
                 mapped_agents={"a": True, "p": False},
             )

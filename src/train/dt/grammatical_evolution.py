@@ -235,7 +235,7 @@ def eaSimple(
         print(logbook.stream)
 
     # Begin the generational process
-    for gen in tqdm(range(1, ngen + 1), desc="Generation progress"):
+    for gen in range(1, ngen + 1):
 
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
