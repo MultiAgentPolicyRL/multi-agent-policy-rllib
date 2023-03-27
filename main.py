@@ -78,8 +78,11 @@ parser.add_argument('--mode', type=str, default='train',
                     help='Mode of the experiment')
 parser.add_argument('--type', type=str, default='PPO',
                     help='Type of the algorithm')
-parser.add_argument('--path', type=str, default=None,
-                    help='Path of the model weights')
+parser.add_argument('--path-ppo', type=str, default=None,
+                    help='Path of the model weights for ppo')
+parser.add_argument('--path-dt', type=str, default=None,
+                    help='Path of the model weights for dt')
+
 args = parser.parse_args()
 
 
@@ -99,7 +102,10 @@ if __name__ == "__main__":
                 step=1000,
                 batch_size=6000,
                 rollout_fragment_length=200,
-                mapped_agents={"a": True, "p": False},
+                mapped_agents={
+                    "a": True, 
+                    "p": True
+                },
             )
             trainer.train()
         elif args.type == "DT":
@@ -107,21 +113,27 @@ if __name__ == "__main__":
                 env,
                 episodes=5,
                 episode_len=1000,
-                lambda_=180,
+                lambda_=30,
                 generations=50,
-                mapped_agents={"a": True, "p": False},
+                mapped_agents={
+                    "a": True, 
+                    "p": True
+                },
             )
             trainer.train()
         else:
             raise ValueError("Invalid type of algorithm")
-    else:
-        raise NotImplementedError(f"Interaction mode not implemented yet")
-        # interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-        #     "a": "PPO_P1_22-03-2023_1679498536_1",
-        #     "p": False,
-        # })
+    elif args.mode == "eval":
+        interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
+            "a": False,
+            "p": False,
+        })
 
-        # interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
-        #     "a": "DT_P2_2023-03-22_163328_2",
-        #     "p": False,
-        # })
+        interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
+            "a": False,
+            "p": False,
+        })
+    else:
+        raise ValueError("Invalid mode")
+    
+    logging.info("Done")

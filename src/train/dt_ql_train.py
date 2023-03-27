@@ -129,6 +129,12 @@ class DtTrainConfig:
                 "a": env.action_space.n,
                 "p": env.action_space_pl.nvec[0].item(),
             }
+            # For the input space
+            obs = env.reset()
+            input_space = {
+                "a": obs.get('0').get('flat').shape[0],
+                "p": obs.get('p').get('flat').shape[0]
+            }
             self.lr = lr
             self.df = df
             self.eps = eps
@@ -156,35 +162,65 @@ class DtTrainConfig:
             self.selection = selection
 
             # Initialize some variables
-            grammar = {
+            grammar_agent = {
                 "bt": ["<if>"],
                 "if": ["if <condition>:{<action>}else:{<action>}"],
                 "condition": [
-                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space)
+                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space.get("a", 136))
                 ],
                 "action": ['out=_leaf;leaf="_leaf"', "<if>"],
                 "comp_op": [" < ", " > "],
             }
-            types: str = (
+            types_agent: str = (
                 types
                 if types is not None
-                else ";".join(["0,10,1,10" for _ in range(input_space)])
+                else ";".join(["0,10,1,10" for _ in range(input_space.get("a", 136))])
             )
-            types: str = types.replace("#", "")
+            types_agent: str = types_agent.replace("#", "")
             assert (
-                len(types.split(";")) == input_space
-            ), "Expected {} types, got {}.".format(input_space, len(types.split(";")))
+                len(types_agent.split(";")) == input_space.get("a", 136)
+            ), "Expected {} types_agent, got {}.".format(input_space.get("a", 136), len(types_agent.split(";")))
 
-            for index, type_ in enumerate(types.split(";")):
+            for index, type_ in enumerate(types_agent.split(";")):
                 rng = type_.split(",")
                 start, stop, step, divisor = map(int, rng)
                 consts_ = list(
                     map(str, [float(c) / divisor for c in range(start, stop, step)])
                 )
-                grammar["const_type_{}".format(index)] = consts_
+                grammar_agent["const_type_{}".format(index)] = consts_
 
             # Add to self
-            self.grammar = grammar
+            self.grammar_agent = grammar_agent
+
+            grammar_planner = {
+                "bt": ["<if>"],
+                "if": ["if <condition>:{<action>}else:{<action>}"],
+                "condition": [
+                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space.get("p", 86))
+                ],
+                "action": ['out=_leaf;leaf="_leaf"', "<if>"],
+                "comp_op": [" < ", " > "],
+            }
+            types_planner: str = (
+                types
+                if types is not None
+                else ";".join(["0,10,1,10" for _ in range(input_space.get("p", 86))])
+            )
+            types_planner: str = types_planner.replace("#", "")
+            assert (
+                len(types_planner.split(";")) == input_space.get("p", 86)
+            ), "Expected {} types_planner, got {}.".format(input_space.get("p", 86), len(types_planner.split(";")))
+
+            for index, type_ in enumerate(types_planner.split(";")):
+                rng = type_.split(",")
+                start, stop, step, divisor = map(int, rng)
+                consts_ = list(
+                    map(str, [float(c) / divisor for c in range(start, stop, step)])
+                )
+                grammar_planner["const_type_{}".format(index)] = consts_
+
+            # Add to self
+            self.grammar_planner = grammar_planner
 
             # Log the configuration
             with open(os.path.join(self.logdir, "config.toml"), "w") as f:
@@ -214,7 +250,8 @@ class DtTrainConfig:
                         "up": up,
                         "lambda_": lambda_,
                         "input_space": input_space,
-                        "grammar": self.grammar,
+                        "grammar_agent": self.grammar_agent,
+                        "grammar_planner": self.grammar_planner,
                     },
                 }
                 toml.dump(config_dict, f)
@@ -272,13 +309,16 @@ class DtTrainConfig:
         genotype: List[int],
     ) -> float:
         # Get the phenotype
-        phenotype, _ = GrammaticalEvolutionTranslator(self.grammar).genotype_to_str(
+        phenotype_agent, _ = GrammaticalEvolutionTranslator(self.grammar_agent).genotype_to_str(
+            genotype
+        )
+        phenotype_planner, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(
             genotype
         )
 
         # Get the Decision Trees of agents and planner
         dt = PythonDT(
-            phenotype,
+            phenotype_agent,
             self.n_actions.get("a", 50),
             self.lr,
             self.df,
@@ -287,7 +327,7 @@ class DtTrainConfig:
             self.up,
         )
         dt_p = PythonDT(
-            phenotype,
+            phenotype_planner,
             self.n_actions.get("p", 22),
             self.lr,
             self.df,

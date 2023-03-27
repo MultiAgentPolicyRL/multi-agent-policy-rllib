@@ -470,8 +470,8 @@ def grammatical_evolution(
     toolbox.register("attr_bool", random.randint, 0, _max_value)
 
     # Structure initializers
-    if jobs > 1:
-        toolbox.register("map", get_map(jobs, timeout))
+    # if jobs > 1:
+    #     toolbox.register("map", get_map(jobs, timeout))
         # toolbox.register("map", multiprocess.Pool(jobs).map)
     toolbox.register(
         "individual",
