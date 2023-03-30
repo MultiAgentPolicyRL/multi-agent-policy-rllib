@@ -16,6 +16,7 @@ import multiprocessing
 from src.common import get_environment
 
 from src import PpoTrainConfig, DtTrainConfig, InteractConfig
+from src.train.ppo_dt import PPODtTrainConfig
 
 # pylint: disable=pointless-string-statement
 
@@ -117,6 +118,19 @@ if __name__ == "__main__":
                 generations=50,
                 mapped_agents={
                     "a": True, 
+                    "p": True
+                },
+            )
+            trainer.train()
+        elif args.type == "PPO_DT":
+            trainer = PPODtTrainConfig(
+                env,
+                episodes=5,
+                episode_len=1000,
+                lambda_=30,
+                generations=50,
+                mapped_agents={
+                    "a": '', # This must be the folder name to load the agent pre-trained in pytorch
                     "p": True
                 },
             )
