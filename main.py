@@ -147,6 +147,11 @@ if __name__ == "__main__":
             "a": False,
             "p": False,
         })
+
+        interact = InteractConfig(get_mapping_function, env, PPODtTrainConfig, config={}, mapped_agents={
+            "a": False,
+            "p": False,
+        })
     else:
         raise ValueError("Invalid mode")
     

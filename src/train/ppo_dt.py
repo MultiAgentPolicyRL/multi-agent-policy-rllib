@@ -328,7 +328,7 @@ class PPODtTrainConfig:
         """
         Stepper used for the `interact.py`
         """
-        agent = torch.load(self.agent)
+        agent = torch.load(agent_path)
         print(f"\nWARNING: `ppo_dt.py` line 331 must be changed accordingly to load the agents model in pytorch\n")
         planner = PythonDT(load_path=planner_path, planner=True) 
 
