@@ -89,7 +89,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
+        level=logging.DEBUG, format="%(process)d-%(levelname)s-%(message)s"
     )
 
     env = get_environment()
@@ -126,11 +126,11 @@ if __name__ == "__main__":
             trainer = PPODtTrainConfig(
                 env,
                 episodes=5,
-                episode_len=1000,
-                lambda_=30,
+                episode_len=200,
+                lambda_=1,
                 generations=50,
                 mapped_agents={
-                    "a": '', # This must be the folder name to load the agent pre-trained in pytorch
+                    "a": 'PPO_P1_24-03-2023_1679647336_1', # This must be the folder name to load the agent pre-trained in pytorch
                     "p": True
                 },
             )
