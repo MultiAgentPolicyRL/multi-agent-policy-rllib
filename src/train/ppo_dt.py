@@ -3,6 +3,7 @@ Defines the configuration for training with online learning.
 
 Supports DT_ql.
 """
+import logging
 import os
 import toml
 import torch
@@ -19,6 +20,9 @@ from typing import Dict, List, Tuple, Union
 from src.train.dt import PythonDT
 from src.common.env import EnvWrapper
 from ai_economist.foundation.base.base_env import BaseEnvironment
+from src.common.rollout_buffer import RolloutBuffer
+from src.train.ppo import PpoPolicy
+
 from src.train.dt import (
     GrammaticalEvolutionTranslator,
     grammatical_evolution,
@@ -72,6 +76,7 @@ class PPODtTrainConfig:
 
     def __init__(
         self,
+        mapping_function,
         env: EnvWrapper = None,
         agent: Union[bool, str] = True,
         planner: Union[bool, str] = True,
@@ -101,14 +106,46 @@ class PPODtTrainConfig:
         },
         genotype_len: int = 100,
         types: List[Tuple[int, int, int, int]] = None,
+        batch_size: int = 400,
+        rollout_fragment_length: int = 200,
+        k_epochs: int = 16,
+        eps_clip: int = 10,
+        gamma: float = 0.998,
+        device: str = "cpu",
+        learning_rate: float = 0.0003,
+        _c1: float = 0.05,
+        _c2: float = 0.025,
         mapped_agents: Dict[str, Union[bool, str]] = {
             "a": True,
             "p": True,
         },
     ):
+        
+
         if env is not None:
+            # PPO specific stuff
+            self.mapping_function = mapping_function
+            self.rollout_fragment_length = rollout_fragment_length
+            self.batch_size = batch_size
+            self.step = episode_len
+            self.batch_iterations = self.batch_size//self.rollout_fragment_length
+            self.k_epochs = k_epochs
+            self.eps_clip = eps_clip
+            self.gamma = gamma
+            self.device = device
+            self.learning_rate = learning_rate
+            self._c1 = _c1
+            self._c2 = _c2
+            
+            self.agent = PpoPolicy(env.observation_space, env.action_space)
+            self.agent.load_model(mapped_agents["a"]+"/models/a.pt")
+
+            self.memory = RolloutBuffer(obs, None)
+            self.rolling_memory = RolloutBuffer(obs, None)
+
+            # DT specific stuff
             self.env = env
-            self.agent = mapped_agents["a"]
+            # self.agent = mapped_agents["a"]
             self.planner = mapped_agents["p"]
 
             # Set seeds
@@ -149,7 +186,7 @@ class PPODtTrainConfig:
             # Create the log directory
             phase = "P1" if agent and not planner else "P2"
             date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            self.logdir = "experiments/DT_{}_{}_{}".format(phase, date, episodes)
+            self.logdir = f"experiments/PPO_DT_{phase}_{date}_{episodes}"
             self.logfile = os.path.join(self.logdir, "log.txt")
             os.makedirs(self.logdir)
 
@@ -223,7 +260,7 @@ class PPODtTrainConfig:
             with open(os.path.join(self.logdir, "config.toml"), "w") as f:
                 config_dict = {
                     "common": {
-                        "algorithm_name": "DT",
+                        "algorithm_name": "PPO_DT",
                         "phase": 1 if not planner else 2,
                         "step": self.episode_len,
                         "seed": seed,
@@ -231,6 +268,7 @@ class PPODtTrainConfig:
                         "mapped_agents": mapped_agents,
                     },
                     "algorithm_specific": {
+                        "dt": {
                         "episodes": episodes,
                         "generations": generations,
                         "cxp": cxp,
@@ -249,12 +287,62 @@ class PPODtTrainConfig:
                         "input_space": input_space,
                         "grammar_agent": self.grammar_agent,
                         "grammar_planner": self.grammar_planner,
+                        },
+                        "ppo": {
+                            "rollout_fragment_length": self.rollout_fragment_length,
+                            "batch_size": self.batch_size,
+                            "k_epochs": self.k_epochs,
+                            "eps_clip": self.eps_clip,
+                            "gamma": self.gamma,
+                            "learning_rate": self.learning_rate,
+                            "c1": self._c1,
+                            "c2": self._c2,
+                        }
                     },
                 }
                 toml.dump(config_dict, f)
 
             # Check the variables
             self.__check_variables()
+            self.validate_config(env=env)
+
+    def validate_config(self, env):
+        """
+        Validate PPO's config.
+
+        Raise:
+            ValueError if a specific parameter is not set correctly.
+        """
+        if self.step < 0:
+            raise ValueError("'step' must be > 0!")
+
+        if not isinstance(self.seed, int):
+            raise ValueError("'seed' muse be integer!")
+
+        if self.k_epochs < 0:
+            raise ValueError("'k_epochs' must be > 0!")
+
+        if self.eps_clip < 0:
+            raise ValueError("'eps_clip' must be > 0!")
+
+        if self.gamma < 0 or self.gamma > 1:
+            raise ValueError("'gamma' must be between (0,1).")
+
+        if self.device != "cpu":
+            # raise ValueError()
+            logging.warning(
+                "The only available 'device' at the moment is 'cpu'. Redirecting everything to 'cpu'!"
+            )
+            self.device = "cpu"
+
+        if self.learning_rate < 0 and self.learning_rate > 1:
+            raise ValueError("'learning_rate' must be between (0,1).")
+
+        if self.num_workers < 0:
+            raise ValueError("'num_workers' must be > 0 and < max_cpus.")
+
+        logging.info("Configuration validated: OK")
+        return
 
     def __check_variables(self):
         """
@@ -308,7 +396,8 @@ class PPODtTrainConfig:
         )
 
         # Get the Decision Trees of agents and planner
-        agent = torch.load(self.agent)
+        # agent = torch.load(self.agent)
+
         print(f"\nWARNING: `ppo_dt.py` line 311 must be changed accordingly to load the agents model in pytorch\n")
         dt_p = PythonDT(
             phenotype_planner,
@@ -322,7 +411,83 @@ class PPODtTrainConfig:
         )
 
         # Evaluate the fitness
-        return self.fitness(agent, dt_p)
+        return self.fitness(dt_p)
+
+    def batch(self, planner):
+        """
+        Creates a batch of `rollout_fragment_length` steps, 
+        """
+        # reset batching environment and get its observation
+        obs = self.env.reset()
+
+        # reset rollout_buffer
+        self.memory.clear()
+
+        for i in range(self.batch_iterations):
+            for _ in range(self.rollout_fragment_length):
+                # get actions, action_logprob for all agents in each policy* wrt observation
+                policy_action, policy_logprob = self.get_actions(obs, planner)
+
+                # get new_observation, reward, done from stepping the environment
+                next_obs, rew, done, _ = self.env.step(policy_action)
+
+                if done["__all__"] is True:
+                    next_obs = self.env.reset()
+
+                self.rolling_memory.update(
+                    action=policy_action,
+                    logprob=policy_logprob,
+                    state=obs,
+                    reward=rew,
+                    is_terminal=done["__all__"],
+                )
+
+                obs = next_obs
+            
+            self.memory.extend(self.rolling_memory)
+            self.rolling_memory.clear()
+
+    def get_actions(self, obs, planner):
+        policy_probs = []
+        policy_actions = []
+        for x in ['0','1','2','3']:
+            a, b = self.agent.act(obs[x])
+            policy_actions.append(a)
+            policy_probs.append(b)
+        
+        actions = {
+            '0': policy_actions[0],
+            '1': policy_actions[1],
+            '2': policy_actions[2],
+            '3': policy_actions[3],
+            'p': planner
+        }
+
+        probs = {
+            '0': policy_probs[0],
+            '1': policy_probs[1],
+            '2': policy_probs[2],
+            '3': policy_probs[3],
+            'p': 0
+        }
+
+        return actions, probs
+
+
+    def get_actions_ppo_only(self, obs):
+        policy_actions = []
+        for x in ['0','1','2','3']:
+            a, _ = self.agent.act(obs[x])
+            policy_actions.append(a)
+
+        actions = {
+            '0': policy_actions[0],
+            '1': policy_actions[1],
+            '2': policy_actions[2],
+            '3': policy_actions[3],
+        }
+
+        return actions
 
     def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None): 
         """
@@ -362,11 +527,15 @@ class PPODtTrainConfig:
 
         return planner.rewards, env.env.previous_episode_dense_log
 
-    def fitness(self, agent: PythonDT, planner: PythonDT):
+    def fitness(self, planner: PythonDT):
         global_cumulative_rewards = []
 
-        # try:
-        for iteration in range(self.episodes):
+        for _ in range(self.episodes):
+            # create batch for PPO learning
+            pa = planner(obs.get("p").get("flat"))
+            self.batch(pa)
+            
+            # learn on DT
             # Set the seed and reset the environment
             self.seed+=1
             self.env.seed = self.seed
@@ -375,39 +544,28 @@ class PPODtTrainConfig:
             # Initialize some variables
             cum_rew = 0
 
+            # static - one per epoch - action by the planner
+            
             # Run the episode
             for t in range(self.episode_len):
-                with torch.no_grad():
-                    actions = agent.get_actions(obs)
-                actions["p"] = np.array([0 for _  in range(7)])#
-
-                if any([a is None for a in actions.values()]):
-                    break
-
-                obs, rew, done, _ = self.env.step(actions)
-                planner.add_rewards(rewards=rew)
-
-                cum_rew += sum([rew.get(k, 0) for k in rew.keys()])
-
-                if done["__all__"] is True:
-                    break
-
-            if not done["__all__"]:
                 # Start the episode
                 planner.new_episode()
-
-                planner_action = planner(obs.get("p").get("flat"))
-                actions = {
-                    key: [0] for key in obs.keys()
-                }
-                actions['p'] = planner_action
+                actions = self.get_actions_ppo_only(obs)
+                actions['p'] = planner(obs.get("p").get("flat"))
                 obs, rew, done, _ = self.env.step(actions)
+
+                if done["__all__"] is True:
+                    obs = self.env.reset()
                 
                 planner.set_reward(rew.get("p", 0))
 
                 global_cumulative_rewards.append(cum_rew)
 
         fitness = (np.mean(global_cumulative_rewards),)
+
+        # learn on PPO
+        self.agent.learn(self.memory.to_tensor()["a"])
+
         return fitness, planner
 
     def train(

@@ -67,12 +67,7 @@ class RolloutWorker:
             self.policies[key] = self._build_policy(policies_config[key])
 
         obs = env.reset()
-        # self.memory = {}
-        # self.rolling_memory = {}
-        # for key0, key1 in zip(["0", "p"], ["a", "p"]):
-        # self.memory[key1] = RolloutBuffer(obs[key0])
-        # self.rolling_memory[key1] = RolloutBuffer(obs[key0])
-
+        
         self.memory = RolloutBuffer(obs, self.policy_mapping_function)
         self.rolling_memory = RolloutBuffer(obs, self.policy_mapping_function)
 
@@ -98,7 +93,7 @@ class RolloutWorker:
                 name=policy_config["name"],
             )
 
-    @exec_time
+    # @exec_time
     def batch(self):
         """
         Creates a batch of `rollout_fragment_length` steps, save in `self.rollout_buffer`.
@@ -122,16 +117,6 @@ class RolloutWorker:
                 if done["__all__"] is True:
                     next_obs = self.env.reset()
 
-                """# save new_observation, reward, done, action, action_logprob in rollout_buffer
-                # for _id in self.actor_keys:
-                #     self.rolling_memory[self.policy_mapping_function(_id)].update(
-                #         state=obs[_id],
-                #         action=policy_action[_id],
-                #         logprob=policy_logprob[_id],
-                #         reward=rew[_id],
-                #         is_terminal=done["__all__"],
-                #     )"""
-
                 self.rolling_memory.update(
                     action=policy_action,
                     logprob=policy_logprob,
@@ -142,33 +127,9 @@ class RolloutWorker:
 
                 obs = next_obs
 
-            """# logging.debug(
-            #     "rolling memory-ID: %s - %s - iteration: %s",
-            #     self._id,
-            #     self.rolling_memory["a"].states["world-map"].shape,
-            #     i,
-            # )
-
-            # for key in self.memory.keys():
-            #     if key == "a" and self.memory["a"].states["world-map"] is not None:
-            #         logging.debug(
-            #             "before extend: ID %s - %s - iteration: %s",
-            #             self._id,
-            #             self.memory["a"].states["world-map"].shape,
-            #             i,
-            #         )
-
-            #     self.memory[key].extend(self.rolling_memory[key], self._id)"""
-
             self.memory.extend(self.rolling_memory)
             self.rolling_memory.clear()
-            """# logging.debug(
-                # "After extend ID: %s - %s - iteration: %s",
-                # self._id,
-                # self.rolling_memory["a"].states["world-map"].shape,
-                # i,
-            # )
-"""
+            
         # Dump memory in ram
         save_batch(data=self.memory, worker_id=self._id)
 

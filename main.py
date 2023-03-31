@@ -77,7 +77,7 @@ def get_mapping_function():
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', type=str, default='train',
                     help='Mode of the experiment')
-parser.add_argument('--type', type=str, default='PPO',
+parser.add_argument('--type', type=str, default='PPO_DT',
                     help='Type of the algorithm')
 parser.add_argument('--path-ppo', type=str, default=None,
                     help='Path of the model weights for ppo')

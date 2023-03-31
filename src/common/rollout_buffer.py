@@ -52,7 +52,8 @@ class RolloutBuffer:
         self.buffers["0"].extend(self.buffers["3"])
 
         tensored_buffer["a"] = self.buffers["0"].to_tensor()
-        tensored_buffer["p"] = self.buffers["p"].to_tensor()
+        if "p" in self.buffers.keys():
+            tensored_buffer["p"] = self.buffers["p"].to_tensor()
 
         return tensored_buffer
 
