@@ -5,7 +5,7 @@ Supports DT_ql.
 """
 import os
 import toml
-import string
+import torch
 import random
 import numpy as np
 
@@ -13,10 +13,8 @@ import numpy as np
 from datetime import datetime
 
 from tqdm import tqdm
-from deap import base, creator, tools
-from joblib import Parallel, delayed, parallel_backend
+from joblib import parallel_backend
 
-from src.common import get_environment
 from typing import Dict, List, Tuple, Union
 from src.train.dt import PythonDT
 from src.common.env import EnvWrapper
@@ -24,11 +22,10 @@ from ai_economist.foundation.base.base_env import BaseEnvironment
 from src.train.dt import (
     GrammaticalEvolutionTranslator,
     grammatical_evolution,
-    eaSimple,
 )
 
 
-class DtTrainConfig:
+class PPODtTrainConfig:
     """
     Endpoint to setup DT_ql's training configuration.
 
@@ -263,10 +260,7 @@ class DtTrainConfig:
         """
         Checks if all variables are set.
         """
-        assert self.agent == True or (
-            isinstance(self.agent, str)
-            and os.path.exists(os.path.join("experiments", self.agent))
-        ), "The agent must be trained or loaded from existing directory, received {}".format(
+        assert isinstance(self.agent, str) and os.path.exists(os.path.join("experiments", self.agent)), "The agent must be trained and loaded from existing directory, received {}".format(
             self.agent
         )
         assert self.lr == "auto" or (
@@ -309,23 +303,13 @@ class DtTrainConfig:
         genotype: List[int],
     ) -> float:
         # Get the phenotype
-        phenotype_agent, _ = GrammaticalEvolutionTranslator(self.grammar_agent).genotype_to_str(
-            genotype
-        )
         phenotype_planner, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(
             genotype
         )
 
         # Get the Decision Trees of agents and planner
-        dt = PythonDT(
-            phenotype_agent,
-            self.n_actions.get("a", 50),
-            self.lr,
-            self.df,
-            self.eps,
-            self.low,
-            self.up,
-        )
+        agent = torch.load(self.agent)
+        print(f"\nWARNING: `ppo_dt.py` line 311 must be changed accordingly to load the agents model in pytorch\n")
         dt_p = PythonDT(
             phenotype_planner,
             self.n_actions.get("p", 22),
@@ -334,61 +318,49 @@ class DtTrainConfig:
             self.eps,
             self.low,
             self.up,
-            True,
+            planner=True,
         )
-        if isinstance(self.agent, str) and os.path.exists(
-            os.path.join("experiments", self.agent)
-        ):
-            dt.load(os.path.join("experiments", self.agent))
-
-        if isinstance(self.planner, str) and os.path.exists(
-            os.path.join("experiments", self.planner)
-        ):
-            dt_p.load(os.path.join("experiments", self.planner), planner=True)
-        elif self.planner == False:
-            dt_p = None
 
         # Evaluate the fitness
-        return self.fitness(dt, dt_p)
+        return self.fitness(agent, dt_p)
 
-    def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None):
+    def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None): 
         """
         Stepper used for the `interact.py`
         """
-        agent = PythonDT(load_path=agent_path)
-        planner = PythonDT(load_path=planner_path,
-                           planner=True) if planner_path is not None else None
+        agent = torch.load(agent_path)
+        print(f"\nWARNING: `ppo_dt.py` line 331 must be changed accordingly to load the agents model in pytorch\n")
+        planner = PythonDT(load_path=planner_path, planner=True) 
 
         # Initialize some variables
         obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
 
-        # Start the episode
-        agent.new_episode()
-        if planner is not None:
-            planner.new_episode()
-
         # Run the episode
         for t in tqdm(range(env.env.episode_length), desc="DecisionTree Replay"):
-            actions = agent.get_actions(obs)
-            if planner is not None:
-                actions["p"] = planner(obs.get("p").get("flat"))
+            with torch.no_grad():
+                actions = agent.get_actions(obs)
+            actions["p"] = np.array([0 for _  in range(7)])#
 
-            obs, rew, done, _ = env.step(actions)
-
-            # Add reward to list
-            agent.add_rewards(rewards=rew)
-            if planner is not None:
-                planner.add_rewards(rewards=rew)
-
-            agent.set_reward(sum([rew.get(k, 0)
-                            for k in rew.keys() if k != "p"]))
-            if planner is not None:
-                planner.set_reward(rew.get("p", 0))
+            obs, rew, done, _ = self.env.step(actions)
+            planner.add_rewards(rewards=rew)
 
             if done["__all__"] is True:
                 break
 
-        return agent.rewards, env.env.previous_episode_dense_log
+        if not done["__all__"]:
+            # Start the episode
+            planner.new_episode()
+
+            planner_action = planner(obs.get("p").get("flat"))
+            actions = {
+                key: [0] for key in obs.keys()
+            }
+            actions['p'] = planner_action
+            obs, rew, done, _ = self.env.step(actions)
+            
+            planner.set_reward(rew.get("p", 0))
+
+        return planner.rewards, env.env.previous_episode_dense_log
 
     def fitness(self, agent: PythonDT, planner: PythonDT):
         global_cumulative_rewards = []
@@ -400,57 +372,43 @@ class DtTrainConfig:
             self.env.seed = self.seed
             obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
 
-            # Start the episode
-            agent.new_episode()
-            if planner is not None:
-                planner.new_episode()
-
             # Initialize some variables
             cum_rew = 0
 
             # Run the episode
             for t in range(self.episode_len):
-                actions = agent.get_actions(obs)
-                if planner is not None:
-                    actions["p"] = planner(obs.get("p").get("flat"))
+                with torch.no_grad():
+                    actions = agent.get_actions(obs)
+                actions["p"] = np.array([0 for _  in range(7)])#
 
                 if any([a is None for a in actions.values()]):
                     break
 
                 obs, rew, done, _ = self.env.step(actions)
+                planner.add_rewards(rewards=rew)
 
-                # Add reward to list
-                agent.add_rewards(rewards=rew)
-                if planner is not None:
-                    planner.add_rewards(rewards=rew)
-
-                # self.env.render() # FIXME: This is not working, see if needed
-                agent.set_reward(sum([rew.get(k, 0)
-                                 for k in rew.keys() if k != "p"]))
-                if planner is not None:
-                    planner.set_reward(rew.get("p", 0))
-
-                # cum_rew += rew
                 cum_rew += sum([rew.get(k, 0) for k in rew.keys()])
 
                 if done["__all__"] is True:
                     break
 
-            # FIXME: Why should be done this?
-            # for k_agent, _obs in obs.items():
-            #     if k_agent == "p":
-            #         planner(_obs.get("flat"))
-            #     else:
-            #         agent(_obs.get("flat"))
-            global_cumulative_rewards.append(cum_rew)
-        # except Exception as ex:
-        #     raise ex
-        #     if len(global_cumulative_rewards) == 0:
-        #         global_cumulative_rewards = -1000
-        # e.close()
+            if not done["__all__"]:
+                # Start the episode
+                planner.new_episode()
+
+                planner_action = planner(obs.get("p").get("flat"))
+                actions = {
+                    key: [0] for key in obs.keys()
+                }
+                actions['p'] = planner_action
+                obs, rew, done, _ = self.env.step(actions)
+                
+                planner.set_reward(rew.get("p", 0))
+
+                global_cumulative_rewards.append(cum_rew)
 
         fitness = (np.mean(global_cumulative_rewards),)
-        return fitness, agent, planner
+        return fitness, planner
 
     def train(
         self,
@@ -460,13 +418,12 @@ class DtTrainConfig:
                 self.evaluate_fitness,
                 individuals=self.lambda_,
                 generations=self.generations,
-                jobs=1,  # TODO: This should be removed because >1 is not working
                 cx_prob=self.cxp,
                 m_prob=self.mp,
                 logfile=self.logfile,
-                # seed=self.seed,  # This is useless since the seed is already set in the __init__
                 mutation=self.mutation,
                 crossover=self.crossover,
                 initial_len=self.genotype_len,
                 selection=self.selection,
+                planner_only=True,
             )
