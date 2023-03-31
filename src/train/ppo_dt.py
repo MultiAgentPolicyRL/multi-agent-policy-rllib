@@ -76,7 +76,6 @@ class PPODtTrainConfig:
 
     def __init__(
         self,
-        mapping_function,
         env: EnvWrapper = None,
         agent: Union[bool, str] = True,
         planner: Union[bool, str] = True,
@@ -124,7 +123,6 @@ class PPODtTrainConfig:
 
         if env is not None:
             # PPO specific stuff
-            self.mapping_function = mapping_function
             self.rollout_fragment_length = rollout_fragment_length
             self.batch_size = batch_size
             self.step = episode_len
