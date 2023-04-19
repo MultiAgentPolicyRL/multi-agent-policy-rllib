@@ -238,6 +238,15 @@ class PythonDT(DecisionTree):
 
     def add_rewards(self, rewards: Dict[str, float]):
         self.rewards.append(rewards)
+    
+    def get_last_rewards(self):
+        return self.rewards[-1]
+
+    def get_rewards(self):
+        return {
+            agent: np.array([r[agent] for r in self.rewards]).mean()
+            for agent in self.rewards[0].keys()
+        }
 
     def save(self, save_path: str):
         data = {

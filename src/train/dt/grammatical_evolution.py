@@ -199,11 +199,11 @@ def eaSimple(
             )
             best_rewards = agent_leaves[
                 i
-            ].rewards  # if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
+            ].get_rewards()  
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
-                        datetime.datetime.now(), fit
+                        datetime.datetime.now(), best
                     )
                 )
                 log_.write(str(ind) + "\n")
@@ -223,8 +223,7 @@ def eaSimple(
 
     # Save rewards
     with open(os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a") as f:
-        for rew in best_rewards:
-            f.write(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+        f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
     if halloffame is not None:
         halloffame.update(population)
@@ -269,11 +268,11 @@ def eaSimple(
                 )
                 best_rewards = agent_leaves[
                     i
-                ].rewards  # if planner_leaves[i] is None else (agent_leaves[i].rewards, planner_leaves[i].rewards)
+                ].get_rewards()
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{}] New best at generation {} with fitness {}\n".format(
-                            datetime.datetime.now(), gen, fit
+                            datetime.datetime.now(), gen, best
                         )
                     )
                     log_.write(str(ind) + "\n")
@@ -295,8 +294,7 @@ def eaSimple(
         with open(
             os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a"
         ) as f:
-            for rew in best_rewards:
-                f.write(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+            f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:

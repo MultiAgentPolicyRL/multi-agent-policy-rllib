@@ -302,7 +302,7 @@ class DtTrainConfig:
 
         rewards_csv_file = os.path.join(rewards_dir, "-1.csv")
         with open(rewards_csv_file, "w") as f:
-            f.write("0,1,2,3,p\n")
+            f.write("0,1,2,3,p,fitnesses\n")
 
     def evaluate_fitness(
         self,
@@ -406,7 +406,10 @@ class DtTrainConfig:
                 planner.new_episode()
 
             # Initialize some variables
-            cum_rew = 0
+            cum_global_rew = 0
+            cum_rew = {
+                key: np.empty((0)) for key in obs.keys()
+            }
 
             # Run the episode
             for t in range(self.episode_len):
@@ -419,10 +422,8 @@ class DtTrainConfig:
 
                 obs, rew, done, _ = self.env.step(actions)
 
-                # Add reward to list
-                agent.add_rewards(rewards=rew)
-                if planner is not None:
-                    planner.add_rewards(rewards=rew)
+                for key in obs.keys():
+                    cum_rew[key] = np.concatenate((cum_rew[key], rew.get(key, np.nan)))
 
                 # self.env.render() # FIXME: This is not working, see if needed
                 agent.set_reward(sum([rew.get(k, 0)
@@ -430,24 +431,21 @@ class DtTrainConfig:
                 if planner is not None:
                     planner.set_reward(rew.get("p", 0))
 
-                # cum_rew += rew
-                cum_rew += sum([rew.get(k, 0) for k in rew.keys()])
+                # cum_global_rew += rew
+                cum_global_rew += sum([rew.get(k, 0) for k in rew.keys()])
 
-                if done["__all__"] is True:
+                if done["__all__"].item() is True:
                     break
+            
+            new_rewards = {}
+            for key in obs.keys():
+                new_rewards[key] = np.sum(cum_rew.get(key, np.nan))
 
-            # FIXME: Why should be done this?
-            # for k_agent, _obs in obs.items():
-            #     if k_agent == "p":
-            #         planner(_obs.get("flat"))
-            #     else:
-            #         agent(_obs.get("flat"))
-            global_cumulative_rewards.append(cum_rew)
-        # except Exception as ex:
-        #     raise ex
-        #     if len(global_cumulative_rewards) == 0:
-        #         global_cumulative_rewards = -1000
-        # e.close()
+            agent.add_rewards(rewards=new_rewards)
+            if planner is not None:
+                planner.add_rewards(rewards=new_rewards)
+
+            global_cumulative_rewards.append(cum_global_rew)
 
         fitness = (np.mean(global_cumulative_rewards),)
         return fitness, agent, planner
@@ -460,7 +458,6 @@ class DtTrainConfig:
                 self.evaluate_fitness,
                 individuals=self.lambda_,
                 generations=self.generations,
-                jobs=1,  # TODO: This should be removed because >1 is not working
                 cx_prob=self.cxp,
                 m_prob=self.mp,
                 logfile=self.logfile,
