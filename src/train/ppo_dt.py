@@ -105,7 +105,7 @@ class PPODtTrainConfig:
         },
         genotype_len: int = 100,
         types: List[Tuple[int, int, int, int]] = None,
-        batch_size: int = 400,
+        batch_size: int = 200,
         rollout_fragment_length: int = 200,
         k_epochs: int = 16,
         eps_clip: int = 10,
@@ -135,11 +135,13 @@ class PPODtTrainConfig:
             self._c1 = _c1
             self._c2 = _c2
             
-            self.agent = PpoPolicy(env.observation_space, env.action_space)
-            self.agent.load_model(mapped_agents["a"]+"/models/a.pt")
-
+            self.agent = PpoPolicy(env.observation_space, 50)
+            self.agent.load_model("experiments/"+mapped_agents["a"]+"/models/a.pt")
+            
+            obs = env.reset()
             self.memory = RolloutBuffer(obs, None)
             self.rolling_memory = RolloutBuffer(obs, None)
+            del obs
 
             # DT specific stuff
             self.env = env
@@ -336,9 +338,6 @@ class PPODtTrainConfig:
         if self.learning_rate < 0 and self.learning_rate > 1:
             raise ValueError("'learning_rate' must be between (0,1).")
 
-        if self.num_workers < 0:
-            raise ValueError("'num_workers' must be > 0 and < max_cpus.")
-
         logging.info("Configuration validated: OK")
         return
 
@@ -346,9 +345,6 @@ class PPODtTrainConfig:
         """
         Checks if all variables are set.
         """
-        assert isinstance(self.agent, str) and os.path.exists(os.path.join("experiments", self.agent)), "The agent must be trained and loaded from existing directory, received {}".format(
-            self.agent
-        )
         assert self.lr == "auto" or (
             isinstance(self.lr, float) and self.lr > 0 and self.lr < 1
         ), "{} is not known or not in the right range ({})".format(
@@ -380,8 +376,11 @@ class PPODtTrainConfig:
         if not os.path.exists(rewards_dir):
             os.makedirs(rewards_dir, exist_ok=True)
 
-        rewards_csv_file = os.path.join(rewards_dir, "-1.csv")
+        rewards_csv_file = os.path.join(rewards_dir, "dt.csv")
         with open(rewards_csv_file, "w") as f:
+            f.write("0,1,2,3,p\n")
+
+        with open(f"{self.logdir}/rewards/ppo.csv", "w") as f:
             f.write("0,1,2,3,p\n")
 
     def evaluate_fitness(
@@ -393,10 +392,6 @@ class PPODtTrainConfig:
             genotype
         )
 
-        # Get the Decision Trees of agents and planner
-        # agent = torch.load(self.agent)
-
-        print(f"\nWARNING: `ppo_dt.py` line 311 must be changed accordingly to load the agents model in pytorch\n")
         dt_p = PythonDT(
             phenotype_planner,
             self.n_actions.get("p", 22),
@@ -421,7 +416,7 @@ class PPODtTrainConfig:
         # reset rollout_buffer
         self.memory.clear()
 
-        for i in range(self.batch_iterations):
+        for _ in tqdm(range(self.batch_iterations)):
             for _ in range(self.rollout_fragment_length):
                 # get actions, action_logprob for all agents in each policy* wrt observation
                 policy_action, policy_logprob = self.get_actions(obs, planner)
@@ -431,6 +426,12 @@ class PPODtTrainConfig:
 
                 if done["__all__"] is True:
                     next_obs = self.env.reset()
+
+                policy_action["p"]=np.zeros((1))
+
+                data = f"{rew['0'].item()},{rew['1'].item()},{rew['2'].item()},{rew['3'].item()},{rew['p'].item()},"
+                with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
+                    file.write(data)
 
                 self.rolling_memory.update(
                     action=policy_action,
@@ -445,13 +446,34 @@ class PPODtTrainConfig:
             self.memory.extend(self.rolling_memory)
             self.rolling_memory.clear()
 
+    def __append_tensor(self, old_stack, new_tensor):
+        """
+        Appends two tensors on a new axis. If `old_stack` shape is the same of `new_tensor`
+        they are stacked together with `np.stack`. Otherwise if `old_stack` shape is bigger
+        than `new_tensor` shape's, `new_tensor` is expanded on axis 0 and they are concatenated.
+
+        Args:
+            old_stack: old stack, it's shape must be >= new_tensor's shape
+            new_tensor: new tensor that will be appended to `old_stack`
+        """
+        shape = (1, 1)
+        if new_tensor.shape:
+            shape = (1, *new_tensor.shape)
+
+        nt = np.reshape(new_tensor, shape)
+
+        if old_stack is None or old_stack is {}:
+            return nt
+        else:
+            return np.concatenate((old_stack, nt))
+
     def get_actions(self, obs, planner):
-        policy_probs = []
+        policy_probs = None
         policy_actions = []
         for x in ['0','1','2','3']:
             a, b = self.agent.act(obs[x])
             policy_actions.append(a)
-            policy_probs.append(b)
+            policy_probs = self.__append_tensor(policy_probs, b)
         
         actions = {
             '0': policy_actions[0],
@@ -466,7 +488,7 @@ class PPODtTrainConfig:
             '1': policy_probs[1],
             '2': policy_probs[2],
             '3': policy_probs[3],
-            'p': 0
+            'p': np.zeros((1))
         }
 
         return actions, probs
@@ -492,7 +514,6 @@ class PPODtTrainConfig:
         Stepper used for the `interact.py`
         """
         agent = torch.load(agent_path)
-        print(f"\nWARNING: `ppo_dt.py` line 331 must be changed accordingly to load the agents model in pytorch\n")
         planner = PythonDT(load_path=planner_path, planner=True) 
 
         # Initialize some variables
@@ -530,24 +551,26 @@ class PPODtTrainConfig:
 
         for _ in range(self.episodes):
             # create batch for PPO learning
+            logging.debug("CREATING BATCH")
+            obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
             pa = planner(obs.get("p").get("flat"))
             self.batch(pa)
-            
+            logging.debug("DONE CREATING BATCH")
             # learn on DT
             # Set the seed and reset the environment
             self.seed+=1
             self.env.seed = self.seed
-            obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
 
             # Initialize some variables
             cum_rew = 0
 
             # static - one per epoch - action by the planner
             
+            planner.new_episode()
             # Run the episode
+            logging.debug("TRAINING DT")
             for t in range(self.episode_len):
                 # Start the episode
-                planner.new_episode()
                 actions = self.get_actions_ppo_only(obs)
                 actions['p'] = planner(obs.get("p").get("flat"))
                 obs, rew, done, _ = self.env.step(actions)
@@ -555,15 +578,17 @@ class PPODtTrainConfig:
                 if done["__all__"] is True:
                     obs = self.env.reset()
                 
+                planner.add_rewards(rew)
                 planner.set_reward(rew.get("p", 0))
 
                 global_cumulative_rewards.append(cum_rew)
-
+            logging.debug("DONE TRAINING DT")
         fitness = (np.mean(global_cumulative_rewards),)
 
         # learn on PPO
+        logging.debug("TRAINING PPO")
         self.agent.learn(self.memory.to_tensor()["a"])
-
+        logging.debug("DONE TRAINING PPO")
         return fitness, planner
 
     def train(
@@ -583,3 +608,4 @@ class PPODtTrainConfig:
                 selection=self.selection,
                 planner_only=True,
             )
+
