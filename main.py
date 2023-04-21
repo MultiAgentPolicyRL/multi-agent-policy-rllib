@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 env,
                 episodes=5,
                 episode_len=1000,
-                lambda_=30,
+                lambda_=180,
                 generations=50,
                 mapped_agents={
                     "a": True, 
@@ -126,8 +126,8 @@ if __name__ == "__main__":
             trainer = PPODtTrainConfig(
                 env,
                 episodes=5,
-                episode_len=200,
-                lambda_=1,
+                episode_len=1000,
+                lambda_=180,
                 generations=50,
                 mapped_agents={
                     "a": 'PPO_P1_24-03-2023_1679647336_1', # This must be the folder name to load the agent pre-trained in pytorch

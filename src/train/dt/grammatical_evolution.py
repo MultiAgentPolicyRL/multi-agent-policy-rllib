@@ -15,6 +15,9 @@ import datetime
 
 import numpy as np
 
+np.set_printoptions(threshold=np.inf)
+np.set_printoptions(linewidth=np.inf)
+
 from deap.algorithms import varAnd
 from deap import base, creator, tools
 from deap.tools import mutShuffleIndexes, mutUniformInt
@@ -222,7 +225,7 @@ def eaSimple(
                 )
 
     # Save rewards
-    with open(os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a") as f:
+    with open(os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a") as f:
         f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
     if halloffame is not None:
@@ -266,9 +269,7 @@ def eaSimple(
                     if planner_leaves[i] is None
                     else (agent_leaves[i].leaves, planner_leaves[i].leaves)
                 )
-                best_rewards = agent_leaves[
-                    i
-                ].get_rewards()
+                best_rewards = agent_leaves[i].get_rewards()
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{}] New best at generation {} with fitness {}\n".format(
@@ -292,7 +293,7 @@ def eaSimple(
 
         # Save rewards
         with open(
-            os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a"
+            os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a"
         ) as f:
             f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
@@ -409,11 +410,11 @@ def eaSimplePlanner(
         if logfile is not None and (best is None or best < fit[0]):
             best = fit[0]
             best_leaves = planner_leaves[i].leaves
-            best_rewards = planner_leaves[i].rewards  
+            best_rewards = planner_leaves[i].get_rewards()  
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
-                        datetime.datetime.now(), fit
+                        datetime.datetime.now(), best
                     )
                 )
                 log_.write(str(ind) + "\n")
@@ -425,9 +426,8 @@ def eaSimplePlanner(
             )
 
     # Save rewards
-    with open(os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a") as f:
-        for rew in best_rewards:
-            f.write(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+    with open(os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a") as f:
+        f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
     if halloffame is not None:
         halloffame.update(population)
@@ -463,8 +463,8 @@ def eaSimplePlanner(
             ind.fitness.values = fit
             if logfile is not None and (best is None or best < fit[0]):
                 best = fit[0]
-                best_leaves = planner_leaves[i] 
-                best_rewards = planner_leaves[i] 
+                best_leaves = planner_leaves[i].leaves
+                best_rewards = planner_leaves[i].get_rewards() 
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{}] New best at generation {} with fitness {}\n".format(
@@ -481,10 +481,9 @@ def eaSimplePlanner(
 
         # Save rewards
         with open(
-            os.path.join(os.path.dirname(logfile), "rewards", "-1.csv"), "a"
+            os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a"
         ) as f:
-            for rew in best_rewards:
-                f.write(f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+            f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:

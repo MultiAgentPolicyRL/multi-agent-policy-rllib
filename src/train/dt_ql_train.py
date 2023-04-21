@@ -300,7 +300,7 @@ class DtTrainConfig:
         if not os.path.exists(rewards_dir):
             os.makedirs(rewards_dir, exist_ok=True)
 
-        rewards_csv_file = os.path.join(rewards_dir, "-1.csv")
+        rewards_csv_file = os.path.join(rewards_dir, "dt.csv")
         with open(rewards_csv_file, "w") as f:
             f.write("0,1,2,3,p,fitnesses\n")
 

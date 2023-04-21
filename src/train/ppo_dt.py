@@ -551,44 +551,53 @@ class PPODtTrainConfig:
 
         for _ in range(self.episodes):
             # create batch for PPO learning
-            logging.debug("CREATING BATCH")
+
             obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
             pa = planner(obs.get("p").get("flat"))
             self.batch(pa)
-            logging.debug("DONE CREATING BATCH")
+
             # learn on DT
             # Set the seed and reset the environment
             self.seed+=1
             self.env.seed = self.seed
 
             # Initialize some variables
-            cum_rew = 0
-
+            cum_global_rew = 0
+            cum_rew = {
+                key: np.empty((0)) for key in obs.keys()
+            }
             # static - one per epoch - action by the planner
             
             planner.new_episode()
             # Run the episode
-            logging.debug("TRAINING DT")
+
             for t in range(self.episode_len):
                 # Start the episode
                 actions = self.get_actions_ppo_only(obs)
                 actions['p'] = planner(obs.get("p").get("flat"))
                 obs, rew, done, _ = self.env.step(actions)
 
-                if done["__all__"] is True:
-                    obs = self.env.reset()
+                for key in obs.keys():
+                    cum_rew[key] = np.concatenate((cum_rew[key], rew.get(key, np.nan)))
+
+                cum_global_rew += np.sum([rew.get(k, 0) for k in rew.keys()])
                 
-                planner.add_rewards(rew)
+                if done["__all__"].item() is True:
+                    obs = self.env.reset()
+        
                 planner.set_reward(rew.get("p", 0))
+                global_cumulative_rewards.append(cum_global_rew)
 
-                global_cumulative_rewards.append(cum_rew)
-            logging.debug("DONE TRAINING DT")
+            new_rewards = {}
+            for key in obs.keys():
+                new_rewards[key] = np.sum(cum_rew.get(key, np.nan))
+
+            planner.add_rewards(rewards=new_rewards)
+
         fitness = (np.mean(global_cumulative_rewards),)
-
+        
         # learn on PPO
-        logging.debug("TRAINING PPO")
         self.agent.learn(self.memory.to_tensor()["a"])
-        logging.debug("DONE TRAINING PPO")
         return fitness, planner
 
     def train(
