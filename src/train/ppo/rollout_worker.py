@@ -104,12 +104,20 @@ class RolloutWorker:
         # reset rollout_buffer
         self.memory.clear()
 
+        static_planner_action, static_planner_action_logprob = self.get_actions(obs)
+        static_planner_action = static_planner_action["p"]
+        static_planner_action_logprob = static_planner_action_logprob["p"]
+
         for i in range(self.batch_iterations):
             logging.debug(" ID: %s -- iteration: %s", self._id, i)
 
             for _ in range(self.rollout_fragment_length):
                 # get actions, action_logprob for all agents in each policy* wrt observation
                 policy_action, policy_logprob = self.get_actions(obs)
+
+                # set static planner action
+                policy_action["p"] = static_planner_action
+                policy_logprob["p"] = static_planner_action_logprob
 
                 # get new_observation, reward, done from stepping the environment
                 next_obs, rew, done, _ = self.env.step(policy_action)
