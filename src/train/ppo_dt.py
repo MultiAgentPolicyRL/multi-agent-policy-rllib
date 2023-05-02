@@ -27,6 +27,7 @@ from src.train.dt import (
     GrammaticalEvolutionTranslator,
     grammatical_evolution,
 )
+from src.train.ppo.models.linear import PytorchLinearA
 
 
 class PPODtTrainConfig:
@@ -429,7 +430,7 @@ class PPODtTrainConfig:
 
                 policy_action["p"]=np.zeros((1))
 
-                data = f"{rew['0'].item()},{rew['1'].item()},{rew['2'].item()},{rew['3'].item()},{rew['p'].item()},"
+                data = f"{rew['0'].item()},{rew['1'].item()},{rew['2'].item()},{rew['3'].item()},{rew['p'].item()}\n"
                 with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
                     file.write(data)
 
@@ -509,12 +510,41 @@ class PPODtTrainConfig:
 
         return actions
 
-    def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None): 
+    def stepper(self, agent_path: str, planner_path: str = None, env: EnvWrapper = None): 
         """
-        Stepper used for the `interact.py`
+        Stepper used for the `interact.py`. N.B.: In both agent and planner paths the prefix `experiments/` is already added.
+
+        ---
+
+        Parameters:
+
+        agent_path: str
+            Path to the agent's folder.
+        planner_path: str
+            Path to the planner's folder.
+        env: BaseEnvironment
+            Environment used for the interaction.
+
+        ---
+
+        Returns:
+
+        Tuple[List[float], Dict[str, np.ndarray]]
+            Tuple containing the list of the rewards and the dictionary containing the
+            observations.
+
+        ---
+
         """
-        agent = torch.load(agent_path)
-        planner = PythonDT(load_path=planner_path, planner=True) 
+
+        _agent_path = os.path.join(agent_path, "models", "a.pt")
+        if not os.path.exists(_agent_path):
+            _agent_path = os.path.join("experiments", "PPO_P1_01-04-2023_1680328509_1000", "models", "a.pt")
+            if not os.path.exists(_agent_path):
+                raise FileNotFoundError(f"No agent found neither in '{agent_path}' nor in 'PPO_P1_01-04-2023_1680328509_1000'.")
+            
+        agent: PytorchLinearA = torch.load(_agent_path)
+        planner = PythonDT(load_path=os.path.join(planner_path, "models", "dt_p.pkl"), planner=True) 
 
         # Initialize some variables
         obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
@@ -523,9 +553,9 @@ class PPODtTrainConfig:
         for t in tqdm(range(env.env.episode_length), desc="DecisionTree Replay"):
             with torch.no_grad():
                 actions = agent.get_actions(obs)
-            actions["p"] = np.array([0 for _  in range(7)])#
+            actions["p"] = np.zeros((7))
 
-            obs, rew, done, _ = self.env.step(actions)
+            obs, rew, done, _ = env.step(actions)
             planner.add_rewards(rewards=rew)
 
             if done["__all__"] is True:
@@ -540,7 +570,7 @@ class PPODtTrainConfig:
                 key: [0] for key in obs.keys()
             }
             actions['p'] = planner_action
-            obs, rew, done, _ = self.env.step(actions)
+            obs, rew, done, _ = env.step(actions)
             
             planner.set_reward(rew.get("p", 0))
 

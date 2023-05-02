@@ -272,3 +272,4 @@ class PythonDT(DecisionTree):
             self.program = data.get("program")
 
             self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
+            self.planner = planner

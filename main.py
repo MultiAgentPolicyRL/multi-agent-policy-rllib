@@ -89,7 +89,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.DEBUG, format="%(process)d-%(levelname)s-%(message)s"
+        level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
     )
 
     env = get_environment()
@@ -130,28 +130,30 @@ if __name__ == "__main__":
                 lambda_=180,
                 generations=50,
                 mapped_agents={
-                    "a": 'PPO_P1_24-03-2023_1679647336_1', # This must be the folder name to load the agent pre-trained in pytorch
+                    "a": '', # This must be the folder name to load the agent pre-trained in pytorch
                     "p": True
                 },
             )
             trainer.train()
         else:
             raise ValueError("Invalid type of algorithm")
+        
     elif args.mode == "eval":
-        interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-            "a": False,
-            "p": False,
-        })
-
-        interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
-            "a": False,
-            "p": False,
-        })
-
-        interact = InteractConfig(get_mapping_function, env, PPODtTrainConfig, config={}, mapped_agents={
-            "a": False,
-            "p": False,
-        })
+        if args.type == "PPO":
+            interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
+                "a": "PPO_P1_01-04-2023_1680328509_1000",
+                "p": False,
+            })
+        elif args.type == "DT":
+            interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
+                "a": "DT_P2_2023-04-19_124132_5",
+                "p": "DT_P2_2023-04-19_124132_5",
+            })
+        elif args.type == "PPO_DT":
+            interact = InteractConfig(get_mapping_function, env, PPODtTrainConfig, config={}, mapped_agents={
+                "a": "PPO_DT_P2_2023-04-17_181557_10",
+                "p": "PPO_DT_P2_2023-04-17_181557_10",
+            })
     else:
         raise ValueError("Invalid mode")
     

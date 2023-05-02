@@ -110,6 +110,23 @@ class PytorchLinearA(nn.Module):
         action_logprob = dist.log_prob(action)
 
         return action.detach().numpy(), action_logprob.detach().numpy()
+    
+    def get_actions(self, obs: dict) -> dict: 
+        """
+        Args:
+            obs: agents environment observation
+
+        Returns:
+            action: taken action
+        """
+        actions = {
+            a: None for a in obs.keys()
+        }
+        for agent in obs.keys():
+            if agent != 'p':
+                actions[agent] = self.act(obs[agent])[0]
+
+        return actions
 
     def evaluate(self, obs, act):
         """

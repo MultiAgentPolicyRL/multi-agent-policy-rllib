@@ -355,6 +355,9 @@ class DtTrainConfig:
         """
         Stepper used for the `interact.py`
         """
+        agent_path = os.path.join(agent_path, "models", "dt_a.pkl")
+        planner_path = os.path.join(planner_path, "models", "dt_p.pkl")
+
         agent = PythonDT(load_path=agent_path)
         planner = PythonDT(load_path=planner_path,
                            planner=True) if planner_path is not None else None

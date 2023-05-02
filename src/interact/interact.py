@@ -3,17 +3,21 @@ TODO
 """
 import logging
 import os
+import json
 import pickle
 import time
 from datetime import datetime
 
 import toml
 import torch
+import matplotlib.pyplot as plt
 from tqdm import tqdm
+from src.interact import plotting
 
 from src.common import EmptyModel, test_mapping
 from src.train.dt_ql_train import DtTrainConfig
 from src.train.ppo_train import PpoTrainConfig
+from src.train.ppo_dt import PPODtTrainConfig
 
 
 class InteractConfig:
@@ -48,14 +52,40 @@ class InteractConfig:
 
         self.validate_config(env=env)
         self.setup_logs_and_dirs()
-        self.build_stepper()
 
         # Build correct stepper (build and load specific models)
-        stepper = self.build_stepper()
-        # Do stepping and save the log
-        stepper()
+        dense_logs = self.run_stepper()
 
-    def build_stepper(self):
+        (fig0, fig1, fig2), incomes, endows, c_trades, all_builds = plotting.breakdown(dense_logs)
+
+        fig0.savefig(
+            fname=os.path.join(self.path, "plots", 'Global.png')
+        )
+
+        fig1.savefig(
+            fname=os.path.join(self.path, "plots", 'Trend.png')
+        )
+
+        fig2.savefig(
+            fname=os.path.join(self.path, "plots", 'Movements.png')
+        )
+
+        with open(os.path.join(self.path, "logs", "incomes.pkl"), '+wb') as incomes_file:
+            pickle.dump(incomes, incomes_file)
+
+        with open(os.path.join(self.path, "logs", "endows.pkl"), '+wb') as endows_file:
+            pickle.dump(endows, endows_file)
+
+        with open(os.path.join(self.path, "logs", "c_trades.pkl"), '+wb') as c_trades_file:
+            pickle.dump(c_trades, c_trades_file)
+
+        with open(os.path.join(self.path, "logs", "all_builds.pkl"), '+wb') as all_builds_file:
+            pickle.dump(all_builds, all_builds_file)
+
+        plt.close()
+
+
+    def run_stepper(self):
         if self.trainer == PpoTrainConfig:
             # PPO
             if self.phase == "P1":
@@ -109,10 +139,10 @@ class InteractConfig:
 
                 dense_log = env.env.previous_episode_dense_log
 
-                with open(self.path + "/logs/dense_logs", "wb") as dense_logs:
+                with open(self.path + "/logs/dense_logs.pkl", "wb") as dense_logs:
                     pickle.dump(dense_log, dense_logs)
 
-            # return stepper
+                return dense_log
 
         elif self.trainer == DtTrainConfig:
             if self.phase == "P1":
@@ -155,10 +185,58 @@ class InteractConfig:
                         reward_file.write(
                             f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
 
-                with open(os.path.join(self.path, "logs", "dense_logs_dt.pkl"), "wb") as log_file:
+                with open(os.path.join(self.path, "logs", "dense_logs.pkl"), "wb") as log_file:
                     pickle.dump(dense_log, log_file)
+                
+                return dense_log
+
+        elif self.trainer == PPODtTrainConfig:
+            if self.phase == "P1":
+                self.models = {
+                    "a": os.path.join(
+                        "experiments",
+                        self.mapped_agents.get("a"),
+                        "models",
+                        "a.pkl"),
+                    "p": None
+                }
+            else:
+                self.models = {
+                    "a": os.path.join(
+                        "experiments",
+                        self.mapped_agents.get("a"),
+                    ),
+                    "p": os.path.join(
+                        "experiments",
+                        self.mapped_agents.get("p"),
+                    ),
+                }
+
+            def stepper():
+
+                env = self.env
+                env.seed = self.seed
+
+                # Done only for intellisense and to remember types
+                self.trainer = PPODtTrainConfig()
+
+                rewards, dense_log = self.trainer.stepper(
+                    agent_path=self.models["a"],
+                    planner_path=self.models["p"],
+                    env=env
+                )
+
+                with open(os.path.join(self.path, "logs", "dt.csv"), "a") as reward_file:
+                    for rew in rewards:
+                        reward_file.write(
+                            f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n")
+
+                with open(os.path.join(self.path, "logs", "dense_logs.pkl"), "wb") as log_file:
+                    pickle.dump(dense_log, log_file)
+
+                return dense_log
             
-        return stepper
+        return stepper()
 
     def setup_logs_and_dirs(self):
         """
@@ -232,7 +310,7 @@ class InteractConfig:
             )
             self.device = "cpu"
 
-        if not self.trainer in [PpoTrainConfig, DtTrainConfig]:
+        if not self.trainer in [PpoTrainConfig, DtTrainConfig, PPODtTrainConfig]:
             raise ValueError(
                 "`self.trainer` must be `PpoTrainConfig` or `DtTrainConfig`!"
             )
