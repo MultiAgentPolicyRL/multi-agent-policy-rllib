@@ -449,11 +449,11 @@ class PPODtTrainConfig:
             # with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
                     # file.write(data)
             data = []
-            data[0] = (self.memory.buffers["0"].rewards.sum()).item()
-            data[1] = (self.memory.buffers["1"].rewards.sum()).item()
-            data[2] = (self.memory.buffers["2"].rewards.sum()).item()
-            data[3] = (self.memory.buffers["3"].rewards.sum()).item()
-            data[4] = (self.memory.buffers["p"].rewards.sum()).item()
+            data[0].append((self.memory.buffers["0"].rewards.sum()).item())
+            data[1].append((self.memory.buffers["1"].rewards.sum()).item())
+            data[2].append((self.memory.buffers["2"].rewards.sum()).item())
+            data[3].append((self.memory.buffers["3"].rewards.sum()).item())
+            data[4].append((self.memory.buffers["p"].rewards.sum()).item())
             
             data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
             with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
