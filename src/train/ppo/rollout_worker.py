@@ -184,17 +184,29 @@ class RolloutWorker:
         """
         Append agent's total reward for this batch
         """
-        splitted_data = [None, None, None, None, None]
+        # splitted_data = [None, None, None, None, None]
 
-        for iteration in range(len(self.memory.buffers["0"].rewards)):
-            splitted_data[0]=self.memory.buffers["0"].rewards[iteration].item()
-            splitted_data[1]=self.memory.buffers["1"].rewards[iteration].item()
-            splitted_data[2]=self.memory.buffers["2"].rewards[iteration].item()
-            splitted_data[3]=self.memory.buffers["3"].rewards[iteration].item()
-            splitted_data[4]=self.memory.buffers["p"].rewards[iteration].item()
+        # for iteration in range(len(self.memory.buffers["0"].rewards)):
+        #     splitted_data[0]=self.memory.buffers["0"].rewards[iteration].item()
+        #     splitted_data[1]=self.memory.buffers["1"].rewards[iteration].item()
+        #     splitted_data[2]=self.memory.buffers["2"].rewards[iteration].item()
+        #     splitted_data[3]=self.memory.buffers["3"].rewards[iteration].item()
+        #     splitted_data[4]=self.memory.buffers["p"].rewards[iteration].item()
             
-            rewards = f"{','.join(map(str, splitted_data))}\n"
-            data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
+        #     rewards = f"{','.join(map(str, splitted_data))}\n"
+        #     data_logging(data=rewards, experiment_id=self.experiment_name, id=self._id)
+
+        data = []
+        data[0] = (self.memory.buffers["0"].rewards.sum()).item()
+        data[1] = (self.memory.buffers["1"].rewards.sum()).item()
+        data[2] = (self.memory.buffers["2"].rewards.sum()).item()
+        data[3] = (self.memory.buffers["3"].rewards.sum()).item()
+        data[4] = (self.memory.buffers["p"].rewards.sum()).item()
+        
+        data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
+            # with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
+            #         file.write(data)
+        data_logging(data=data1, experiment_id=self.experiment_name, id=self._id)
 
     def get_weights(self) -> dict:
         """
