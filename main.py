@@ -89,7 +89,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO, format="%(process)d-%(levelname)s-%(message)s"
+        level=logging.INFO, format="%(process)d - %(asctime)s - %(levelname)s - %(message)s"
     )
 
     env = get_environment()
@@ -125,12 +125,12 @@ if __name__ == "__main__":
         elif args.type == "PPO_DT":
             trainer = PPODtTrainConfig(
                 env,
-                episodes=5,
+                episodes=6,
                 episode_len=1000,
-                lambda_=180,
-                generations=50,
+                lambda_=50,
+                generations=30,
                 mapped_agents={
-                    "a": '', # This must be the folder name to load the agent pre-trained in pytorch
+                    "a": 'PPO_P1_01-04-2023_1680328509_1000', # This must be the folder name to load the agent pre-trained in pytorch
                     "p": True
                 },
             )
@@ -157,4 +157,4 @@ if __name__ == "__main__":
     else:
         raise ValueError("Invalid mode")
     
-    logging.info("Done")
+    # logging.info("Done")
