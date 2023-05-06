@@ -3,31 +3,29 @@ Defines the configuration for training with online learning.
 
 Supports DT_ql.
 """
+# pylint: disable=unspecified-encoding, dangerous-default-value, invalid-name, no-member
+
 import logging
 import os
+import random
+from datetime import datetime
+from typing import Dict, List, Tuple, Union
+
+import numpy as np
 import toml
 import torch
-import random
-import numpy as np
-
-
-from datetime import datetime
-
+from deap import base, creator, tools
 from joblib import parallel_backend
 
-from deap import base, creator, tools
-from typing import Dict, List, Tuple, Union
-from src.train.dt import PythonDT
 from src.common.env import EnvWrapper
-from ai_economist.foundation.base.base_env import BaseEnvironment
 from src.common.rollout_buffer import RolloutBuffer
-from src.train.ppo import PpoPolicy
-
 from src.train.dt import (
     GrammaticalEvolutionTranslator,
+    ListWithParents,
+    PythonDT,
     varAnd,
-    ListWithParents
 )
+from src.train.ppo import PpoPolicy
 from src.train.ppo.models.linear import PytorchLinearA
 
 
@@ -121,164 +119,261 @@ class PPODtTrainConfig:
             "p": True,
         },
     ):
-        
-
         if env is not None:
-            # PPO specific stuff
-            self.rollout_fragment_length = rollout_fragment_length
-            self.batch_size = batch_size if batch_size is not None else episode_len * episodes
-            self.step = episode_len
-            self.batch_iterations = self.batch_size//self.rollout_fragment_length
-            self.k_epochs = k_epochs
-            self.eps_clip = eps_clip
-            self.gamma = gamma
-            self.device = device
-            self.learning_rate = learning_rate
-            self._c1 = _c1
-            self._c2 = _c2
-            
-            self.agent = PpoPolicy(env.observation_space, 50)
-            self.agent.load_model("experiments/"+mapped_agents["a"]+"/models/a.pt")
-            
-            obs = env.reset()
-            self.memory = RolloutBuffer(obs, None)
-            self.rolling_memory = RolloutBuffer(obs, None)
-            del obs
+            # Ordinare questo file:
+            # TODO: salvare TUTTI i parametri nel file toml, non solo alcuni
+            # TODO: creare un minimo di senso tra `episodes`, `episode_len`, `batch_size`
 
-            # DT specific stuff
+            # Logica:
+            # per esempio vogliamo che ogni DT si alleni per 6000 passi, che ci siano 30 DT e che questi
+
             self.env = env
-            # self.agent = mapped_agents["a"]
-            self.planner = mapped_agents["p"]
-
-            # Set seeds
-            assert seed >= 1, "Seed must be greater than 0"
-            torch.manual_seed(seed)
-            np.random.seed(seed=seed)
-            random.seed(seed)
-            self.env.seed(seed)
-            self.seed = seed
-
-            # Add important variables to self
-            self.episodes = episodes
-            self.episode_len = episode_len
-            # For the leaves
-            self.n_actions = {
-                "a": env.action_space.n,
-                "p": env.action_space_pl.nvec[0].item(),
-            }
-            # For the input space
+            self.set_seed(seed)
             obs = env.reset()
-            input_space = {
-                "a": obs.get('0').get('flat').shape[0],
-                "p": obs.get('p').get('flat').shape[0]
-            }
-            self.lr = lr
-            self.df = df
-            self.eps = eps
-            self.low = low
-            self.up = up
 
-            # For the evolution
-            self.lambda_ = lambda_
-            self.generations = generations
-            self.cxp = cxp
-            self.mp = mp
-            self.genotype_len = genotype_len
-            self.types = types
-
-            # Create the log directory
-            phase = "P1" if agent and not planner else "P2"
-            date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            self.logdir = f"experiments/PPO_DT_{phase}_{date}_{episodes}"
-            self.logfile = os.path.join(self.logdir, "log.txt")
-            os.makedirs(self.logdir)
-
-            # Convert the string to dict
-            self.mutation = mutation
-            self.crossover = crossover
-            self.selection = selection
-
-            grammar_planner = {
-                "bt": ["<if>"],
-                "if": ["if <condition>:{<action>}else:{<action>}"],
-                "condition": [
-                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space.get("p", 86))
-                ],
-                "action": ['out=_leaf;leaf="_leaf"', "<if>"],
-                "comp_op": [" < ", " > "],
-            }
-            types_planner: str = (
-                types
-                if types is not None
-                else ";".join(["0,10,1,10" for _ in range(input_space.get("p", 86))])
+            self.build_ppo(
+                rollout_fragment_length,
+                batch_size,
+                episode_len,
+                episodes,
+                k_epochs,
+                eps_clip,
+                gamma,
+                device,
+                learning_rate,
+                _c1,
+                _c2,
+                mapped_agents,
+                obs,
             )
-            types_planner: str = types_planner.replace("#", "")
-            assert (
-                len(types_planner.split(";")) == input_space.get("p", 86)
-            ), "Expected {} types_planner, got {}.".format(input_space.get("p", 86), len(types_planner.split(";")))
 
-            for index, type_ in enumerate(types_planner.split(";")):
-                rng = type_.split(",")
-                start, stop, step, divisor = map(int, rng)
-                consts_ = list(
-                    map(str, [float(c) / divisor for c in range(start, stop, step)])
-                )
-                grammar_planner["const_type_{}".format(index)] = consts_
+            self.build_dt(
+                mapped_agents,
+                episodes,
+                episode_len,
+                obs,
+                lr,
+                df,
+                eps,
+                low,
+                up,
+                lambda_,
+                generations,
+                cxp,
+                mp,
+                genotype_len,
+                types,
+                mutation,
+                crossover,
+                selection,
+                input_space,
+            )
 
-            # Add to self
-            self.grammar_planner = grammar_planner
+            self.create_directories_and_log_files(agent, planner)
 
-            # Log the configuration
-            with open(os.path.join(self.logdir, "config.toml"), "w") as f:
-                config_dict = {
-                    "common": {
-                        "algorithm_name": "PPO_DT",
-                        "phase": 1 if not planner else 2,
-                        "step": self.episode_len,
-                        "seed": seed,
-                        "device": "cpu",
-                        "mapped_agents": mapped_agents,
-                    },
-                    "algorithm_specific": {
-                        "dt": {
-                        "episodes": episodes,
-                        "generations": generations,
-                        "cxp": cxp,
-                        "mp": mp,
-                        "genotype_len": genotype_len,
-                        "types": types,
+            self.log_config(planner, mapped_agents, input_space)
+
+            self.validate_config_dt()
+            self.validate_config_ppo()
+
+            logging.info("Setup complete!")
+
+    def log_config(self, planner, mapped_agents, input_space):
+        """
+        Put experiment's config in a TOML file.
+        """
+        with open(os.path.join(self.logdir, "config.toml"), "w") as f:
+            config_dict = {
+                "common": {
+                    "algorithm_name": "PPO_DT",
+                    "phase": 1 if not planner else 2,
+                    "step": self.episode_len,
+                    "seed": self.seed,
+                    "device": "cpu",
+                    "mapped_agents": mapped_agents,
+                },
+                "algorithm_specific": {
+                    "dt": {
+                        "episodes": self.episodes,
+                        "generations": self.generations,
+                        "cxp": self.cxp,
+                        "mp": self.mp,
+                        "genotype_len": self.genotype_len,
+                        "types": self.types,
                         "mutation": self.mutation,
                         "crossover": self.crossover,
                         "selection": self.selection,
-                        "lr": lr,
-                        "df": df,
-                        "eps": eps,
-                        "low": low,
-                        "up": up,
-                        "lambda_": lambda_,
+                        "lr": self.lr,
+                        "df": self.df,
+                        "eps": self.eps,
+                        "low": self.low,
+                        "up": self.up,
+                        "lambda_": self.lambda_,
                         "input_space": input_space,
-                        # "grammar_agent": self.grammar_agent,
                         "grammar_planner": self.grammar_planner,
-                        },
-                        "ppo": {
-                            "rollout_fragment_length": self.rollout_fragment_length,
-                            "batch_size": self.batch_size,
-                            "k_epochs": self.k_epochs,
-                            "eps_clip": self.eps_clip,
-                            "gamma": self.gamma,
-                            "learning_rate": self.learning_rate,
-                            "c1": self._c1,
-                            "c2": self._c2,
-                        }
                     },
-                }
-                toml.dump(config_dict, f)
+                    "ppo": {
+                        "rollout_fragment_length": self.rollout_fragment_length,
+                        "batch_size": self.batch_size,
+                        "k_epochs": self.k_epochs,
+                        "eps_clip": self.eps_clip,
+                        "gamma": self.gamma,
+                        "learning_rate": self.learning_rate,
+                        "c1": self._c1,
+                        "c2": self._c2,
+                    },
+                },
+            }
+            toml.dump(config_dict, f)
 
-            # Check the variables
-            self.__check_variables()
-            self.validate_config(env=env)
+    def build_dt(
+        self,
+        mapped_agents,
+        episodes,
+        episode_len,
+        obs,
+        lr,
+        df,
+        eps,
+        low,
+        up,
+        lambda_,
+        generations,
+        cxp,
+        mp,
+        genotype_len,
+        types,
+        mutation,
+        crossover,
+        selection,
+        input_space,
+    ):
+        """
+        Setup specific parameters for the decision tree.
+        """
+        self.planner = mapped_agents["p"]
 
-    def validate_config(self, env):
+        # Add important variables to self
+        self.episodes = episodes
+        self.episode_len = episode_len
+
+        # For the leaves
+        self.n_actions = {
+            "a": self.env.action_space.n,
+            "p": self.env.action_space_pl.nvec[0].item(),
+        }
+
+        # For the input space
+        input_space = {
+            "a": obs.get("0").get("flat").shape[0],
+            "p": obs.get("p").get("flat").shape[0],
+        }
+
+        self.lr = lr
+        self.df = df
+        self.eps = eps
+        self.low = low
+        self.up = up
+
+        # For the evolution
+        self.lambda_ = lambda_
+        self.generations = generations
+        self.cxp = cxp
+        self.mp = mp
+        self.genotype_len = genotype_len
+        self.types = types
+
+        # Convert the string to dict
+        self.mutation = mutation
+        self.crossover = crossover
+        self.selection = selection
+
+        grammar_planner = {
+            "bt": ["<if>"],
+            "if": ["if <condition>:{<action>}else:{<action>}"],
+            "condition": [
+                "_in_{0}<comp_op><const_type_{0}>".format(k)
+                for k in range(input_space.get("p", 86))
+            ],
+            "action": ['out=_leaf;leaf="_leaf"', "<if>"],
+            "comp_op": [" < ", " > "],
+        }
+
+        types_planner: str = (
+            types
+            if types is not None
+            else ";".join(["0,10,1,10" for _ in range(input_space.get("p", 86))])
+        )
+
+        types_planner: str = types_planner.replace("#", "")
+        assert len(types_planner.split(";")) == input_space.get(
+            "p", 86
+        ), "Expected {} types_planner, got {}.".format(
+            input_space.get("p", 86), len(types_planner.split(";"))
+        )
+
+        for index, type_ in enumerate(types_planner.split(";")):
+            rng = type_.split(",")
+            start, stop, step, divisor = map(int, rng)
+            consts_ = list(
+                map(str, [float(c) / divisor for c in range(start, stop, step)])
+            )
+            grammar_planner["const_type_{}".format(index)] = consts_
+
+        # Add to self
+        self.grammar_planner = grammar_planner
+
+    def build_ppo(
+        self,
+        rollout_fragment_length,
+        batch_size,
+        episode_len,
+        episodes,
+        k_epochs,
+        eps_clip,
+        gamma,
+        device,
+        learning_rate,
+        _c1,
+        _c2,
+        mapped_agents,
+        obs,
+    ):
+        """
+        Setup specific parameters for PPO
+        """
+        self.rollout_fragment_length = rollout_fragment_length
+        self.batch_size = (
+            batch_size if batch_size is not None else episode_len * episodes
+        )
+        self.step = episode_len
+        self.batch_iterations = self.batch_size // self.rollout_fragment_length
+        self.k_epochs = k_epochs
+        self.eps_clip = eps_clip
+        self.gamma = gamma
+        self.device = device
+        self.learning_rate = learning_rate
+        self._c1 = _c1
+        self._c2 = _c2
+
+        self.agent = PpoPolicy(self.env.observation_space, 50)
+        self.agent.load_model("experiments/" + mapped_agents["a"] + "/models/a.pt")
+
+        self.memory = RolloutBuffer(obs, None)
+        self.rolling_memory = RolloutBuffer(obs, None)
+
+    def set_seed(self, seed):
+        """
+        Seeding. Manually set seed for the whole project.
+        """
+        assert seed >= 1, "Seed must be greater than 0"
+        torch.manual_seed(seed)
+        np.random.seed(seed=seed)
+        random.seed(seed)
+        self.env.seed(seed)
+        self.seed = seed
+
+    def validate_config_ppo(self):
         """
         Validate PPO's config.
 
@@ -313,7 +408,7 @@ class PPODtTrainConfig:
         logging.debug("Configuration validated: OK")
         return
 
-    def __check_variables(self):
+    def validate_config_dt(self):
         """
         Checks if all variables are set.
         """
@@ -337,6 +432,16 @@ class PPODtTrainConfig:
         ), "Mutation probability must be between 0 and 1"
         assert self.genotype_len > 0, "Genotype length must be greater than 0"
 
+    def create_directories_and_log_files(self, agent, planner):
+        """
+        Create directories for the experiment and initialize log files 
+        (like .csv headers)
+        """
+        phase = "P1" if agent and not planner else "P2"
+        date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        self.logdir = f"experiments/PPO_DT_{phase}_{date}_{self.episodes}"
+        self.logfile = os.path.join(self.logdir, "log.txt")
+
         if not os.path.exists(self.logdir):
             os.makedirs(self.logdir, exist_ok=True)
 
@@ -355,9 +460,7 @@ class PPODtTrainConfig:
         with open(f"{self.logdir}/rewards/ppo.csv", "w") as f:
             f.write("0,1,2,3,p\n")
 
-        with open(
-                os.path.join(self.logdir, "losses.csv"), "w"
-            ) as f:
+        with open(os.path.join(self.logdir, "losses.csv"), "w") as f:
             f.write("actor,critic,entropy\n")
 
     def evaluate_fitness(
@@ -365,9 +468,9 @@ class PPODtTrainConfig:
         genotype: List[int],
     ) -> float:
         # Get the phenotype
-        phenotype_planner, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(
-            genotype
-        )
+        phenotype_planner, _ = GrammaticalEvolutionTranslator(
+            self.grammar_planner
+        ).genotype_to_str(genotype)
 
         dt_p = PythonDT(
             phenotype_planner,
@@ -385,26 +488,22 @@ class PPODtTrainConfig:
 
     def batch(self, planner):
         """
-        Creates a batch of `rollout_fragment_length` steps, 
+        Creates a batch of `rollout_fragment_length` steps,
         """
-        # reset batching environment and get its observation
         obs = self.env.reset()
 
-        # reset rollout_buffer
         self.memory.clear()
 
         for _ in range(self.batch_iterations):
             for _ in range(self.rollout_fragment_length):
-                # get actions, action_logprob for all agents in each policy* wrt observation
                 policy_action, policy_logprob = self.get_actions(obs, planner)
 
-                # get new_observation, reward, done from stepping the environment
                 next_obs, rew, done, _ = self.env.step(policy_action)
 
                 if done["__all__"] is True:
                     next_obs = self.env.reset()
 
-                policy_action["p"]=np.zeros((1))
+                policy_action["p"] = np.zeros((1))
 
                 self.rolling_memory.update(
                     action=policy_action,
@@ -415,7 +514,7 @@ class PPODtTrainConfig:
                 )
 
                 obs = next_obs
-            
+
             self.memory.extend(self.rolling_memory)
             self.rolling_memory.clear()
 
@@ -425,7 +524,7 @@ class PPODtTrainConfig:
             data.append((self.memory.buffers["2"].rewards.sum()).item())
             data.append((self.memory.buffers["3"].rewards.sum()).item())
             data.append((self.memory.buffers["p"].rewards.sum()).item())
-            
+
             data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
             with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
                 file.write(data1)
@@ -454,46 +553,47 @@ class PPODtTrainConfig:
     def get_actions(self, obs, planner):
         policy_probs = None
         policy_actions = []
-        for x in ['0','1','2','3']:
+        for x in ["0", "1", "2", "3"]:
             a, b = self.agent.act(obs[x])
             policy_actions.append(a)
             policy_probs = self.__append_tensor(policy_probs, b)
-        
+
         actions = {
-            '0': policy_actions[0],
-            '1': policy_actions[1],
-            '2': policy_actions[2],
-            '3': policy_actions[3],
-            'p': planner
+            "0": policy_actions[0],
+            "1": policy_actions[1],
+            "2": policy_actions[2],
+            "3": policy_actions[3],
+            "p": planner,
         }
 
         probs = {
-            '0': policy_probs[0],
-            '1': policy_probs[1],
-            '2': policy_probs[2],
-            '3': policy_probs[3],
-            'p': np.zeros((1))
+            "0": policy_probs[0],
+            "1": policy_probs[1],
+            "2": policy_probs[2],
+            "3": policy_probs[3],
+            "p": np.zeros((1)),
         }
 
         return actions, probs
 
-
     def get_actions_ppo_only(self, obs):
         policy_actions = []
-        for x in ['0','1','2','3']:
+        for x in ["0", "1", "2", "3"]:
             a, _ = self.agent.act(obs[x])
             policy_actions.append(a)
 
         actions = {
-            '0': policy_actions[0],
-            '1': policy_actions[1],
-            '2': policy_actions[2],
-            '3': policy_actions[3],
+            "0": policy_actions[0],
+            "1": policy_actions[1],
+            "2": policy_actions[2],
+            "3": policy_actions[3],
         }
 
         return actions
 
-    def stepper(self, agent_path: str, planner_path: str = None, env: EnvWrapper = None): 
+    def stepper(
+        self, agent_path: str, planner_path: str = None, env: EnvWrapper = None
+    ):
         """
         Stepper used for the `interact.py`. N.B.: In both agent and planner paths the prefix `experiments/` is already added.
 
@@ -522,12 +622,18 @@ class PPODtTrainConfig:
 
         _agent_path = os.path.join(agent_path, "models", "a.pt")
         if not os.path.exists(_agent_path):
-            _agent_path = os.path.join("experiments", "PPO_P1_01-04-2023_1680328509_1000", "models", "a.pt")
+            _agent_path = os.path.join(
+                "experiments", "PPO_P1_01-04-2023_1680328509_1000", "models", "a.pt"
+            )
             if not os.path.exists(_agent_path):
-                raise FileNotFoundError(f"No agent found neither in '{agent_path}' nor in 'PPO_P1_01-04-2023_1680328509_1000'.")
-            
+                raise FileNotFoundError(
+                    f"No agent found neither in '{agent_path}' nor in 'PPO_P1_01-04-2023_1680328509_1000'."
+                )
+
         agent: PytorchLinearA = torch.load(_agent_path)
-        planner = PythonDT(load_path=os.path.join(planner_path, "models", "dt_p.pkl"), planner=True) 
+        planner = PythonDT(
+            load_path=os.path.join(planner_path, "models", "dt_p.pkl"), planner=True
+        )
 
         # Initialize some variables
         obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
@@ -549,12 +655,10 @@ class PPODtTrainConfig:
             planner.new_episode()
 
             planner_action = planner(obs.get("p").get("flat"))
-            actions = {
-                key: [0] for key in obs.keys()
-            }
-            actions['p'] = planner_action
+            actions = {key: [0] for key in obs.keys()}
+            actions["p"] = planner_action
             obs, rew, done, _ = env.step(actions)
-            
+
             planner.set_reward(rew.get("p", 0))
 
         return planner.rewards, env.env.previous_episode_dense_log
@@ -572,23 +676,21 @@ class PPODtTrainConfig:
 
             # learn on DT
             # Set the seed and reset the environment
-            self.seed+=1
+            self.seed += 1
             self.env.seed = self.seed
 
             # Initialize some variables
             cum_global_rew = 0
-            cum_rew = {
-                key: np.empty((0)) for key in obs.keys()
-            }
+            cum_rew = {key: np.empty((0)) for key in obs.keys()}
             # static - one per epoch - action by the planner
-            
+
             planner.new_episode()
             # Run the episode
 
             for t in range(self.episode_len):
                 # Start the episode
                 actions = self.get_actions_ppo_only(obs)
-                actions['p'] = planner(obs.get("p").get("flat"))
+                actions["p"] = planner(obs.get("p").get("flat"))
 
                 if any([action is None for action in actions.values()]):
                     raise ValueError(f"Actions is None: {actions}")
@@ -599,10 +701,10 @@ class PPODtTrainConfig:
                     cum_rew[key] = np.concatenate((cum_rew[key], rew.get(key, np.nan)))
 
                 cum_global_rew += np.sum([rew.get(k, 0) for k in rew.keys()])
-                
+
                 if done["__all__"].item() is True:
                     obs = self.env.reset()
-        
+
                 planner.set_reward(rew.get("p", 0))
                 global_cumulative_rewards.append(cum_global_rew)
 
@@ -613,7 +715,7 @@ class PPODtTrainConfig:
             planner.add_rewards(rewards=new_rewards)
 
         fitness = (np.mean(global_cumulative_rewards),)
-        
+
         return fitness, planner
 
     def train(
@@ -631,18 +733,21 @@ class PPODtTrainConfig:
                 crossover=self.crossover,
                 initial_len=self.genotype_len,
                 selection=self.selection,
-                planner_only=True,
             )
 
         with open(self.logfile, "a") as log_:
-            phenotype, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(hof[0])
-            phenotype = phenotype.replace('leaf="_leaf"', '')
+            phenotype, _ = GrammaticalEvolutionTranslator(
+                self.grammar_planner
+            ).genotype_to_str(hof[0])
+            phenotype = phenotype.replace('leaf="_leaf"', "")
 
             for k in range(50000):  # Iterate over all possible leaves
                 key = "leaf_{}".format(k)
                 if key in best_leaves:
                     v = best_leaves[key].q
-                    phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
+                    phenotype = phenotype.replace(
+                        "out=_leaf", "out={}".format(np.argmax(v)), 1
+                    )
                 else:
                     break
 
@@ -651,10 +756,8 @@ class PPODtTrainConfig:
             log_.write(phenotype + "\n")
             log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
 
-
         with open(os.path.join(self.logdir, "fitness.tsv"), "+w") as f:
             f.write(str(log))
-
 
     def grammatical_evolution(
         self,
@@ -668,11 +771,7 @@ class PPODtTrainConfig:
         mutation={"function": "ge_mutate", "attribute": None},
         crossover={"function": "ge_mate", "individual": None},
         logfile=None,
-        planner_only:bool = False,
     ):
-        # random.seed(seed)
-        # np.random.seed(seed)
-
         _max_value = 40000
 
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -685,10 +784,6 @@ class PPODtTrainConfig:
         # Attribute generator
         toolbox.register("attr_bool", random.randint, 0, _max_value)
 
-        # Structure initializers
-        # if jobs > 1:
-        #     toolbox.register("map", get_map(jobs, timeout))
-            # toolbox.register("map", multiprocess.Pool(jobs).map)
         toolbox.register(
             "individual",
             tools.initRepeat,
@@ -723,8 +818,10 @@ class PPODtTrainConfig:
         )
 
         pop = toolbox.population(n=individuals)
+        
         hof = tools.HallOfFame(1)
         stats = tools.Statistics(lambda ind: ind.fitness.values)
+        
         stats.register("avg", np.mean)
         stats.register("std", np.std)
         stats.register("min", np.min)
@@ -816,7 +913,9 @@ class PPODtTrainConfig:
         Basic Algorithms and Operators", 2000.
         """
         logbook = tools.Logbook()
-        logbook.header = ["time","gen", "nevals", "loss"] + (stats.fields if stats else [])
+        logbook.header = ["time", "gen", "nevals", "loss"] + (
+            stats.fields if stats else []
+        )
         best = None
         best_leaves = None
         best_planner: PythonDT = None
@@ -830,17 +929,20 @@ class PPODtTrainConfig:
 
         new_fitnesses = []
         planners = []
+
         for fit, planner in fitnesses:
             new_fitnesses.append(fit)
             planners.append(planner)
+
         fitnesses = new_fitnesses
+
         for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
             ind.fitness.values = fit
             if logfile is not None and (best is None or best < fit[0]):
                 best = fit[0]
                 best_planner = planners[i]
                 best_leaves = best_planner.leaves
-                best_rewards = best_planner.get_rewards()  
+                best_rewards = best_planner.get_rewards()
                 with open(logfile, "a") as log_:
                     log_.write(
                         "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -851,19 +953,25 @@ class PPODtTrainConfig:
                     log_.write("Planner Leaves\n")
                     log_.write(str(best_planner.leaves) + "\n")
 
-                best_planner.save(
-                    save_path=os.path.join(self.logdir, "models")
-                )
+                best_planner.save(save_path=os.path.join(self.logdir, "models"))
 
         # Save rewards
         with open(os.path.join(self.logdir, "rewards", "dt.csv"), "a") as f:
-            f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+            f.write(
+                f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n"
+            )
 
         if halloffame is not None:
             halloffame.update(population)
 
         record = stats.compile(population) if stats else {}
-        logbook.record(time=datetime.now().strftime("%H:%M:%S"), gen=0, nevals=len(invalid_ind), loss=(-np.inf, -np.inf, -np.inf), **record)
+        logbook.record(
+            time=datetime.now().strftime("%H:%M:%S"),
+            gen=0,
+            nevals=len(invalid_ind),
+            loss=(-np.inf, -np.inf, -np.inf),
+            **record,
+        )
         if verbose:
             print(logbook.stream)
 
@@ -899,7 +1007,7 @@ class PPODtTrainConfig:
                     best = fit[0]
                     best_planner = planners[i]
                     best_leaves = best_planner.leaves
-                    best_rewards = best_planner.get_rewards() 
+                    best_rewards = best_planner.get_rewards()
                     with open(logfile, "a") as log_:
                         log_.write(
                             "[{}] New best at generation {} with fitness {}\n".format(
@@ -910,15 +1018,13 @@ class PPODtTrainConfig:
                         log_.write("Planner leaves\n")
                         log_.write(str(best_planner) + "\n")
 
-                    best_planner.save(
-                        save_path=os.path.join(self.logdir, "models")
-                    )
+                    best_planner.save(save_path=os.path.join(self.logdir, "models"))
 
             # Save rewards
-            with open(
-                os.path.join(self.logdir, "rewards", "dt.csv"), "a"
-            ) as f:
-                f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+            with open(os.path.join(self.logdir, "rewards", "dt.csv"), "a") as f:
+                f.write(
+                    f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n"
+                )
 
             # Update the hall of fame with the generated individuals
             if halloffame is not None:
@@ -930,21 +1036,30 @@ class PPODtTrainConfig:
                     map(lambda x: population[x].fitness.values[0], o.parents)
                 )
 
-                if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+                if (
+                    o.fitness.values[0]
+                    > population[o.parents[argmin]].fitness.values[0]
+                ):
                     population[o.parents[argmin]] = o
 
             # learn on PPO
-            actor_loss, critic_loss, entropy = self.agent.learn(self.memory.to_tensor()["a"])
+            actor_loss, critic_loss, entropy = self.agent.learn(
+                self.memory.to_tensor()["a"]
+            )
 
-            with open(
-                os.path.join(self.logdir, "losses.csv"), "a+"
-            ) as f:
+            with open(os.path.join(self.logdir, "losses.csv"), "a+") as f:
                 f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
 
             # Append the current generation statistics to the logbook
             record = stats.compile(population) if stats else {}
             loss_str = f"({round(actor_loss.item(),2) if not np.isinf(actor_loss.item()) else actor_loss.item()},{round(critic_loss.item(),2) if not np.isinf(critic_loss.item()) else critic_loss.item()},{round(entropy.item(),2) if not np.isinf(entropy.item()) else entropy.item()})"
-            logbook.record(time=datetime.now().strftime("%H:%M:%S"), gen=gen, nevals=len(invalid_ind), loss=loss_str, **record)
+            logbook.record(
+                time=datetime.now().strftime("%H:%M:%S"),
+                gen=gen,
+                nevals=len(invalid_ind),
+                loss=loss_str,
+                **record,
+            )
             if verbose:
                 print(logbook.stream)
 
