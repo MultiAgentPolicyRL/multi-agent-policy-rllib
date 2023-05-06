@@ -10,14 +10,14 @@ families:
 - offline learning
     - PPO
 """
+# pylint: disable=pointless-string-statement
 import argparse
 import logging
-from src.common import get_environment
 
-from src import PpoTrainConfig, DtTrainConfig, InteractConfig
+from src import DtTrainConfig, InteractConfig, PpoTrainConfig
+from src.common import get_environment
 from src.train.ppo_dt import PPODtTrainConfig
 
-# pylint: disable=pointless-string-statement
 
 # Configuration declaration
 """
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                 generations=30,
                 mapped_agents={
                     # This must be the folder name to load the agent pre-trained in pytorch
-                    "a": "PPO_P1_05-05-2023_1683268220_1",  
+                    "a": "PPO_P1_01-04-2023_1680328509_1000",
                     "p": True,
                 },
             )

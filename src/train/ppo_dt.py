@@ -15,7 +15,6 @@ import numpy as np
 import toml
 import torch
 from deap import base, creator, tools
-from joblib import parallel_backend
 
 from src.common.env import EnvWrapper
 from src.common.rollout_buffer import RolloutBuffer
@@ -122,7 +121,6 @@ class PPODtTrainConfig:
         if env is not None:
             # Ordinare questo file:
             # TODO: salvare TUTTI i parametri nel file toml, non solo alcuni
-            # TODO: creare un minimo di senso tra `episodes`, `episode_len`, `batch_size`
 
             # Logica:
             # per esempio vogliamo che ogni DT si alleni per 6000 passi, che ci siano 30 DT e che questi
@@ -434,7 +432,7 @@ class PPODtTrainConfig:
 
     def create_directories_and_log_files(self, agent, planner):
         """
-        Create directories for the experiment and initialize log files 
+        Create directories for the experiment and initialize log files
         (like .csv headers)
         """
         phase = "P1" if agent and not planner else "P2"
@@ -718,23 +716,26 @@ class PPODtTrainConfig:
 
         return fitness, planner
 
-    def train(
-        self,
-    ) -> None:
-        with parallel_backend("multiprocessing"):
-            pop, log, hof, best_leaves = self.grammatical_evolution(
-                self.evaluate_fitness,
-                individuals=self.lambda_,
-                generations=self.generations,
-                cx_prob=self.cxp,
-                m_prob=self.mp,
-                logfile=self.logfile,
-                mutation=self.mutation,
-                crossover=self.crossover,
-                initial_len=self.genotype_len,
-                selection=self.selection,
-            )
+    def train(self) -> None:
+        pop, log, hof, best_leaves = self.grammatical_evolution(
+            fitness_function=self.evaluate_fitness,
+            individuals=self.lambda_,
+            generations=self.generations,
+            cx_prob=self.cxp,
+            m_prob=self.mp,
+            logfile=self.logfile,
+            mutation=self.mutation,
+            crossover=self.crossover,
+            initial_len=self.genotype_len,
+            selection=self.selection,
+        )
 
+        self.training_log(pop, log, hof, best_leaves)
+
+    def training_log(self, pop, log, hof, best_leaves):
+        """
+        Training log. Use this only from `self.train()`
+        """
         with open(self.logfile, "a") as log_:
             phenotype, _ = GrammaticalEvolutionTranslator(
                 self.grammar_planner
@@ -818,10 +819,10 @@ class PPODtTrainConfig:
         )
 
         pop = toolbox.population(n=individuals)
-        
+
         hof = tools.HallOfFame(1)
         stats = tools.Statistics(lambda ind: ind.fitness.values)
-        
+
         stats.register("avg", np.mean)
         stats.register("std", np.std)
         stats.register("min", np.min)

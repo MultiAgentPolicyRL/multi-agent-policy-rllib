@@ -46,8 +46,7 @@ class PytorchLinearA(nn.Module):
 
         self.MASK_NAME = "action_mask"
         self.num_outputs = action_space
-        self.logit_mask = torch.ones(
-            self.num_outputs).to(self.device) * -10000000
+        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
         lr_actor = learning_rate  # learning rate for actor network 0003
@@ -68,8 +67,7 @@ class PytorchLinearA(nn.Module):
         self.fc_layers_val_layers = []
 
         for _ in range(self.num_fc):
-            self.fc_layers_val_layers.append(
-                nn.Linear(self.fc_dim, self.fc_dim))
+            self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
             self.fc_layers_val_layers.append(nn.ReLU())
 
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))
@@ -110,8 +108,8 @@ class PytorchLinearA(nn.Module):
         action_logprob = dist.log_prob(action)
 
         return action.detach().numpy(), action_logprob.detach().numpy()
-    
-    def get_actions(self, obs: dict) -> dict: 
+
+    def get_actions(self, obs: dict) -> dict:
         """
         Args:
             obs: agents environment observation
@@ -119,11 +117,9 @@ class PytorchLinearA(nn.Module):
         Returns:
             action: taken action
         """
-        actions = {
-            a: None for a in obs.keys()
-        }
+        actions = {a: None for a in obs.keys()}
         for agent in obs.keys():
-            if agent != 'p':
+            if agent != "p":
                 actions[agent] = self.act(obs[agent])[0]
 
         return actions
@@ -191,8 +187,7 @@ class PytorchLinearP(nn.Module):
 
         self.mask_name = "action_mask"
         self.num_outputs = action_space
-        self.logit_mask = torch.ones(
-            self.num_outputs).to(self.device) * -10000000
+        self.logit_mask = torch.ones(self.num_outputs).to(self.device) * -10000000
         self.one_mask = torch.ones(self.num_outputs).to(self.device)
 
         lr_actor = learning_rate  # learning rate for actor network 0003
@@ -213,8 +208,7 @@ class PytorchLinearP(nn.Module):
         self.fc_layers_val_layers = []
 
         for _ in range(self.num_fc):
-            self.fc_layers_val_layers.append(
-                nn.Linear(self.fc_dim, self.fc_dim))
+            self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, self.fc_dim))
             self.fc_layers_val_layers.append(nn.ReLU())
 
         self.fc_layers_val_layers.append(nn.Linear(self.fc_dim, 1))

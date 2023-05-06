@@ -200,7 +200,6 @@ class EnvWrapper:
     def _dict_to_spaces_dict(self, obs):
         dict_of_spaces = {}
         for k, v in obs.items():
-
             # list of lists are listified np arrays
             _v = v
             if isinstance(v, list):
