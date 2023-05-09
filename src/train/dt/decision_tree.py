@@ -243,10 +243,15 @@ class PythonDT(DecisionTree):
         return self.rewards[-1]
 
     def get_rewards(self):
-        return {
-            agent: np.array([r[agent] for r in self.rewards]).mean()
-            for agent in self.rewards[0].keys()
-        }
+        try:
+            ret = {
+                agent: np.array([r[agent] for r in self.rewards]).mean()
+                for agent in self.rewards[0].keys()
+            }
+        except IndexError:
+            ret = {agent: -np.inf for agent in ['0', '1', '2', '3', 'p']}
+
+        return ret
 
     def save(self, save_path: str):
         data = {

@@ -13,9 +13,9 @@ import numpy as np
 
 from datetime import datetime
 
-from tqdm import tqdm
 from joblib import parallel_backend
 
+from deap import base, creator, tools
 from typing import Dict, List, Tuple, Union
 from src.train.dt import PythonDT
 from src.common.env import EnvWrapper
@@ -25,7 +25,8 @@ from src.train.ppo import PpoPolicy
 
 from src.train.dt import (
     GrammaticalEvolutionTranslator,
-    grammatical_evolution,
+    varAnd,
+    ListWithParents
 )
 from src.train.ppo.models.linear import PytorchLinearA
 
@@ -87,12 +88,12 @@ class PPODtTrainConfig:
         low: float = -10,
         up: float = 10,
         input_space: int = 1,
-        episodes: int = 500,
+        episodes: int = 1,
         episode_len: int = 1000,
-        lambda_: int = 1000,
-        generations: int = 1000,
-        cxp: float = 0.5,
-        mp: float = 0.5,
+        lambda_: int = 100,
+        generations: int = 50,
+        cxp: float = 0.8,
+        mp: float = 0.8,
         mutation: Dict[str, Union[str, int, float]] = {
             "function": "tools.mutUniformInt",
             "low": 0,
@@ -106,7 +107,7 @@ class PPODtTrainConfig:
         },
         genotype_len: int = 100,
         types: List[Tuple[int, int, int, int]] = None,
-        batch_size: int = 200,
+        batch_size: int = None,
         rollout_fragment_length: int = 200,
         k_epochs: int = 16,
         eps_clip: int = 10,
@@ -125,7 +126,7 @@ class PPODtTrainConfig:
         if env is not None:
             # PPO specific stuff
             self.rollout_fragment_length = rollout_fragment_length
-            self.batch_size = batch_size
+            self.batch_size = batch_size if batch_size is not None else episode_len * episodes
             self.step = episode_len
             self.batch_iterations = self.batch_size//self.rollout_fragment_length
             self.k_epochs = k_epochs
@@ -151,9 +152,10 @@ class PPODtTrainConfig:
 
             # Set seeds
             assert seed >= 1, "Seed must be greater than 0"
-            np.random.seed(seed)
+            torch.manual_seed(seed)
+            np.random.seed(seed=seed)
             random.seed(seed)
-            self.env.seed = seed
+            self.env.seed(seed)
             self.seed = seed
 
             # Add important variables to self
@@ -187,7 +189,7 @@ class PPODtTrainConfig:
             # Create the log directory
             phase = "P1" if agent and not planner else "P2"
             date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            self.logdir = f"experiments/PPO_DT_{phase}_{date}_{episodes}"
+            self.logdir = f"experiments/PPO_DT_{phase}_{date}_{seed}"
             self.logfile = os.path.join(self.logdir, "log.txt")
             os.makedirs(self.logdir)
 
@@ -195,37 +197,6 @@ class PPODtTrainConfig:
             self.mutation = mutation
             self.crossover = crossover
             self.selection = selection
-
-            # Initialize some variables
-            grammar_agent = {
-                "bt": ["<if>"],
-                "if": ["if <condition>:{<action>}else:{<action>}"],
-                "condition": [
-                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space.get("a", 136))
-                ],
-                "action": ['out=_leaf;leaf="_leaf"', "<if>"],
-                "comp_op": [" < ", " > "],
-            }
-            types_agent: str = (
-                types
-                if types is not None
-                else ";".join(["0,10,1,10" for _ in range(input_space.get("a", 136))])
-            )
-            types_agent: str = types_agent.replace("#", "")
-            assert (
-                len(types_agent.split(";")) == input_space.get("a", 136)
-            ), "Expected {} types_agent, got {}.".format(input_space.get("a", 136), len(types_agent.split(";")))
-
-            for index, type_ in enumerate(types_agent.split(";")):
-                rng = type_.split(",")
-                start, stop, step, divisor = map(int, rng)
-                consts_ = list(
-                    map(str, [float(c) / divisor for c in range(start, stop, step)])
-                )
-                grammar_agent["const_type_{}".format(index)] = consts_
-
-            # Add to self
-            self.grammar_agent = grammar_agent
 
             grammar_planner = {
                 "bt": ["<if>"],
@@ -286,7 +257,7 @@ class PPODtTrainConfig:
                         "up": up,
                         "lambda_": lambda_,
                         "input_space": input_space,
-                        "grammar_agent": self.grammar_agent,
+                        # "grammar_agent": self.grammar_agent,
                         "grammar_planner": self.grammar_planner,
                         },
                         "ppo": {
@@ -339,7 +310,7 @@ class PPODtTrainConfig:
         if self.learning_rate < 0 and self.learning_rate > 1:
             raise ValueError("'learning_rate' must be between (0,1).")
 
-        logging.info("Configuration validated: OK")
+        logging.debug("Configuration validated: OK")
         return
 
     def __check_variables(self):
@@ -379,10 +350,15 @@ class PPODtTrainConfig:
 
         rewards_csv_file = os.path.join(rewards_dir, "dt.csv")
         with open(rewards_csv_file, "w") as f:
-            f.write("0,1,2,3,p\n")
+            f.write("0,1,2,3,p,fitnesses\n")
 
         with open(f"{self.logdir}/rewards/ppo.csv", "w") as f:
             f.write("0,1,2,3,p\n")
+
+        with open(
+                os.path.join(self.logdir, "losses.csv"), "w"
+            ) as f:
+            f.write("actor,critic,entropy\n")
 
     def evaluate_fitness(
         self,
@@ -417,8 +393,9 @@ class PPODtTrainConfig:
         # reset rollout_buffer
         self.memory.clear()
 
-        for _ in tqdm(range(self.batch_iterations)):
-            for _ in range(self.rollout_fragment_length):
+        steps = 0
+        for i in range(self.batch_iterations):
+            for j in range(self.rollout_fragment_length):
                 # get actions, action_logprob for all agents in each policy* wrt observation
                 policy_action, policy_logprob = self.get_actions(obs, planner)
 
@@ -439,25 +416,26 @@ class PPODtTrainConfig:
                 )
 
                 obs = next_obs
+            steps += self.rollout_fragment_length
+
+            if steps >= 1000:
+                # reset batching environment and get its observation
+                obs = self.env.reset()
+                steps = 0
             
             self.memory.extend(self.rolling_memory)
             self.rolling_memory.clear()
 
-            # log sum of reward per agent
-            # data = f"{rew['0'].item()},{rew['1'].item()},{rew['2'].item()},{rew['3'].item()},{rew['p'].item()}\n"
-    
-            # with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
-                    # file.write(data)
-            data = []
-            data[0].append((self.memory.buffers["0"].rewards.sum()).item())
-            data[1].append((self.memory.buffers["1"].rewards.sum()).item())
-            data[2].append((self.memory.buffers["2"].rewards.sum()).item())
-            data[3].append((self.memory.buffers["3"].rewards.sum()).item())
-            data[4].append((self.memory.buffers["p"].rewards.sum()).item())
-            
-            data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
-            with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
-                file.write(data1)
+        data = []
+        data.append((self.memory.buffers["0"].rewards.sum()).item())
+        data.append((self.memory.buffers["1"].rewards.sum()).item())
+        data.append((self.memory.buffers["2"].rewards.sum()).item())
+        data.append((self.memory.buffers["3"].rewards.sum()).item())
+        data.append((self.memory.buffers["p"].rewards.sum()).item())
+        
+        data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
+        with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
+            file.write(data1)
 
     def __append_tensor(self, old_stack, new_tensor):
         """
@@ -562,7 +540,7 @@ class PPODtTrainConfig:
         obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
 
         # Run the episode
-        for t in tqdm(range(env.env.episode_length), desc="DecisionTree Replay"):
+        for t in range(env.env.episode_length):
             with torch.no_grad():
                 actions = agent.get_actions(obs)
             actions["p"] = np.zeros((7))
@@ -591,17 +569,15 @@ class PPODtTrainConfig:
     def fitness(self, planner: PythonDT):
         global_cumulative_rewards = []
 
+        if not planner.leaves:
+            return (-np.inf,), planner
+
         for _ in range(self.episodes):
-            # create batch for PPO learning
-
-            obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
-            pa = planner(obs.get("p").get("flat"))
-            self.batch(pa)
-
             # learn on DT
             # Set the seed and reset the environment
-            self.seed+=1
+            self.seed += 1
             self.env.seed = self.seed
+            obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
 
             # Initialize some variables
             cum_global_rew = 0
@@ -614,9 +590,15 @@ class PPODtTrainConfig:
             # Run the episode
 
             for t in range(self.episode_len):
+                if t > 1000:
+                    obs = self.env.reset()
                 # Start the episode
                 actions = self.get_actions_ppo_only(obs)
                 actions['p'] = planner(obs.get("p").get("flat"))
+
+                if any([action is None for action in actions.values()]):
+                    raise ValueError(f"Actions is None: {actions}")
+
                 obs, rew, done, _ = self.env.step(actions)
 
                 for key in obs.keys():
@@ -628,7 +610,11 @@ class PPODtTrainConfig:
                     obs = self.env.reset()
         
                 planner.set_reward(rew.get("p", 0))
-                global_cumulative_rewards.append(cum_global_rew)
+                
+                # Original version - global cumulative rewards
+                # global_cumulative_rewards.append(cum_global_rew)
+                # New version - Planner only rewards
+                global_cumulative_rewards.append(rew.get('p', np.nan))
 
             new_rewards = {}
             for key in obs.keys():
@@ -638,15 +624,13 @@ class PPODtTrainConfig:
 
         fitness = (np.mean(global_cumulative_rewards),)
         
-        # learn on PPO
-        self.agent.learn(self.memory.to_tensor()["a"])
         return fitness, planner
 
     def train(
         self,
     ) -> None:
         with parallel_backend("multiprocessing"):
-            pop, log, hof, best_leaves = grammatical_evolution(
+            pop, log, hof, best_leaves = self.grammatical_evolution(
                 self.evaluate_fitness,
                 individuals=self.lambda_,
                 generations=self.generations,
@@ -660,3 +644,318 @@ class PPODtTrainConfig:
                 planner_only=True,
             )
 
+        with open(self.logfile, "a") as log_:
+            phenotype, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(hof[0])
+            phenotype = phenotype.replace('leaf="_leaf"', '')
+
+            for k in range(50000):  # Iterate over all possible leaves
+                key = "leaf_{}".format(k)
+                if key in best_leaves:
+                    v = best_leaves[key].q
+                    phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
+                else:
+                    break
+
+            log_.write(str(log) + "\n")
+            log_.write(str(hof[0]) + "\n")
+            log_.write(phenotype + "\n")
+            log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
+
+
+        with open(os.path.join(self.logdir, "fitness.tsv"), "+w") as f:
+            f.write(str(log))
+
+
+    def grammatical_evolution(
+        self,
+        fitness_function,
+        individuals,
+        generations,
+        cx_prob,
+        m_prob,
+        initial_len=100,
+        selection={"function": "tools.selBest"},
+        mutation={"function": "ge_mutate", "attribute": None},
+        crossover={"function": "ge_mate", "individual": None},
+        logfile=None,
+        planner_only:bool = False,
+    ):
+        # random.seed(seed)
+        # np.random.seed(seed)
+
+        _max_value = 40000
+
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create(
+            "Individual", ListWithParents, typecode="d", fitness=creator.FitnessMax
+        )
+
+        toolbox = base.Toolbox()
+
+        # Attribute generator
+        toolbox.register("attr_bool", random.randint, 0, _max_value)
+
+        # Structure initializers
+        # if jobs > 1:
+        #     toolbox.register("map", get_map(jobs, timeout))
+            # toolbox.register("map", multiprocess.Pool(jobs).map)
+        toolbox.register(
+            "individual",
+            tools.initRepeat,
+            creator.Individual,
+            toolbox.attr_bool,
+            initial_len,
+        )
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+        toolbox.register("evaluate", fitness_function)
+
+        for d in [mutation, crossover]:
+            if "attribute" in d:
+                d["attribute"] = toolbox.attr_bool
+            if "individual" in d:
+                d["individual"] = creator.Individual
+
+        toolbox.register(
+            "mate",
+            eval(crossover["function"]),
+            **{k: v for k, v in crossover.items() if k != "function"},
+        )
+        toolbox.register(
+            "mutate",
+            eval(mutation["function"]),
+            **{k: v for k, v in mutation.items() if k != "function"},
+        )
+        toolbox.register(
+            "select",
+            eval(selection["function"]),
+            **{k: v for k, v in selection.items() if k != "function"},
+        )
+
+        pop = toolbox.population(n=individuals)
+        hof = tools.HallOfFame(1)
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean)
+        stats.register("std", np.std)
+        stats.register("min", np.min)
+        stats.register("max", np.max)
+
+        pop, log, best_leaves = self.eaSimplePlanner(
+            pop,
+            toolbox,
+            cxpb=cx_prob,
+            mutpb=m_prob,
+            ngen=generations,
+            stats=stats,
+            halloffame=hof,
+            verbose=True,
+            logfile=logfile,
+        )
+
+        return pop, log, hof, best_leaves
+
+    def eaSimplePlanner(
+        self,
+        population,
+        toolbox,
+        cxpb,
+        mutpb,
+        ngen,
+        stats=None,
+        halloffame=None,
+        verbose=__debug__,
+        logfile=None,
+        var=varAnd,
+    ):
+        """This algorithm reproduce the simplest evolutionary algorithm as
+        presented in chapter 7 of [Back2000]_.
+
+        :param population: A list of individuals.
+        :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
+                        operators.
+        :param cxpb: The probability of mating two individuals.
+        :param mutpb: The probability of mutating an individual.
+        :param ngen: The number of generation.
+        :param stats: A :class:`~deap.tools.Statistics` object that is updated
+                    inplace, optional.
+        :param halloffame: A :class:`~deap.tools.HallOfFame` object that will
+                        contain the best individuals, optional.
+        :param verbose: Whether or not to log the statistics.
+        :returns: The final population
+        :returns: A class:`~deap.tools.Logbook` with the statistics of the
+                evolution
+
+        The algorithm takes in a population and evolves it in place using the
+        :meth:`varAnd` method. It returns the optimized population and a
+        :class:`~deap.tools.Logbook` with the statistics of the evolution. The
+        logbook will contain the generation number, the number of evaluations for
+        each generation and the statistics if a :class:`~deap.tools.Statistics` is
+        given as argument. The *cxpb* and *mutpb* arguments are passed to the
+        :func:`varAnd` function. The pseudocode goes as follow ::
+
+            evaluate(population)
+            for g in range(ngen):
+                population = select(population, len(population))
+                offspring = varAnd(population, toolbox, cxpb, mutpb)
+                evaluate(offspring)
+                population = offspring
+
+        As stated in the pseudocode above, the algorithm goes as follow. First, it
+        evaluates the individuals with an invalid fitness. Second, it enters the
+        generational loop where the selection procedure is applied to entirely
+        replace the parental population. The 1:1 replacement ratio of this
+        algorithm **requires** the selection procedure to be stochastic and to
+        select multiple times the same individual, for example,
+        :func:`~deap.tools.selTournament` and :func:`~deap.tools.selRoulette`.
+        Third, it applies the :func:`varAnd` function to produce the next
+        generation population. Fourth, it evaluates the new individuals and
+        compute the statistics on this population. Finally, when *ngen*
+        generations are done, the algorithm returns a tuple with the final
+        population and a :class:`~deap.tools.Logbook` of the evolution.
+
+        .. note::
+
+            Using a non-stochastic selection method will result in no selection as
+            the operator selects *n* individuals from a pool of *n*.
+
+        This function expects the :meth:`toolbox.mate`, :meth:`toolbox.mutate`,
+        :meth:`toolbox.select` and :meth:`toolbox.evaluate` aliases to be
+        registered in the toolbox.
+
+        .. [Back2000] Back, Fogel and Michalewicz, "Evolutionary Computation 1 :
+        Basic Algorithms and Operators", 2000.
+        """
+        logbook = tools.Logbook()
+        logbook.header = ["time","gen", "nevals", "loss"] + (stats.fields if stats else [])
+        best = None
+        best_leaves = None
+        best_planner: PythonDT = None
+
+        # Evaluate the individuals with an invalid fitness
+        invalid_ind = [ind for ind in population if not ind.fitness.valid]
+
+        fitnesses: List[float, PythonDT] = [
+            *toolbox.map(toolbox.evaluate, invalid_ind)
+        ]  # Obviously, it depends directly on the population size!
+
+        new_fitnesses = []
+        planners = []
+        for fit, planner in fitnesses:
+            new_fitnesses.append(fit)
+            planners.append(planner)
+        fitnesses = new_fitnesses
+        for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+            ind.fitness.values = fit
+            if logfile is not None and (best is None or best < fit[0]):
+                best = fit[0]
+                best_planner = planners[i]
+                best_leaves = best_planner.leaves
+                best_rewards = best_planner.get_rewards()  
+                with open(logfile, "a") as log_:
+                    log_.write(
+                        "[{:.3f}] New best at generation 0 with fitness {}\n".format(
+                            datetime.now(), best
+                        )
+                    )
+                    log_.write(str(ind) + "\n")
+                    log_.write("Planner Leaves\n")
+                    log_.write(str(best_planner.leaves) + "\n")
+
+                best_planner.save(
+                    save_path=os.path.join(self.logdir, "models")
+                )
+
+        # Save rewards
+        with open(os.path.join(self.logdir, "rewards", "dt.csv"), "a") as f:
+            f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+
+        if halloffame is not None:
+            halloffame.update(population)
+
+        record = stats.compile(population) if stats else {}
+        logbook.record(time=datetime.now().strftime("%H:%M:%S"), gen=0, nevals=len(invalid_ind), loss=(-np.inf, -np.inf, -np.inf), **record)
+        if verbose:
+            print(logbook.stream)
+
+        # Begin the generational process
+        for gen in range(1, ngen):
+            # pa is the planner action
+            obs = self.env.reset()
+            pa = best_planner(obs.get("p").get("flat"))
+            self.batch(pa)
+
+            # Select the next generation individuals
+            offspring = toolbox.select(population, len(population))
+
+            # Vary the pool of individuals
+            offspring = var(offspring, toolbox, cxpb, mutpb)
+
+            # Evaluate the individuals with an invalid fitness
+            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+            fitnesses: List[float, PythonDT] = [
+                *toolbox.map(toolbox.evaluate, invalid_ind)
+            ]
+
+            new_fitnesses = []
+            planners = []
+            for fit, planner in fitnesses:
+                planners.append(planner)
+                new_fitnesses.append(fit)
+            fitnesses = new_fitnesses
+
+            for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+                ind.fitness.values = fit
+                if logfile is not None and (best is None or best < fit[0]):
+                    best = fit[0]
+                    best_planner = planners[i]
+                    best_leaves = best_planner.leaves
+                    best_rewards = best_planner.get_rewards() 
+                    with open(logfile, "a") as log_:
+                        log_.write(
+                            "[{}] New best at generation {} with fitness {}\n".format(
+                                datetime.now(), gen, fit
+                            )
+                        )
+                        log_.write(str(ind) + "\n")
+                        log_.write("Planner leaves\n")
+                        log_.write(str(best_planner) + "\n")
+
+                    best_planner.save(
+                        save_path=os.path.join(self.logdir, "models")
+                    )
+
+            # Save rewards
+            with open(
+                os.path.join(self.logdir, "rewards", "dt.csv"), "a"
+            ) as f:
+                f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+
+            # Update the hall of fame with the generated individuals
+            if halloffame is not None:
+                halloffame.update(offspring)
+
+            # Replace the current population by the offspring
+            for o in offspring:
+                argmin = np.argmin(
+                    map(lambda x: population[x].fitness.values[0], o.parents)
+                )
+
+                if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+                    population[o.parents[argmin]] = o
+
+            # learn on PPO
+            actor_loss, critic_loss, entropy = self.agent.learn(self.memory.to_tensor()["a"])
+
+            with open(
+                os.path.join(self.logdir, "losses.csv"), "a+"
+            ) as f:
+                f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
+
+            # Append the current generation statistics to the logbook
+            record = stats.compile(population) if stats else {}
+            loss_str = f"({round(actor_loss.item(),2) if not np.isinf(actor_loss.item()) else actor_loss.item()},{round(critic_loss.item(),2) if not np.isinf(critic_loss.item()) else critic_loss.item()},{round(entropy.item(),2) if not np.isinf(entropy.item()) else entropy.item()})"
+            logbook.record(time=datetime.now().strftime("%H:%M:%S"), gen=gen, nevals=len(invalid_ind), loss=loss_str, **record)
+            if verbose:
+                print(logbook.stream)
+
+        return population, logbook, best_leaves

@@ -22,7 +22,6 @@ from deap.algorithms import varAnd
 from deap import base, creator, tools
 from deap.tools import mutShuffleIndexes, mutUniformInt
 from joblib import Parallel, delayed
-from tqdm import tqdm
 
 from .decision_tree import EpsGreedyLeaf, PythonDT
 from typing import List
@@ -191,7 +190,7 @@ def eaSimple(
         new_fitnesses.append(fit)
         planner_leaves.append(planner)
     fitnesses = new_fitnesses
-    for i, (ind, fit) in tqdm(enumerate(zip(invalid_ind, fitnesses)), desc="Invalid indices progress"):
+    for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
         ind.fitness.values = fit
         if logfile is not None and (best is None or best < fit[0]):
             best = fit[0]
@@ -237,7 +236,7 @@ def eaSimple(
         print(logbook.stream)
 
     # Begin the generational process
-    for gen in range(1, ngen + 1):
+    for gen in range(1, ngen):
 
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
@@ -319,192 +318,198 @@ def eaSimple(
     return population, logbook, best_leaves
 
 
-def eaSimplePlanner(
-    population,
-    toolbox,
-    cxpb,
-    mutpb,
-    ngen,
-    stats=None,
-    halloffame=None,
-    verbose=__debug__,
-    logfile=None,
-    var=varAnd,
-):
-    """This algorithm reproduce the simplest evolutionary algorithm as
-    presented in chapter 7 of [Back2000]_.
+# def eaSimplePlanner(
+#     population,
+#     toolbox,
+#     cxpb,
+#     mutpb,
+#     ngen,
+#     stats=None,
+#     halloffame=None,
+#     verbose=__debug__,
+#     logfile=None,
+#     var=varAnd,
+# ):
+#     """This algorithm reproduce the simplest evolutionary algorithm as
+#     presented in chapter 7 of [Back2000]_.
 
-    :param population: A list of individuals.
-    :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
-                    operators.
-    :param cxpb: The probability of mating two individuals.
-    :param mutpb: The probability of mutating an individual.
-    :param ngen: The number of generation.
-    :param stats: A :class:`~deap.tools.Statistics` object that is updated
-                  inplace, optional.
-    :param halloffame: A :class:`~deap.tools.HallOfFame` object that will
-                       contain the best individuals, optional.
-    :param verbose: Whether or not to log the statistics.
-    :returns: The final population
-    :returns: A class:`~deap.tools.Logbook` with the statistics of the
-              evolution
+#     :param population: A list of individuals.
+#     :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
+#                     operators.
+#     :param cxpb: The probability of mating two individuals.
+#     :param mutpb: The probability of mutating an individual.
+#     :param ngen: The number of generation.
+#     :param stats: A :class:`~deap.tools.Statistics` object that is updated
+#                   inplace, optional.
+#     :param halloffame: A :class:`~deap.tools.HallOfFame` object that will
+#                        contain the best individuals, optional.
+#     :param verbose: Whether or not to log the statistics.
+#     :returns: The final population
+#     :returns: A class:`~deap.tools.Logbook` with the statistics of the
+#               evolution
 
-    The algorithm takes in a population and evolves it in place using the
-    :meth:`varAnd` method. It returns the optimized population and a
-    :class:`~deap.tools.Logbook` with the statistics of the evolution. The
-    logbook will contain the generation number, the number of evaluations for
-    each generation and the statistics if a :class:`~deap.tools.Statistics` is
-    given as argument. The *cxpb* and *mutpb* arguments are passed to the
-    :func:`varAnd` function. The pseudocode goes as follow ::
+#     The algorithm takes in a population and evolves it in place using the
+#     :meth:`varAnd` method. It returns the optimized population and a
+#     :class:`~deap.tools.Logbook` with the statistics of the evolution. The
+#     logbook will contain the generation number, the number of evaluations for
+#     each generation and the statistics if a :class:`~deap.tools.Statistics` is
+#     given as argument. The *cxpb* and *mutpb* arguments are passed to the
+#     :func:`varAnd` function. The pseudocode goes as follow ::
 
-        evaluate(population)
-        for g in range(ngen):
-            population = select(population, len(population))
-            offspring = varAnd(population, toolbox, cxpb, mutpb)
-            evaluate(offspring)
-            population = offspring
+#         evaluate(population)
+#         for g in range(ngen):
+#             population = select(population, len(population))
+#             offspring = varAnd(population, toolbox, cxpb, mutpb)
+#             evaluate(offspring)
+#             population = offspring
 
-    As stated in the pseudocode above, the algorithm goes as follow. First, it
-    evaluates the individuals with an invalid fitness. Second, it enters the
-    generational loop where the selection procedure is applied to entirely
-    replace the parental population. The 1:1 replacement ratio of this
-    algorithm **requires** the selection procedure to be stochastic and to
-    select multiple times the same individual, for example,
-    :func:`~deap.tools.selTournament` and :func:`~deap.tools.selRoulette`.
-    Third, it applies the :func:`varAnd` function to produce the next
-    generation population. Fourth, it evaluates the new individuals and
-    compute the statistics on this population. Finally, when *ngen*
-    generations are done, the algorithm returns a tuple with the final
-    population and a :class:`~deap.tools.Logbook` of the evolution.
+#     As stated in the pseudocode above, the algorithm goes as follow. First, it
+#     evaluates the individuals with an invalid fitness. Second, it enters the
+#     generational loop where the selection procedure is applied to entirely
+#     replace the parental population. The 1:1 replacement ratio of this
+#     algorithm **requires** the selection procedure to be stochastic and to
+#     select multiple times the same individual, for example,
+#     :func:`~deap.tools.selTournament` and :func:`~deap.tools.selRoulette`.
+#     Third, it applies the :func:`varAnd` function to produce the next
+#     generation population. Fourth, it evaluates the new individuals and
+#     compute the statistics on this population. Finally, when *ngen*
+#     generations are done, the algorithm returns a tuple with the final
+#     population and a :class:`~deap.tools.Logbook` of the evolution.
 
-    .. note::
+#     .. note::
 
-        Using a non-stochastic selection method will result in no selection as
-        the operator selects *n* individuals from a pool of *n*.
+#         Using a non-stochastic selection method will result in no selection as
+#         the operator selects *n* individuals from a pool of *n*.
 
-    This function expects the :meth:`toolbox.mate`, :meth:`toolbox.mutate`,
-    :meth:`toolbox.select` and :meth:`toolbox.evaluate` aliases to be
-    registered in the toolbox.
+#     This function expects the :meth:`toolbox.mate`, :meth:`toolbox.mutate`,
+#     :meth:`toolbox.select` and :meth:`toolbox.evaluate` aliases to be
+#     registered in the toolbox.
 
-    .. [Back2000] Back, Fogel and Michalewicz, "Evolutionary Computation 1 :
-       Basic Algorithms and Operators", 2000.
-    """
-    logbook = tools.Logbook()
-    logbook.header = ["gen", "nevals"] + (stats.fields if stats else [])
-    best = None
-    best_leaves = None
+#     .. [Back2000] Back, Fogel and Michalewicz, "Evolutionary Computation 1 :
+#        Basic Algorithms and Operators", 2000.
+#     """
+#     logbook = tools.Logbook()
+#     logbook.header = ["gen", "nevals"] + (stats.fields if stats else [])
+#     best = None
+#     best_leaves = None
 
-    # Evaluate the individuals with an invalid fitness
-    invalid_ind = [ind for ind in population if not ind.fitness.valid]
-    fitnesses = [
-        *toolbox.map(toolbox.evaluate, invalid_ind)
-    ]  # Obviously, it depends directly on the population size!
-    new_fitnesses = []
-    planner_leaves = []
-    for fit, planner in fitnesses:
-        new_fitnesses.append(fit)
-        planner_leaves.append(planner)
-    fitnesses = new_fitnesses
-    for i, (ind, fit) in tqdm(enumerate(zip(invalid_ind, fitnesses)), desc="Invalid indices progress"):
-        ind.fitness.values = fit
-        if logfile is not None and (best is None or best < fit[0]):
-            best = fit[0]
-            best_leaves = planner_leaves[i].leaves
-            best_rewards = planner_leaves[i].get_rewards()  
-            with open(logfile, "a") as log_:
-                log_.write(
-                    "[{:.3f}] New best at generation 0 with fitness {}\n".format(
-                        datetime.datetime.now(), best
-                    )
-                )
-                log_.write(str(ind) + "\n")
-                log_.write("Planner Leaves\n")
-                log_.write(str(planner_leaves[i].leaves) + "\n")
+#     # Evaluate the individuals with an invalid fitness
+#     invalid_ind = [ind for ind in population if not ind.fitness.valid]
 
-            planner_leaves[i].save(
-                save_path=os.path.join(os.path.dirname(logfile), "models")
-            )
+#     ppo_agent = PPODtTrainConfig()
 
-    # Save rewards
-    with open(os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a") as f:
-        f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+#     fitnesses: List[float, PythonDT] = []
+#     for ind in invalid_ind:
+#         fitnesses.append(toolbox.evaluate(ind, ppo_agent))
+#     # fitnesses = [
+#     #     *toolbox.map(toolbox.evaluate, invalid_ind, True)
+#     # ]  # Obviously, it depends directly on the population size!
+#     new_fitnesses = []
+#     planner_leaves = []
+#     for fit, planner in fitnesses:
+#         new_fitnesses.append(fit)
+#         planner_leaves.append(planner)
+#     fitnesses = new_fitnesses
+#     for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+#         ind.fitness.values = fit
+#         if logfile is not None and (best is None or best < fit[0]):
+#             best = fit[0]
+#             best_leaves = planner_leaves[i].leaves
+#             best_rewards = planner_leaves[i].get_rewards()  
+#             with open(logfile, "a") as log_:
+#                 log_.write(
+#                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
+#                         datetime.datetime.now(), best
+#                     )
+#                 )
+#                 log_.write(str(ind) + "\n")
+#                 log_.write("Planner Leaves\n")
+#                 log_.write(str(planner_leaves[i].leaves) + "\n")
 
-    if halloffame is not None:
-        halloffame.update(population)
+#             planner_leaves[i].save(
+#                 save_path=os.path.join(os.path.dirname(logfile), "models")
+#             )
 
-    record = stats.compile(population) if stats else {}
-    logbook.record(gen=0, nevals=len(invalid_ind), **record)
-    if verbose:
-        print(logbook.stream)
+#     # Save rewards
+#     with open(os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a") as f:
+#         f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
-    # Begin the generational process
-    for gen in range(1, ngen + 1):
+#     if halloffame is not None:
+#         halloffame.update(population)
 
-        # Select the next generation individuals
-        offspring = toolbox.select(population, len(population))
+#     record = stats.compile(population) if stats else {}
+#     logbook.record(gen=0, nevals=len(invalid_ind), **record)
+#     if verbose:
+#         print(logbook.stream)
 
-        # Vary the pool of individuals
-        offspring = var(offspring, toolbox, cxpb, mutpb)
+#     # Begin the generational process
+#     for gen in range(1, ngen):
 
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses: List[float, PythonDT, PythonDT] = [
-            *toolbox.map(toolbox.evaluate, invalid_ind)
-        ]
+#         # Select the next generation individuals
+#         offspring = toolbox.select(population, len(population))
 
-        new_fitnesses = []
-        planner_leaves = []
-        for fit, planner in fitnesses:
-            planner_leaves.append(planner)
-            new_fitnesses.append(fit)
-        fitnesses = new_fitnesses
+#         # Vary the pool of individuals
+#         offspring = var(offspring, toolbox, cxpb, mutpb)
 
-        for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
-            ind.fitness.values = fit
-            if logfile is not None and (best is None or best < fit[0]):
-                best = fit[0]
-                best_leaves = planner_leaves[i].leaves
-                best_rewards = planner_leaves[i].get_rewards() 
-                with open(logfile, "a") as log_:
-                    log_.write(
-                        "[{}] New best at generation {} with fitness {}\n".format(
-                            datetime.datetime.now(), gen, fit
-                        )
-                    )
-                    log_.write(str(ind) + "\n")
-                    log_.write("Planner leaves\n")
-                    log_.write(str(planner_leaves[i]) + "\n")
+#         # Evaluate the individuals with an invalid fitness
+#         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+#         fitnesses: List[float, PythonDT] = [
+#             *toolbox.map(toolbox.evaluate, invalid_ind)
+#         ]
 
-                planner_leaves[i].save(
-                    save_path=os.path.join(os.path.dirname(logfile), "models")
-                )
+#         new_fitnesses = []
+#         planner_leaves = []
+#         for fit, planner in fitnesses:
+#             planner_leaves.append(planner)
+#             new_fitnesses.append(fit)
+#         fitnesses = new_fitnesses
 
-        # Save rewards
-        with open(
-            os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a"
-        ) as f:
-            f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+#         for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+#             ind.fitness.values = fit
+#             if logfile is not None and (best is None or best < fit[0]):
+#                 best = fit[0]
+#                 best_leaves = planner_leaves[i].leaves
+#                 best_rewards = planner_leaves[i].get_rewards() 
+#                 with open(logfile, "a") as log_:
+#                     log_.write(
+#                         "[{}] New best at generation {} with fitness {}\n".format(
+#                             datetime.datetime.now(), gen, fit
+#                         )
+#                     )
+#                     log_.write(str(ind) + "\n")
+#                     log_.write("Planner leaves\n")
+#                     log_.write(str(planner_leaves[i]) + "\n")
 
-        # Update the hall of fame with the generated individuals
-        if halloffame is not None:
-            halloffame.update(offspring)
+#                 planner_leaves[i].save(
+#                     save_path=os.path.join(os.path.dirname(logfile), "models")
+#                 )
 
-        # Replace the current population by the offspring
-        for o in offspring:
-            argmin = np.argmin(
-                map(lambda x: population[x].fitness.values[0], o.parents)
-            )
+#         # Save rewards
+#         with open(
+#             os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a"
+#         ) as f:
+#             f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
 
-            if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
-                population[o.parents[argmin]] = o
+#         # Update the hall of fame with the generated individuals
+#         if halloffame is not None:
+#             halloffame.update(offspring)
 
-        # Append the current generation statistics to the logbook
-        record = stats.compile(population) if stats else {}
-        logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        if verbose:
-            print(logbook.stream)
+#         # Replace the current population by the offspring
+#         for o in offspring:
+#             argmin = np.argmin(
+#                 map(lambda x: population[x].fitness.values[0], o.parents)
+#             )
 
-    return population, logbook, best_leaves
+#             if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+#                 population[o.parents[argmin]] = o
+
+#         # Append the current generation statistics to the logbook
+#         record = stats.compile(population) if stats else {}
+#         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
+#         if verbose:
+#             print(logbook.stream)
+
+#     return population, logbook, best_leaves
 
 
 class GrammaticalEvolutionTranslator:
@@ -699,30 +704,30 @@ def grammatical_evolution(
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    if not planner_only:
-        pop, log, best_leaves = eaSimple(
-            pop,
-            toolbox,
-            cxpb=cx_prob,
-            mutpb=m_prob,
-            ngen=generations,
-            stats=stats,
-            halloffame=hof,
-            verbose=True,
-            logfile=logfile,
-        )
-    else:
-        pop, log, best_leaves = eaSimplePlanner(
-            pop,
-            toolbox,
-            cxpb=cx_prob,
-            mutpb=m_prob,
-            ngen=generations,
-            stats=stats,
-            halloffame=hof,
-            verbose=True,
-            logfile=logfile,
-        )
+    # if not planner_only:
+    pop, log, best_leaves = eaSimple(
+        pop,
+        toolbox,
+        cxpb=cx_prob,
+        mutpb=m_prob,
+        ngen=generations,
+        stats=stats,
+        halloffame=hof,
+        verbose=True,
+        logfile=logfile,
+    )
+    # else:
+    #     pop, log, best_leaves = eaSimplePlanner(
+    #         pop,
+    #         toolbox,
+    #         cxpb=cx_prob,
+    #         mutpb=m_prob,
+    #         ngen=generations,
+    #         stats=stats,
+    #         halloffame=hof,
+    #         verbose=True,
+    #         logfile=logfile,
+    #     )
 
     return pop, log, hof, best_leaves
 
