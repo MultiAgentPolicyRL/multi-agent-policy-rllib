@@ -230,14 +230,8 @@ class PpoTrainConfig:
             rollout = load_batch(worker_id=worker_id)
             self.memory.extend(rollout)
 
-        # Update main worker policy
-        # exit("PPO_TRAIN 233")
-
         tensored_memory = self.memory.to_tensor()
 
-        """
-        TODO: sumup memory by mapping it so that it can be actually used.
-        """
         self.learn_worker.learn(memory=tensored_memory)
 
         # Send updated policy to all rollout workers
