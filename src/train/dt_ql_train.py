@@ -132,8 +132,8 @@ class DtTrainConfig:
             # For the input space
             obs = env.reset()
             input_space = {
-                "a": obs.get('0').get('flat').shape[0],
-                "p": obs.get('p').get('flat').shape[0]
+                "a": obs.get("0").get("flat").shape[0],
+                "p": obs.get("p").get("flat").shape[0],
             }
             self.lr = lr
             self.df = df
@@ -166,7 +166,8 @@ class DtTrainConfig:
                 "bt": ["<if>"],
                 "if": ["if <condition>:{<action>}else:{<action>}"],
                 "condition": [
-                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space.get("a", 136))
+                    "_in_{0}<comp_op><const_type_{0}>".format(k)
+                    for k in range(input_space.get("a", 136))
                 ],
                 "action": ['out=_leaf;leaf="_leaf"', "<if>"],
                 "comp_op": [" < ", " > "],
@@ -177,9 +178,11 @@ class DtTrainConfig:
                 else ";".join(["0,10,1,10" for _ in range(input_space.get("a", 136))])
             )
             types_agent: str = types_agent.replace("#", "")
-            assert (
-                len(types_agent.split(";")) == input_space.get("a", 136)
-            ), "Expected {} types_agent, got {}.".format(input_space.get("a", 136), len(types_agent.split(";")))
+            assert len(types_agent.split(";")) == input_space.get(
+                "a", 136
+            ), "Expected {} types_agent, got {}.".format(
+                input_space.get("a", 136), len(types_agent.split(";"))
+            )
 
             for index, type_ in enumerate(types_agent.split(";")):
                 rng = type_.split(",")
@@ -196,7 +199,8 @@ class DtTrainConfig:
                 "bt": ["<if>"],
                 "if": ["if <condition>:{<action>}else:{<action>}"],
                 "condition": [
-                    "_in_{0}<comp_op><const_type_{0}>".format(k) for k in range(input_space.get("p", 86))
+                    "_in_{0}<comp_op><const_type_{0}>".format(k)
+                    for k in range(input_space.get("p", 86))
                 ],
                 "action": ['out=_leaf;leaf="_leaf"', "<if>"],
                 "comp_op": [" < ", " > "],
@@ -207,9 +211,11 @@ class DtTrainConfig:
                 else ";".join(["0,10,1,10" for _ in range(input_space.get("p", 86))])
             )
             types_planner: str = types_planner.replace("#", "")
-            assert (
-                len(types_planner.split(";")) == input_space.get("p", 86)
-            ), "Expected {} types_planner, got {}.".format(input_space.get("p", 86), len(types_planner.split(";")))
+            assert len(types_planner.split(";")) == input_space.get(
+                "p", 86
+            ), "Expected {} types_planner, got {}.".format(
+                input_space.get("p", 86), len(types_planner.split(";"))
+            )
 
             for index, type_ in enumerate(types_planner.split(";")):
                 rng = type_.split(",")
@@ -309,12 +315,12 @@ class DtTrainConfig:
         genotype: List[int],
     ) -> float:
         # Get the phenotype
-        phenotype_agent, _ = GrammaticalEvolutionTranslator(self.grammar_agent).genotype_to_str(
-            genotype
-        )
-        phenotype_planner, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(
-            genotype
-        )
+        phenotype_agent, _ = GrammaticalEvolutionTranslator(
+            self.grammar_agent
+        ).genotype_to_str(genotype)
+        phenotype_planner, _ = GrammaticalEvolutionTranslator(
+            self.grammar_planner
+        ).genotype_to_str(genotype)
 
         # Get the Decision Trees of agents and planner
         dt = PythonDT(
@@ -351,7 +357,9 @@ class DtTrainConfig:
         # Evaluate the fitness
         return self.fitness(dt, dt_p)
 
-    def stepper(self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None):
+    def stepper(
+        self, agent_path: str, planner_path: str = None, env: BaseEnvironment = None
+    ):
         """
         Stepper used for the `interact.py`
         """
@@ -359,8 +367,11 @@ class DtTrainConfig:
         planner_path = os.path.join(planner_path, "models", "dt_p.pkl")
 
         agent = PythonDT(load_path=agent_path)
-        planner = PythonDT(load_path=planner_path,
-                           planner=True) if planner_path is not None else None
+        planner = (
+            PythonDT(load_path=planner_path, planner=True)
+            if planner_path is not None
+            else None
+        )
 
         # Initialize some variables
         obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
@@ -383,8 +394,7 @@ class DtTrainConfig:
             if planner is not None:
                 planner.add_rewards(rewards=rew)
 
-            agent.set_reward(sum([rew.get(k, 0)
-                            for k in rew.keys() if k != "p"]))
+            agent.set_reward(sum([rew.get(k, 0) for k in rew.keys() if k != "p"]))
             if planner is not None:
                 planner.set_reward(rew.get("p", 0))
 
@@ -399,7 +409,7 @@ class DtTrainConfig:
         # try:
         for iteration in range(self.episodes):
             # Set the seed and reset the environment
-            self.seed+=1
+            self.seed += 1
             self.env.seed = self.seed
             obs: Dict[str, Dict[str, np.ndarray]] = self.env.reset()
 
@@ -410,9 +420,7 @@ class DtTrainConfig:
 
             # Initialize some variables
             cum_global_rew = 0
-            cum_rew = {
-                key: np.empty((0)) for key in obs.keys()
-            }
+            cum_rew = {key: np.empty((0)) for key in obs.keys()}
 
             # Run the episode
             for t in range(self.episode_len):
@@ -429,8 +437,7 @@ class DtTrainConfig:
                     cum_rew[key] = np.concatenate((cum_rew[key], rew.get(key, np.nan)))
 
                 # self.env.render() # FIXME: This is not working, see if needed
-                agent.set_reward(sum([rew.get(k, 0)
-                                 for k in rew.keys() if k != "p"]))
+                agent.set_reward(sum([rew.get(k, 0) for k in rew.keys() if k != "p"]))
                 if planner is not None:
                     planner.set_reward(rew.get("p", 0))
 
@@ -439,7 +446,7 @@ class DtTrainConfig:
 
                 if done["__all__"].item() is True:
                     break
-            
+
             new_rewards = {}
             for key in obs.keys():
                 new_rewards[key] = np.sum(cum_rew.get(key, np.nan))

@@ -10,15 +10,14 @@ families:
 - offline learning
     - PPO
 """
+# pylint: disable=pointless-string-statement
 import argparse
 import logging
-import multiprocessing
-from src.common import get_environment
 
-from src import PpoTrainConfig, DtTrainConfig, InteractConfig
+from src import DtTrainConfig, InteractConfig, PpoTrainConfig
+from src.common import get_environment
 from src.train.ppo_dt import PPODtTrainConfig
 
-# pylint: disable=pointless-string-statement
 
 # Configuration declaration
 """
@@ -74,22 +73,24 @@ def get_mapping_function():
 
     return mapping_function
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', type=str, default='train',
-                    help='Mode of the experiment')
-parser.add_argument('--type', type=str, default='PPO_DT',
-                    help='Type of the algorithm')
-parser.add_argument('--path-ppo', type=str, default=None,
-                    help='Path of the model weights for ppo')
-parser.add_argument('--path-dt', type=str, default=None,
-                    help='Path of the model weights for dt')
+parser.add_argument("--mode", type=str, default="train", help="Mode of the experiment")
+parser.add_argument("--type", type=str, default="PPO_DT", help="Type of the algorithm")
+parser.add_argument(
+    "--path-ppo", type=str, default=None, help="Path of the model weights for ppo"
+)
+parser.add_argument(
+    "--path-dt", type=str, default=None, help="Path of the model weights for dt"
+)
 
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO, format="%(process)d - %(asctime)s - %(levelname)s - %(message)s"
+        level=logging.INFO,
+        format="%(process)d - %(asctime)s - %(levelname)s - %(message)s",
     )
 
     env = get_environment()
@@ -116,10 +117,7 @@ if __name__ == "__main__":
                 episode_len=1000,
                 lambda_=180,
                 generations=50,
-                mapped_agents={
-                    "a": True, 
-                    "p": True
-                },
+                mapped_agents={"a": True, "p": True},
             )
             trainer.train()
         elif args.type == "PPO_DT":
@@ -138,24 +136,41 @@ if __name__ == "__main__":
             trainer.train()
         else:
             raise ValueError("Invalid type of algorithm")
-        
+
     elif args.mode == "eval":
         if args.type == "PPO":
-            interact = InteractConfig(get_mapping_function, env, PpoTrainConfig, config={}, mapped_agents={
-                "a": "PPO_P1_01-04-2023_1680328509_1000",
-                "p": False,
-            })
+            interact = InteractConfig(
+                get_mapping_function,
+                env,
+                PpoTrainConfig,
+                config={},
+                mapped_agents={
+                    "a": "PPO_P1_01-04-2023_1680328509_1000",
+                    "p": False,
+                },
+            )
         elif args.type == "DT":
-            interact = InteractConfig(get_mapping_function, env, DtTrainConfig, config={}, mapped_agents={
-                "a": "DT_P2_2023-04-19_124132_5",
-                "p": "DT_P2_2023-04-19_124132_5",
-            })
+            interact = InteractConfig(
+                get_mapping_function,
+                env,
+                DtTrainConfig,
+                config={},
+                mapped_agents={
+                    "a": "DT_P2_2023-04-19_124132_5",
+                    "p": "DT_P2_2023-04-19_124132_5",
+                },
+            )
         elif args.type == "PPO_DT":
-            interact = InteractConfig(get_mapping_function, env, PPODtTrainConfig, config={}, mapped_agents={
-                "a": "PPO_DT_P2_2023-04-17_181557_10",
-                "p": "PPO_DT_P2_2023-04-17_181557_10",
-            })
+            interact = InteractConfig(
+                get_mapping_function,
+                env,
+                PPODtTrainConfig,
+                config={},
+                mapped_agents={
+                    "a": "PPO_DT_P2_2023-04-17_181557_10",
+                    "p": "PPO_DT_P2_2023-04-17_181557_10",
+                },
+            )
     else:
         raise ValueError("Invalid mode")
     
-    # logging.info("Done")

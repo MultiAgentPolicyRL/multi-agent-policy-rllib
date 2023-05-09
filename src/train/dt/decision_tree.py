@@ -134,7 +134,7 @@ class PythonDT(DecisionTree):
         self,
         phenotype: str = None,
         n_actions: int = 0,
-        lr: Union[float, str] = 'auto',
+        lr: Union[float, str] = "auto",
         df: float = 0.9,
         eps: float = 0.05,
         low: float = -100,
@@ -151,7 +151,7 @@ class PythonDT(DecisionTree):
 
         if load_path is not None:
             self.load(load_path, planner)
-            
+
         else:
             if phenotype is None:
                 raise ValueError("Phenotype is None and load_path is None")
@@ -178,7 +178,9 @@ class PythonDT(DecisionTree):
                     self.program = self.program.replace(
                         "_leaf", "'{}.get_action()'".format(leaf_name), 1
                     )
-                    self.program = self.program.replace("_leaf", "{}".format(leaf_name), 1)
+                    self.program = self.program.replace(
+                        "_leaf", "{}".format(leaf_name), 1
+                    )
 
                     n_leaves += 1
 
@@ -238,7 +240,7 @@ class PythonDT(DecisionTree):
 
     def add_rewards(self, rewards: Dict[str, float]):
         self.rewards.append(rewards)
-    
+
     def get_last_rewards(self):
         return self.rewards[-1]
 
@@ -269,7 +271,7 @@ class PythonDT(DecisionTree):
     def load(self, load_path: str, planner: bool = False):
         # Load self from a pickle
         with open(
-            load_path, 
+            load_path,
             "rb",
         ) as f:
             data = pickle.load(f)

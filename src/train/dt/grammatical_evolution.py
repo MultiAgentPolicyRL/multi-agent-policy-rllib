@@ -199,9 +199,7 @@ def eaSimple(
                 if planner_leaves[i] is None
                 else (agent_leaves[i].leaves, planner_leaves[i].leaves)
             )
-            best_rewards = agent_leaves[
-                i
-            ].get_rewards()  
+            best_rewards = agent_leaves[i].get_rewards()
             with open(logfile, "a") as log_:
                 log_.write(
                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -225,7 +223,9 @@ def eaSimple(
 
     # Save rewards
     with open(os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a") as f:
-        f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+        f.write(
+            f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n"
+        )
 
     if halloffame is not None:
         halloffame.update(population)
@@ -237,7 +237,6 @@ def eaSimple(
 
     # Begin the generational process
     for gen in range(1, ngen):
-
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
 
@@ -294,7 +293,9 @@ def eaSimple(
         with open(
             os.path.join(os.path.dirname(logfile), "rewards", "dt.csv"), "a"
         ) as f:
-            f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+            f.write(
+                f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n"
+            )
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
@@ -415,7 +416,7 @@ def eaSimple(
 #         if logfile is not None and (best is None or best < fit[0]):
 #             best = fit[0]
 #             best_leaves = planner_leaves[i].leaves
-#             best_rewards = planner_leaves[i].get_rewards()  
+#             best_rewards = planner_leaves[i].get_rewards()
 #             with open(logfile, "a") as log_:
 #                 log_.write(
 #                     "[{:.3f}] New best at generation 0 with fitness {}\n".format(
@@ -469,7 +470,7 @@ def eaSimple(
 #             if logfile is not None and (best is None or best < fit[0]):
 #                 best = fit[0]
 #                 best_leaves = planner_leaves[i].leaves
-#                 best_rewards = planner_leaves[i].get_rewards() 
+#                 best_rewards = planner_leaves[i].get_rewards()
 #                 with open(logfile, "a") as log_:
 #                     log_.write(
 #                         "[{}] New best at generation {} with fitness {}\n".format(
@@ -642,7 +643,7 @@ def grammatical_evolution(
     mutation={"function": "ge_mutate", "attribute": None},
     crossover={"function": "ge_mate", "individual": None},
     logfile=None,
-    planner_only:bool = False,
+    planner_only: bool = False,
 ):
     # random.seed(seed)
     # np.random.seed(seed)
@@ -662,7 +663,7 @@ def grammatical_evolution(
     # Structure initializers
     # if jobs > 1:
     #     toolbox.register("map", get_map(jobs, timeout))
-        # toolbox.register("map", multiprocess.Pool(jobs).map)
+    # toolbox.register("map", multiprocess.Pool(jobs).map)
     toolbox.register(
         "individual",
         tools.initRepeat,

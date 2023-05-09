@@ -67,7 +67,7 @@ class RolloutWorker:
             self.policies[key] = self._build_policy(policies_config[key])
 
         obs = env.reset()
-        
+
         self.memory = RolloutBuffer(obs, self.policy_mapping_function)
         self.rolling_memory = RolloutBuffer(obs, self.policy_mapping_function)
 
@@ -137,7 +137,7 @@ class RolloutWorker:
 
             self.memory.extend(self.rolling_memory)
             self.rolling_memory.clear()
-            
+
         # Dump memory in ram
         save_batch(data=self.memory, worker_id=self._id)
 
@@ -190,10 +190,14 @@ class RolloutWorker:
         data.append((self.memory.buffers["2"].rewards.sum()).item())
         data.append((self.memory.buffers["3"].rewards.sum()).item())
         data.append((self.memory.buffers["p"].rewards.sum()).item())
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 55d89b4adae076096d5eed15b9018c0c688aff5b
         data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
-            # with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
-            #         file.write(data)
+        # with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
+        #         file.write(data)
         data_logging(data=data1, experiment_id=self.experiment_name, id=self._id)
 
     def get_weights(self) -> dict:
