@@ -681,6 +681,7 @@ class PPODtTrainConfig:
         return planner.rewards, env.env.previous_episode_dense_log
 
     def fitness(self, planner: PythonDT):
+        temp = []
         global_cumulative_rewards = []
 
         if not planner.leaves:
@@ -726,15 +727,19 @@ class PPODtTrainConfig:
                 # Original version - global cumulative rewards
                 # global_cumulative_rewards.append(cum_global_rew)
                 # New version - Planner only rewards
-                global_cumulative_rewards.append(rew.get('p', np.nan))
+                temp.append(rew.get('p', np.nan))
 
+            global_cumulative_rewards.append(np.sum(temp))
+            temp = []
+
+            # Add the rewards to the planner
             new_rewards = {}
             for key in obs.keys():
                 new_rewards[key] = np.sum(cum_rew.get(key, np.nan))
 
             planner.add_rewards(rewards=new_rewards)
 
-        fitness = (np.mean(global_cumulative_rewards),)
+        fitness = (np.max(global_cumulative_rewards),)
         
         return fitness, planner
 
