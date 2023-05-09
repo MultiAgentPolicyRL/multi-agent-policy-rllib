@@ -190,11 +190,7 @@ class RolloutWorker:
         data.append((self.memory.buffers["2"].rewards.sum()).item())
         data.append((self.memory.buffers["3"].rewards.sum()).item())
         data.append((self.memory.buffers["p"].rewards.sum()).item())
-<<<<<<< HEAD
         
-=======
-
->>>>>>> 55d89b4adae076096d5eed15b9018c0c688aff5b
         data1 = f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]}\n"
         # with open(f"{self.logdir}/rewards/ppo.csv", "a+") as file:
         #         file.write(data)
