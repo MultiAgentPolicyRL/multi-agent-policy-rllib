@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 import toml
 
+import torch
 from torch.multiprocessing import Pipe, Process
 from tqdm import tqdm
 
@@ -77,7 +78,7 @@ class PpoTrainConfig:
         self.batch_size = batch_size
         self.step = step
         self.seed = seed
-        self.k_epochs = k_epochs
+        self.k_epochs = batch_size//rollout_fragment_length # k_epochs
         self.eps_clip = eps_clip
         self.gamma = gamma
         self.device = device
@@ -88,6 +89,9 @@ class PpoTrainConfig:
         self._c2 = _c2
 
         self.policy_keys = mapped_agents.keys()
+
+        ## Seeding
+        torch.manual_seed(seed)
 
         ## Validate config
         self.validate_config(env=env)

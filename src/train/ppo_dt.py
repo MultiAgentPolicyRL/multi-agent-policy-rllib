@@ -363,7 +363,7 @@ class PPODtTrainConfig:
         self._c1 = _c1
         self._c2 = _c2
 
-        self.agent = PpoPolicy(self.env.observation_space, 50)
+        self.agent = PpoPolicy(self.env.observation_space, 50, K_epochs=self.batch_iterations)
         self.agent.load_model("experiments/" + mapped_agents["a"] + "/models/a.pt")
 
         self.memory = RolloutBuffer(obs, None)

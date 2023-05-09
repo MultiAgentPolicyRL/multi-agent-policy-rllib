@@ -120,24 +120,24 @@ class PpoPolicy(Model):
         a_loss, c_loss, ac_entropy = [], [], []
 
         # Optimize policy for K epochs
-        for _ in range(self.k_epochs):
+        for i in range(self.k_epochs):
             # Evaluating old actions and values
             logprobs, state_values, dist_entropy = self.model.evaluate(
-                old_states, old_actions
+                old_states[i:i+200:1], old_actions[i:i+200:1]
             )
 
             # Finding the ratio pi_theta / pi_theta_old
-            ratios = torch.exp(logprobs - old_logprobs)
+            ratios = torch.exp(logprobs - old_logprobs[i:i+200:1])
 
             # Finding Surrogate Loss
-            advantages = rewards - state_values
+            advantages = rewards[i:i+200:1] - state_values
 
             surr1 = ratios * advantages
             surr2 = (
                 torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             )
 
-            critic_loss = self.mse_loss(state_values, rewards)
+            critic_loss = self.mse_loss(state_values, rewards[i:i+200:1])
 
             # final loss of clipped objective PPO w/AI-Economist hyperparameters
             actor_loss = -torch.min(surr1, surr2)

@@ -76,7 +76,7 @@ def get_mapping_function():
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, default="train", help="Mode of the experiment")
-parser.add_argument("--type", type=str, default="PPO_DT", help="Type of the algorithm")
+parser.add_argument("--type", type=str, default="PPO", help="Type of the algorithm")
 parser.add_argument(
     "--path-ppo", type=str, default=None, help="Path of the model weights for ppo"
 )
@@ -100,9 +100,9 @@ if __name__ == "__main__":
             trainer = PpoTrainConfig(
                 get_mapping_function,
                 env,
-                num_workers=3,
+                num_workers=12,
                 step=10,
-                batch_size=1200,
+                batch_size=6000,
                 rollout_fragment_length=200,
                 mapped_agents={
                     "a": True, 
