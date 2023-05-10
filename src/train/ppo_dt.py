@@ -770,29 +770,26 @@ class PPODtTrainConfig:
         Training log. Use this only from `self.train()`
         """
         with open(self.logfile, "a") as log_:
-            phenotype, _ = GrammaticalEvolutionTranslator(
-                self.grammar_planner
-            ).genotype_to_str(hof[0])
-            phenotype = phenotype.replace('leaf="_leaf"', "")
+            phenotype, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(hof[0])
+            phenotype = phenotype.replace('leaf="_leaf"', '')
 
-            for k in range(50000):  # Iterate over all possible leaves
-                key = "leaf_{}".format(k)
-                if key in best_leaves:
-                    v = best_leaves[key].q
-                    phenotype = phenotype.replace(
-                        "out=_leaf", "out={}".format(np.argmax(v)), 1
-                    )
-                else:
-                    break
+            for k in range(4):  # Iterate over all possible leaves
+                for a in range(136):
+                    key = "leaf_{}_{}".format(k, a)
+                    if key in best_leaves.keys():
+                        v = best_leaves[key].q
+                        phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
+                    else:
+                        break
 
             log_.write(str(log) + "\n")
             log_.write(str(hof[0]) + "\n")
             log_.write(phenotype + "\n")
             log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
 
-        with open(os.path.join(self.logdir, "fitness.tsv"), "+w") as f:
+        with open(os.path.join(self.logdir, "fitness.tsv"), "w") as f:
             f.write(str(log))
-        
+            
         return
 
     # def train(
