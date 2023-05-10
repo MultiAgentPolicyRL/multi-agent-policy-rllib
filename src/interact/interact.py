@@ -3,10 +3,13 @@ TODO
 """
 import logging
 import os
+import shutil
 import json
 import pickle
 import time
+import random
 from datetime import datetime
+import numpy as np
 
 import toml
 import torch
@@ -130,7 +133,7 @@ class InteractConfig:
                     if done["__all__"] is True:
                         break
 
-                    with open(self.path + "/logs/-1.csv", "a") as log_file:
+                    with open(self.path + "/logs/Simulation.csv", "a") as log_file:
                         log_file.write(
                             f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n"
                         )
@@ -209,6 +212,9 @@ class InteractConfig:
             def stepper():
                 env = self.env
                 env.seed = self.seed
+                torch.manual_seed(self.seed)
+                random.seed(self.seed)
+                np.random.seed(self.seed)
 
                 # Done only for intellisense and to remember types
                 self.trainer = PPODtTrainConfig()
@@ -239,10 +245,17 @@ class InteractConfig:
         Creates this experiment directory and a log file.
         """
 
-        date = datetime.today().strftime("%d-%m-%Y")
-        algorithm_name = "PPO" if self.trainer == PpoTrainConfig else "DT"
+        folder_dir = self.mapped_agents.get("a").split("_")
+        date = folder_dir[-3] #+ "_" + folder_dir[-2]
+        id = folder_dir[-2]
+        algorithm_name = "PPO" 
+        if self.trainer ==  DtTrainConfig:
+            algorithm_name = "DT"
+        if self.trainer ==  PPODtTrainConfig:
+            algorithm_name = "PPO_DT"
+
         experiment_name = (
-            f"INT_{algorithm_name}_{date}_{int(time.time())}_{self.mapped_agents['a']}"
+            f"INT_{algorithm_name}_{date}_{id}"
         )
         self.path = f"experiments/{experiment_name}"
 
@@ -251,31 +264,38 @@ class InteractConfig:
             os.makedirs(self.path + "/logs")
             os.makedirs(self.path + "/plots")
 
-        # Create config.txt log file
-        with open(self.path + "/config.toml", "w") as config_file:
-            config_dict = {
-                "common": {
-                    "algorithm_name": algorithm_name,
-                    "step": self.env.env.episode_length,
-                    "seed": self.seed,
-                    "device": self.device,
-                    "mapped_agents": self.mapped_agents,
-                }
-            }
+        # Copy all the self.mapped_agents.get("a") content in the new dir
+        shutil.copytree(
+            os.path.join("experiments", self.mapped_agents.get("a")),
+            self.path,
+            dirs_exist_ok=True,
+        )
 
-            # Algorithm's specific infos
-            if algorithm_name == {"PPO"}:
-                # TODO: save PPO's config
-                # (learning rate but it's kinda useless)
+        # # Create config.txt log file
+        # with open(self.path + "/config.toml", "w") as config_file:
+        #     config_dict = {
+        #         "common": {
+        #             "algorithm_name": algorithm_name,
+        #             "step": self.env.env.episode_length,
+        #             "seed": self.seed,
+        #             "device": self.device,
+        #             "mapped_agents": self.mapped_agents,
+        #         }
+        #     }
 
-                pass
-            else:
-                # TODO: save DT's config
-                pass
+        #     # Algorithm's specific infos
+        #     if algorithm_name == {"PPO"}:
+        #         # TODO: save PPO's config
+        #         # (learning rate but it's kinda useless)
 
-            toml.dump(config_dict, config_file)
+        #         pass
+        #     else:
+        #         # TODO: save DT's config
+        #         pass
 
-        with open(self.path + "/logs/-1.csv", "a+") as log_file:
+        #     toml.dump(config_dict, config_file)
+
+        with open(self.path + "/logs/Simulation.csv", "a+") as log_file:
             log_file.write("0,1,2,3,p\n")
 
         logging.info("Directories created")
