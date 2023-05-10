@@ -654,29 +654,33 @@ class PPODtTrainConfig:
 
         # Initialize some variables
         obs: Dict[str, Dict[str, np.ndarray]] = env.reset(force_dense_logging=True)
+        # planner.new_episode()
 
         # Run the episode
         for t in range(env.env.episode_length):
             with torch.no_grad():
                 actions = agent.get_actions(obs)
-            actions["p"] = np.zeros((7))
+            actions["p"] = planner(obs.get("p").get("flat"))
 
             obs, rew, done, _ = env.step(actions)
             planner.add_rewards(rewards=rew)
+            planner.set_reward(rew.get("p", 0))
 
             if done["__all__"] is True:
                 break
 
-        if not done["__all__"]:
+        if done["__all__"].item() is True:
+            print("Episode finished")
+            return planner.rewards, env.env.previous_episode_dense_log
             # Start the episode
-            planner.new_episode()
+            # planner.new_episode()
 
-            planner_action = planner(obs.get("p").get("flat"))
-            actions = {key: [0] for key in obs.keys()}
-            actions["p"] = planner_action
-            obs, rew, done, _ = env.step(actions)
+            # planner_action = planner(obs.get("p").get("flat"))
+            # actions = {key: [0] for key in obs.keys()}
+            # actions["p"] = planner_action
+            # obs, rew, done, _ = env.step(actions)
 
-            planner.set_reward(rew.get("p", 0))
+            # planner.set_reward(rew.get("p", 0))
 
         return planner.rewards, env.env.previous_episode_dense_log
 
