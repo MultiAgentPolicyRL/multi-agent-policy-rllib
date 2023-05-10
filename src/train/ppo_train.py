@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 import toml
 
+import torch
 from torch.multiprocessing import Pipe, Process
 from tqdm import tqdm
 
@@ -77,7 +78,7 @@ class PpoTrainConfig:
         self.batch_size = batch_size
         self.step = step
         self.seed = seed
-        self.k_epochs = k_epochs
+        self.k_epochs = batch_size//rollout_fragment_length # k_epochs
         self.eps_clip = eps_clip
         self.gamma = gamma
         self.device = device
@@ -88,6 +89,9 @@ class PpoTrainConfig:
         self._c2 = _c2
 
         self.policy_keys = mapped_agents.keys()
+
+        ## Seeding
+        torch.manual_seed(seed)
 
         ## Validate config
         self.validate_config(env=env)
@@ -230,14 +234,8 @@ class PpoTrainConfig:
             rollout = load_batch(worker_id=worker_id)
             self.memory.extend(rollout)
 
-        # Update main worker policy
-        # exit("PPO_TRAIN 233")
-
         tensored_memory = self.memory.to_tensor()
 
-        """
-        TODO: sumup memory by mapping it so that it can be actually used.
-        """
         self.learn_worker.learn(memory=tensored_memory)
 
         # Send updated policy to all rollout workers

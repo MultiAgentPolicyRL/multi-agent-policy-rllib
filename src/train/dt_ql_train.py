@@ -471,7 +471,6 @@ class DtTrainConfig:
                 cx_prob=self.cxp,
                 m_prob=self.mp,
                 logfile=self.logfile,
-                # seed=self.seed,  # This is useless since the seed is already set in the __init__
                 mutation=self.mutation,
                 crossover=self.crossover,
                 initial_len=self.genotype_len,
