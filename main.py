@@ -88,10 +88,15 @@ parser.add_argument(
 args = parser.parse_args()
 
 assert args.path_ppo is not None or args.path_dt is not None, "Path of the model weights is not set"
-assert isinstance(args.path_ppo, str) and os.path.exists(args.path_ppo) or \
-    isinstance(args.path_ppo, bool), "PPO path must be either a valid path or bool"
-assert isinstance(args.path_dt, str) and os.path.exists(args.path_dt) or \
-    isinstance(args.path_dt, bool), "DT path must be either a valid path or bool"
+
+assert isinstance(args.path_ppo, str) or isinstance(args.path_ppo, bool), "PPO path must be either a path like object or a bool object!"
+if isinstance(args.path_ppo, str):
+    assert os.path.exists(os.path.join('experiments', args.path_ppo)), "PPO path not found ('{}')".format(args.path_ppo)
+
+assert isinstance(args.path_dt, str) or isinstance(args.path_dt, bool), "DT path must be either a path like object or a bool object!"
+if isinstance(args.path_dt, str):
+    assert os.path.exists(os.path.join('experiments', args.path_dt)), "DT path not found ('{}')".format(args.path_dt)
+
 assert args.mode in ["train", "eval"], "Invalid mode"
 assert args.type in ["PPO", "DT", "PPO_DT"], "Invalid type of algorithm"
 

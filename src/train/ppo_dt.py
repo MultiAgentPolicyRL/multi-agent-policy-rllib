@@ -1089,6 +1089,18 @@ class PPODtTrainConfig:
                     new_fitnesses.append(fit)
                 fitnesses = new_fitnesses
 
+                # learn on PPO
+                actor_loss, critic_loss, entropy = self.agent.learn(self.memory.to_tensor()["a"])
+
+                with open(
+                    os.path.join(self.logdir, "losses.csv"), "a+"
+                ) as f:
+                    f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
+
+                if actor_loss < best_actor_loss:
+                    self.agent.save_model(os.path.join(self.logdir, "models", "agent.pt"))
+                    best_actor_loss = actor_loss
+
                 for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
                     ind.fitness.values = fit
                     if logfile is not None and (best is None or best < fit[0]):
@@ -1110,6 +1122,9 @@ class PPODtTrainConfig:
                             save_path=os.path.join(self.logdir, "models")
                         )
 
+                        self.agent.save_model(os.path.join(self.logdir, "models", "agent.pt"))
+                        best_actor_loss = actor_loss
+
                 # Save rewards
                 with open(
                     os.path.join(self.logdir, "rewards", "dt.csv"), "a"
@@ -1128,18 +1143,6 @@ class PPODtTrainConfig:
 
                     if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
                         population[o.parents[argmin]] = o
-
-                # learn on PPO
-                actor_loss, critic_loss, entropy = self.agent.learn(self.memory.to_tensor()["a"])
-
-                with open(
-                    os.path.join(self.logdir, "losses.csv"), "a+"
-                ) as f:
-                    f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
-
-                if actor_loss < best_actor_loss:
-                    self.agent.save_model(os.path.join(self.logdir, "models", "agent.pt"))
-                    best_actor_loss = actor_loss
 
                 # Append the current generation statistics to the logbook
                 record = stats.compile(population) if stats else {}
