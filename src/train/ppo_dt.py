@@ -1007,7 +1007,8 @@ class PPODtTrainConfig:
         logbook.header = ["time","gen", "nevals", "loss"] + (stats.fields if stats else [])
         best = None
         best_leaves = None
-        best_planner: ForestTree = None#PythonDT = None
+        best_planner: ForestTree = None
+        best_actor_loss = np.inf
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in population if not ind.fitness.valid] 
@@ -1061,91 +1062,99 @@ class PPODtTrainConfig:
         if verbose:
             print(logbook.stream)
 
-        # Begin the generational process
-        for gen in range(1, ngen):
-            # pa is the planner action
-            obs = self.env.reset()
-            pa = best_planner(obs.get("p").get("flat"))
-            self.batch(pa)
+        try:
+            # Begin the generational process
+            for gen in range(1, ngen):
+                # pa is the planner action
+                obs = self.env.reset()
+                pa = best_planner(obs.get("p").get("flat"))
+                self.batch(pa)
 
-            # Select the next generation individuals
-            offspring = toolbox.select(population, len(population))
+                # Select the next generation individuals
+                offspring = toolbox.select(population, len(population))
 
-            # Vary the pool of individuals
-            offspring = var(offspring, toolbox, cxpb, mutpb)
+                # Vary the pool of individuals
+                offspring = var(offspring, toolbox, cxpb, mutpb)
 
-            # Evaluate the individuals with an invalid fitness
-            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-            fitnesses: List[float, ForestTree] = [
-                *toolbox.map(toolbox.evaluate, invalid_ind)
-            ]
+                # Evaluate the individuals with an invalid fitness
+                invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+                fitnesses: List[float, ForestTree] = [
+                    *toolbox.map(toolbox.evaluate, invalid_ind)
+                ]
 
-            new_fitnesses = []
-            planners = []
-            for fit, planner in fitnesses:
-                planners.append(planner)
-                new_fitnesses.append(fit)
-            fitnesses = new_fitnesses
+                new_fitnesses = []
+                planners = []
+                for fit, planner in fitnesses:
+                    planners.append(planner)
+                    new_fitnesses.append(fit)
+                fitnesses = new_fitnesses
 
-            for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
-                ind.fitness.values = fit
-                if logfile is not None and (best is None or best < fit[0]):
-                    best = fit[0]
-                    best_planner = planners[i]
-                    best_leaves = best_planner.leaves
-                    best_rewards = best_planner.get_rewards() 
-                    with open(logfile, "a") as log_:
-                        log_.write(
-                            "[{}] New best at generation {} with fitness {}\n".format(
-                                datetime.now(), gen, fit
+                for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+                    ind.fitness.values = fit
+                    if logfile is not None and (best is None or best < fit[0]):
+                        best = fit[0]
+                        best_planner = planners[i]
+                        best_leaves = best_planner.leaves
+                        best_rewards = best_planner.get_rewards() 
+                        with open(logfile, "a") as log_:
+                            log_.write(
+                                "[{}] New best at generation {} with fitness {}\n".format(
+                                    datetime.now(), gen, fit
+                                )
                             )
-                        )
-                        log_.write(str(ind) + "\n")
-                        log_.write("Planner leaves\n")
-                        log_.write(str(best_planner) + "\n")
+                            log_.write(str(ind) + "\n")
+                            log_.write("Planner leaves\n")
+                            log_.write(str(best_planner) + "\n")
 
-                    best_planner.save(
-                        save_path=os.path.join(self.logdir, "models")
+                        best_planner.save(
+                            save_path=os.path.join(self.logdir, "models")
+                        )
+
+                # Save rewards
+                with open(
+                    os.path.join(self.logdir, "rewards", "dt.csv"), "a"
+                ) as f:
+                    f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+
+                # Update the hall of fame with the generated individuals
+                if halloffame is not None:
+                    halloffame.update(offspring)
+
+                # Replace the current population by the offspring
+                for o in offspring:
+                    argmin = np.argmin(
+                        map(lambda x: population[x].fitness.values[0], o.parents)
                     )
 
-            # Save rewards
-            with open(
-                os.path.join(self.logdir, "rewards", "dt.csv"), "a"
-            ) as f:
-                f.write(f"{best_rewards['0']},{best_rewards['1']},{best_rewards['2']},{best_rewards['3']},{best_rewards['p']},{np.array([f[0] for f in fitnesses], dtype=np.float16)}\n")
+                    if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+                        population[o.parents[argmin]] = o
 
-            # Update the hall of fame with the generated individuals
-            if halloffame is not None:
-                halloffame.update(offspring)
+                # learn on PPO
+                actor_loss, critic_loss, entropy = self.agent.learn(self.memory.to_tensor()["a"])
 
-            # Replace the current population by the offspring
-            for o in offspring:
-                argmin = np.argmin(
-                    map(lambda x: population[x].fitness.values[0], o.parents)
+                with open(
+                    os.path.join(self.logdir, "losses.csv"), "a+"
+                ) as f:
+                    f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
+
+                if actor_loss < best_actor_loss:
+                    self.agent.save_model(os.path.join(self.logdir, "models", "agent.pt"))
+                    best_actor_loss = actor_loss
+
+                # Append the current generation statistics to the logbook
+                record = stats.compile(population) if stats else {}
+                loss_str = f"({round(actor_loss.item(),2) if not np.isinf(actor_loss.item()) else actor_loss.item()},{round(critic_loss.item(),2) if not np.isinf(critic_loss.item()) else critic_loss.item()},{round(entropy.item(),2) if not np.isinf(entropy.item()) else entropy.item()})"
+                logbook.record(
+                    time=datetime.now().strftime("%H:%M:%S"),
+                    gen=gen,
+                    nevals=len(invalid_ind),
+                    loss=loss_str,
+                    **record,
                 )
+                if verbose:
+                    print(logbook.stream)
 
-                if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
-                    population[o.parents[argmin]] = o
-
-            # learn on PPO
-            actor_loss, critic_loss, entropy = self.agent.learn(self.memory.to_tensor()["a"])
-
-            with open(
-                os.path.join(self.logdir, "losses.csv"), "a+"
-            ) as f:
-                f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
-
-            # Append the current generation statistics to the logbook
-            record = stats.compile(population) if stats else {}
-            loss_str = f"({round(actor_loss.item(),2) if not np.isinf(actor_loss.item()) else actor_loss.item()},{round(critic_loss.item(),2) if not np.isinf(critic_loss.item()) else critic_loss.item()},{round(entropy.item(),2) if not np.isinf(entropy.item()) else entropy.item()})"
-            logbook.record(
-                time=datetime.now().strftime("%H:%M:%S"),
-                gen=gen,
-                nevals=len(invalid_ind),
-                loss=loss_str,
-                **record,
-            )
-            if verbose:
-                print(logbook.stream)
+        except KeyboardInterrupt:
+            logging.warning(f"KeyboardInterrupt occurred! Exiting...")
 
         return population, logbook, best_leaves
