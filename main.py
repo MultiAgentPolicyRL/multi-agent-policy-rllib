@@ -125,11 +125,11 @@ if __name__ == "__main__":
                 env,
                 episodes=1,
                 episode_len=6000,
-                lambda_=50,
-                generations=50,
+                lambda_=30,
+                generations=500,
                 seed=1,
                 mapped_agents={
-                    "a": 'PPO_P1_01-04-2023_1680328509_1000', # This must be the folder name to load the agent pre-trained in pytorch
+                    "a": 'PPO_P1', # This must be the folder name to load the agent pre-trained in pytorch
                     "p": True
                 },
             )

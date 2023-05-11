@@ -139,53 +139,53 @@ class PythonDT(DecisionTree):
         eps: float = 0.05,
         low: float = -100,
         up: float = 100,
-        planner: bool = False,
+        # planner: bool = False,
         load_path: str = None,
     ) -> None:
         super(PythonDT, self).__init__()
         self.program = phenotype
         self.leaves = {}
-        self.planner = planner
+        # self.planner = planner
         n_leaves = 0
         self.rewards = []
 
         if load_path is not None:
-            self.load(load_path, planner)
+            self.load(load_path)#, planner)
 
         else:
-            if phenotype is None:
-                raise ValueError("Phenotype is None and load_path is None")
-            assert n_actions > 0, "n_actions must be greater than 0"
+            # if phenotype is None:
+            #     raise ValueError("Phenotype is None and load_path is None")
+            # assert n_actions > 0, "n_actions must be greater than 0"
 
             while "_leaf" in self.program:
-                if planner:
-                    for i in range(7):
-                        new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
-                        leaf_name = "leaf_{}_{}".format(n_leaves, i)
-                        self.leaves[leaf_name] = new_leaf
+                # if planner:
+                #     for i in range(7):
+                #         new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
+                #         leaf_name = "leaf_{}_{}".format(n_leaves, i)
+                #         self.leaves[leaf_name] = new_leaf
 
-                        self.program = self.program.replace(
-                            "_leaf", "'{}.get_action()'".format(leaf_name), 1
-                        )
-                        self.program = self.program.replace(
-                            "_leaf", "{}".format(leaf_name), 1
-                        )
-                else:
-                    new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
-                    leaf_name = "leaf_{}".format(n_leaves)
-                    self.leaves[leaf_name] = new_leaf
+                #         self.program = self.program.replace(
+                #             "_leaf", "'{}.get_action()'".format(leaf_name), 1
+                #         )
+                #         self.program = self.program.replace(
+                #             "_leaf", "{}".format(leaf_name), 1
+                #         )
+                # else:
+                new_leaf = CLeaf(n_actions, lr, df, eps, low=low, up=up)
+                leaf_name = "leaf_{}".format(n_leaves)
+                self.leaves[leaf_name] = new_leaf
 
-                    self.program = self.program.replace(
-                        "_leaf", "'{}.get_action()'".format(leaf_name), 1
-                    )
-                    self.program = self.program.replace(
-                        "_leaf", "{}".format(leaf_name), 1
-                    )
+                self.program = self.program.replace(
+                    "_leaf", "'{}.get_action()'".format(leaf_name), 1
+                )
+                self.program = self.program.replace(
+                    "_leaf", "{}".format(leaf_name), 1
+                )
 
-                    n_leaves += 1
+                n_leaves += 1
 
         self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
-
+        
     def get_action(self, input):
         if len(self.program) == 0:
             return None
@@ -194,32 +194,50 @@ class PythonDT(DecisionTree):
             variables["_in_{}".format(idx)] = i
         variables.update(self.leaves)
 
-        if self.planner:
-            actions = []
-            # Subdivide the space in 7 parts and get the action for each one
-            for i in range(7):
-                variables["_in_0"] = i
-                exec(self.exec_, variables)
-                current_leaf = self.leaves[variables["leaf"]]
-
-                current_q_value = max(current_leaf.q)
-                if self.last_leaf is not None:
-                    self.last_leaf.update(self.current_reward, current_q_value)
-                self.last_leaf = current_leaf
-
-                actions.append(current_leaf.get_action())
-
-            return actions
-
         exec(self.exec_, variables)
 
-        current_leaf: CLeaf = self.leaves[variables["leaf"]]
+        current_leaf = self.leaves[variables["leaf"]]
         current_q_value = max(current_leaf.q)
         if self.last_leaf is not None:
             self.last_leaf.update(self.current_reward, current_q_value)
-        self.last_leaf = current_leaf
-
+        self.last_leaf = current_leaf 
+        
         return current_leaf.get_action()
+
+    # def get_action(self, input):
+    #     if len(self.program) == 0:
+    #         return None
+    #     variables = {}  # {"out": None, "leaf": None}
+    #     for idx, i in enumerate(input):
+    #         variables["_in_{}".format(idx)] = i
+    #     variables.update(self.leaves)
+
+    #     if self.planner:
+    #         actions = []
+    #         # Subdivide the space in 7 parts and get the action for each one
+    #         for i in range(7):
+    #             variables["_in_0"] = i
+    #             exec(self.exec_, variables)
+    #             current_leaf = self.leaves[variables["leaf"]]
+
+    #             current_q_value = max(current_leaf.q)
+    #             if self.last_leaf is not None:
+    #                 self.last_leaf.update(self.current_reward, current_q_value)
+    #             self.last_leaf = current_leaf
+
+    #             actions.append(current_leaf.get_action())
+
+    #         return actions
+
+    #     exec(self.exec_, variables)
+
+    #     current_leaf: CLeaf = self.leaves[variables["leaf"]]
+    #     current_q_value = max(current_leaf.q)
+    #     if self.last_leaf is not None:
+    #         self.last_leaf.update(self.current_reward, current_q_value)
+    #     self.last_leaf = current_leaf
+
+    #     return current_leaf.get_action()
 
     def __call__(self, x):
         return self.get_action(x)
@@ -234,6 +252,83 @@ class PythonDT(DecisionTree):
                 actions[agent] = self.get_action(x.get("flat"))
 
         return actions
+
+    def save(self, save_path: str):
+        data = {
+            "leaves": self.leaves,
+            "program": self.program,
+        }
+
+        # Save self as a pickle
+        with open(save_path, 'wb') as f:
+            pickle.dump(data, f)
+
+    def load(self, load_path: str):#, planner: bool = False):
+        # Load self from a pickle
+        with open(
+            load_path,
+            "rb",
+        ) as f:
+            data = pickle.load(f)
+            self.leaves = data.get("leaves")
+            self.program = data.get("program")
+
+            self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
+
+
+class ForestTree:
+    def __init__(
+        self,
+        phenotypes: List[str] = None,
+        n_actions: int = 0,
+        lr: Union[float, str] = "auto",
+        df: float = 0.9,
+        eps: float = 0.05,
+        low: float = -100,
+        up: float = 100,
+        num_actions: int = 7,
+        load_path: str = None,
+    ) -> None:
+
+        if load_path is not None:
+            if os.path.exists(load_path):
+                self.trees = {
+                    i: PythonDT(load_path=os.path.join(load_path, 'dt_{}.pkl'.format(i))) for i in range(num_actions)
+                }
+            else:
+                raise ValueError(f"Path '{load_path}' does not exists!")
+
+        else:
+            if not phenotypes or any([p is None for p in phenotypes]):
+                raise ValueError("Phenotype is None and load_path is None")
+            assert n_actions > 0, "n_actions must be greater than 0"
+
+            self.trees = {}
+            for key in range(num_actions):
+                self.trees[key] = PythonDT(phenotypes[key],n_actions,lr,df,eps,low,up) 
+           
+        self.rewards = []
+
+    def __call__(self, input):
+        return self.get_actions(input)
+
+    def __str__(self):
+        string = ""
+
+        for key, tree in self.trees.items():
+            string += "\n\t- DT {} - \n\n{}\n\n".format(key+1, tree.program)
+
+        return string
+    
+    @property
+    def leaves(self,):
+        return {
+            key: tree.leaves for key, tree in self.trees.items()
+        }
+
+    def new_episode(self,):
+        for tree in self.trees.values():
+            tree.new_episode()
 
     def clear_rewards(self):
         self.rewards = []
@@ -255,28 +350,19 @@ class PythonDT(DecisionTree):
 
         return ret
 
-    def save(self, save_path: str):
-        data = {
-            "leaves": self.leaves,
-            "program": self.program,
-        }
+    def get_actions(self, input):
+        
+        actions = np.empty((0))
+        
+        for tree in self.trees.values():
+            actions = np.concatenate((actions, np.array([tree.get_action(input)])))
+        
+        return actions
 
-        # Save self as a pickle
-        with open(
-            os.path.join(save_path, "dt_{}.pkl".format("p" if self.planner else "a")),
-            "wb",
-        ) as f:
-            pickle.dump(data, f)
+    def set_reward(self, reward):
+        for tree in self.trees.values():
+            tree.set_reward(reward)
 
-    def load(self, load_path: str, planner: bool = False):
-        # Load self from a pickle
-        with open(
-            load_path,
-            "rb",
-        ) as f:
-            data = pickle.load(f)
-            self.leaves = data.get("leaves")
-            self.program = data.get("program")
-
-            self.exec_ = compile(self.program, "<string>", "exec", optimize=2)
-            self.planner = planner
+    def save(self, save_path):
+        for idx, tree in self.trees.items():
+            tree.save(os.path.join(save_path, "dt_{}.pkl".format(idx)))

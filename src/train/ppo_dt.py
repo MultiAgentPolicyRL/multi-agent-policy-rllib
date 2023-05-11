@@ -23,13 +23,13 @@ from joblib import parallel_backend
 
 from deap import base, creator, tools
 from typing import Dict, List, Tuple, Union
-from src.train.dt import PythonDT
+from src.train.dt import ForestTree#PythonDT
 from src.common.env import EnvWrapper
 from src.common.rollout_buffer import RolloutBuffer
 from src.train.dt import (
     GrammaticalEvolutionTranslator,
     ListWithParents,
-    PythonDT,
+    #PythonDT,
     varAnd,
 )
 from src.train.ppo import PpoPolicy
@@ -217,7 +217,9 @@ class PPODtTrainConfig:
                         "lambda_": self.lambda_,
                         "input_space": input_space,
                         # "grammar_agent": self.grammar_agent,
-                        "grammar_planner": self.grammar_planner,
+                        "grammar_planner": {
+                            str(key) : value for key, value in self.grammar_planner.items()
+                        }
                     },
                     "ppo": {
                         "rollout_fragment_length": self.rollout_fragment_length,
@@ -328,7 +330,9 @@ class PPODtTrainConfig:
             grammar_planner["const_type_{}".format(index)] = consts_
 
         # Add to self
-        self.grammar_planner = grammar_planner
+        self.grammar_planner = {
+            key: grammar_planner for key in range(7)
+        }
 
     def build_ppo(
         self,
@@ -474,22 +478,23 @@ class PPODtTrainConfig:
 
     def evaluate_fitness(
         self,
-        genotype: List[int],
+        genotypes: List[int],
     ) -> float:
-        # Get the phenotype
-        phenotype_planner, _ = GrammaticalEvolutionTranslator(
-            self.grammar_planner
-        ).genotype_to_str(genotype)
+        phenotypes = []
+        for idx, genotype in enumerate(genotypes):
+            if isinstance(genotype, int):
+                genotype = np.array([genotype])
+            phenotype, _ = GrammaticalEvolutionTranslator(self.grammar_planner[idx]).genotype_to_str(genotype)
+            phenotypes.append(phenotype)
 
-        dt_p = PythonDT(
-            phenotype_planner,
+        dt_p = ForestTree(
+            phenotypes,
             self.n_actions.get("p", 22),
             self.lr,
             self.df,
             self.eps,
             self.low,
             self.up,
-            planner=True,
         )
 
         # Evaluate the fitness
@@ -648,7 +653,7 @@ class PPODtTrainConfig:
                 )
 
         agent: PytorchLinearA = torch.load(_agent_path)
-        planner = PythonDT(
+        planner = ForestTree(#PythonDT(
             load_path=os.path.join(planner_path, "models", "dt_p.pkl"), planner=True
         )
 
@@ -684,11 +689,11 @@ class PPODtTrainConfig:
 
         return planner.rewards, env.env.previous_episode_dense_log
 
-    def fitness(self, planner: PythonDT):
+    def fitness(self, planner: ForestTree):#PythonDT):
         temp = []
         global_cumulative_rewards = []
 
-        if not planner.leaves:
+        if any([not v for v in planner.leaves.values()]):
             return (-np.inf,), planner
 
         for _ in range(self.episodes):
@@ -770,22 +775,22 @@ class PPODtTrainConfig:
         Training log. Use this only from `self.train()`
         """
         with open(self.logfile, "a") as log_:
-            phenotype, _ = GrammaticalEvolutionTranslator(self.grammar_planner).genotype_to_str(hof[0])
-            phenotype = phenotype.replace('leaf="_leaf"', '')
-
-            for k in range(4):  # Iterate over all possible leaves
-                for a in range(136):
-                    key = "leaf_{}_{}".format(k, a)
-                    if key in best_leaves.keys():
-                        v = best_leaves[key].q
+            log_.write("\n\n" + str(log) + "\n")
+            log_.write("Best fitness: {}\n".format(hof[0].fitness.values[0]))
+            for a, leaves in best_leaves.items():
+                phenotype, _ = GrammaticalEvolutionTranslator(self.grammar_planner[a]).genotype_to_str(hof[0][a])
+                phenotype = phenotype.replace('leaf="_leaf"', '')
+                for k in range(50000):  # Iterate over all possible leaves
+                    key = "leaf_{}".format(k)
+                    if key in leaves:
+                        v = leaves[key].q
                         phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
                     else:
                         break
 
-            log_.write(str(log) + "\n")
-            log_.write(str(hof[0]) + "\n")
-            log_.write(phenotype + "\n")
-            log_.write("best_fitness: {}".format(hof[0].fitness.values[0]))
+                log_.write("\n\t - DT {} - \n\n".format(a+1) + str(hof[0][a]) + "\n\n")
+                log_.write(phenotype + "\n\n")
+                
 
         with open(os.path.join(self.logdir, "fitness.tsv"), "w") as f:
             f.write(str(log))
@@ -860,6 +865,13 @@ class PPODtTrainConfig:
 
         # Attribute generator
         toolbox.register("attr_bool", random.randint, 0, _max_value)
+        toolbox.register(
+            "sub_individuals", 
+            tools.initRepeat,
+            creator.Individual,
+            toolbox.attr_bool,
+            initial_len
+        )
 
         # Structure initializers
         # if jobs > 1:
@@ -869,8 +881,8 @@ class PPODtTrainConfig:
             "individual",
             tools.initRepeat,
             creator.Individual,
-            toolbox.attr_bool,
-            initial_len,
+            toolbox.sub_individuals,
+            7,
         )
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
@@ -995,12 +1007,12 @@ class PPODtTrainConfig:
         logbook.header = ["time","gen", "nevals", "loss"] + (stats.fields if stats else [])
         best = None
         best_leaves = None
-        best_planner: PythonDT = None
+        best_planner: ForestTree = None#PythonDT = None
 
         # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in population if not ind.fitness.valid]
+        invalid_ind = [ind for ind in population if not ind.fitness.valid] 
 
-        fitnesses: List[float, PythonDT] = [
+        fitnesses: List[float, ForestTree] = [
             *toolbox.map(toolbox.evaluate, invalid_ind)
         ]  # Obviously, it depends directly on the population size!
 
@@ -1064,7 +1076,7 @@ class PPODtTrainConfig:
 
             # Evaluate the individuals with an invalid fitness
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-            fitnesses: List[float, PythonDT] = [
+            fitnesses: List[float, ForestTree] = [
                 *toolbox.map(toolbox.evaluate, invalid_ind)
             ]
 
