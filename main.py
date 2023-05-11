@@ -167,8 +167,8 @@ if __name__ == "__main__":
                 PPODtTrainConfig,
                 config={},
                 mapped_agents={
-                    "a": "PPO_DT_P2_2023-04-17_181557_10",
-                    "p": "PPO_DT_P2_2023-04-17_181557_10",
+                    "a": "PPO_P1",
+                    "p": "PPO_DT_P2_2023-05-11_000039_1",
                 },
             )
     else:

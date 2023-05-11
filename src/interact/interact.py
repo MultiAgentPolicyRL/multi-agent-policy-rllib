@@ -245,7 +245,7 @@ class InteractConfig:
         Creates this experiment directory and a log file.
         """
 
-        folder_dir = self.mapped_agents.get("a").split("_")
+        folder_dir = self.mapped_agents.get("p").split("_")
         date = folder_dir[-3] #+ "_" + folder_dir[-2]
         id = folder_dir[-2]
         algorithm_name = "PPO" 
@@ -266,7 +266,7 @@ class InteractConfig:
 
         # Copy all the self.mapped_agents.get("a") content in the new dir
         shutil.copytree(
-            os.path.join("experiments", self.mapped_agents.get("a")),
+            os.path.join("experiments", self.mapped_agents.get("p")),
             self.path,
             dirs_exist_ok=True,
         )
@@ -342,11 +342,11 @@ class InteractConfig:
 
         if not isinstance(self.mapped_agents["p"], bool):
             self.phase = "P2"
-            if (
-                not isinstance(self.mapped_agents["a"], bool)
-                and self.mapped_agents["p"] != self.mapped_agents["a"]
-            ):
-                raise ValueError("The path for pretrained models must be the same!")
+            # if (
+            #     not isinstance(self.mapped_agents["a"], bool)
+            #     and self.mapped_agents["p"] != self.mapped_agents["a"]
+            # ):
+            #     raise ValueError("The path for pretrained models must be the same!")
         else:
             self.phase = "P1"
 

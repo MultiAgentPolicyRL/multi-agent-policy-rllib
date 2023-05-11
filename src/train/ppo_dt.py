@@ -654,7 +654,7 @@ class PPODtTrainConfig:
 
         agent: PytorchLinearA = torch.load(_agent_path)
         planner = ForestTree(#PythonDT(
-            load_path=os.path.join(planner_path, "models", "dt_p.pkl"), planner=True
+            load_path=os.path.join(planner_path, "models")
         )
 
         # Initialize some variables
