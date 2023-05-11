@@ -91,11 +91,23 @@ assert args.path_ppo is not None or args.path_dt is not None, "Path of the model
 
 assert isinstance(args.path_ppo, str) or isinstance(args.path_ppo, bool), "PPO path must be either a path like object or a bool object!"
 if isinstance(args.path_ppo, str):
-    assert os.path.exists(os.path.join('experiments', args.path_ppo)), "PPO path not found ('{}')".format(args.path_ppo)
+    if args.path_ppo in ['True', 'False']:
+        if args.path_ppo == 'True':
+            args.path_ppo = True
+        else:
+            args.path_ppo = False
+    else:
+        assert os.path.exists(os.path.join('experiments', args.path_ppo)), "PPO path not found ('{}')".format(args.path_ppo)
 
 assert isinstance(args.path_dt, str) or isinstance(args.path_dt, bool), "DT path must be either a path like object or a bool object!"
 if isinstance(args.path_dt, str):
-    assert os.path.exists(os.path.join('experiments', args.path_dt)), "DT path not found ('{}')".format(args.path_dt)
+    if args.path_dt in ['True', 'False']:
+        if args.path_dt == 'True':
+            args.path_dt = True
+        else:
+            args.path_dt = False
+    else:
+        assert os.path.exists(os.path.join('experiments', args.path_dt)), "DT path not found ('{}')".format(args.path_dt)
 
 assert args.mode in ["train", "eval"], "Invalid mode"
 assert args.type in ["PPO", "DT", "PPO_DT"], "Invalid type of algorithm"
@@ -119,8 +131,8 @@ if __name__ == "__main__":
                 batch_size=6000,
                 rollout_fragment_length=200,
                 mapped_agents={
-                    "a": args.path_ppo, 
-                    "p": args.path_dt,
+                    "a": args.path_ppo,
+                    "p": args.path_dt
                 },
             )
             trainer.train()
@@ -132,8 +144,8 @@ if __name__ == "__main__":
                 lambda_=180,
                 generations=50,
                 mapped_agents={
-                    "a": args.path_ppo, 
-                    "p": args.path_dt,
+                    "a": args.path_ppo,
+                    "p": args.path_dt
                 },
             )
             trainer.train()
@@ -147,7 +159,7 @@ if __name__ == "__main__":
                 seed=1,
                 mapped_agents={
                     "a": args.path_ppo,  # This must be the folder name to load the agent pre-trained in pytorch
-                    "p": args.path_dt,
+                    "p": args.path_dt
                 }
             )
             trainer.train()
