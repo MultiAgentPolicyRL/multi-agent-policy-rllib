@@ -11,6 +11,7 @@ families:
     - PPO
 """
 # pylint: disable=pointless-string-statement
+import os
 import argparse
 import logging
 
@@ -76,7 +77,7 @@ def get_mapping_function():
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, default="train", help="Mode of the experiment")
-parser.add_argument("--type", type=str, default="PPO", help="Type of the algorithm")
+parser.add_argument("--type", type=str, default="PPO_DT", help="Type of the algorithm")
 parser.add_argument(
     "--path-ppo", type=str, default=None, help="Path of the model weights for ppo"
 )
@@ -85,6 +86,14 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+assert args.path_ppo is not None or args.path_dt is not None, "Path of the model weights is not set"
+assert isinstance(args.path_ppo, str) and os.path.exists(args.path_ppo) or \
+    isinstance(args.path_ppo, bool), "PPO path must be either a valid path or bool"
+assert isinstance(args.path_dt, str) and os.path.exists(args.path_dt) or \
+    isinstance(args.path_dt, bool), "DT path must be either a valid path or bool"
+assert args.mode in ["train", "eval"], "Invalid mode"
+assert args.type in ["PPO", "DT", "PPO_DT"], "Invalid type of algorithm"
 
 
 if __name__ == "__main__":
@@ -105,8 +114,8 @@ if __name__ == "__main__":
                 batch_size=6000,
                 rollout_fragment_length=200,
                 mapped_agents={
-                    "a": True, 
-                    "p": False
+                    "a": args.path_ppo, 
+                    "p": args.path_dt,
                 },
             )
             trainer.train()
@@ -117,7 +126,10 @@ if __name__ == "__main__":
                 episode_len=1000,
                 lambda_=180,
                 generations=50,
-                mapped_agents={"a": True, "p": True},
+                mapped_agents={
+                    "a": args.path_ppo, 
+                    "p": args.path_dt,
+                },
             )
             trainer.train()
         elif args.type == "PPO_DT":
@@ -129,9 +141,9 @@ if __name__ == "__main__":
                 generations=500,
                 seed=1,
                 mapped_agents={
-                    "a": 'PPO_P1', # This must be the folder name to load the agent pre-trained in pytorch
-                    "p": True
-                },
+                    "a": args.path_ppo,  # This must be the folder name to load the agent pre-trained in pytorch
+                    "p": args.path_dt,
+                }
             )
             trainer.train()
         else:
@@ -145,8 +157,8 @@ if __name__ == "__main__":
                 PpoTrainConfig,
                 config={},
                 mapped_agents={
-                    "a": "PPO_P1_01-04-2023_1680328509_1000",
-                    "p": False,
+                    "a": args.path_ppo, 
+                    "p": args.path_dt,
                 },
             )
         elif args.type == "DT":
@@ -156,8 +168,8 @@ if __name__ == "__main__":
                 DtTrainConfig,
                 config={},
                 mapped_agents={
-                    "a": "DT_P2_2023-04-19_124132_5",
-                    "p": "DT_P2_2023-04-19_124132_5",
+                    "a": args.path_ppo, 
+                    "p": args.path_dt,
                 },
             )
         elif args.type == "PPO_DT":
@@ -167,8 +179,8 @@ if __name__ == "__main__":
                 PPODtTrainConfig,
                 config={},
                 mapped_agents={
-                    "a": "PPO_P1",
-                    "p": "PPO_DT_P2_2023-05-11_000039_1",
+                    "a": args.path_ppo, 
+                    "p": args.path_dt,
                 },
             )
     else:
