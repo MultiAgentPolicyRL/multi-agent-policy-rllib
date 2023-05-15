@@ -1098,7 +1098,7 @@ class PPODtTrainConfig:
                     f.write(f"{actor_loss.item()},{critic_loss.item()},{entropy.item()}\n")
 
                 if actor_loss < best_actor_loss:
-                    self.agent.save_model(os.path.join(self.logdir, "models", "agent.pt"))
+                    self.agent.save_model(os.path.join(self.logdir, "models", "a.pt"))
                     best_actor_loss = actor_loss
 
                 for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
@@ -1122,7 +1122,7 @@ class PPODtTrainConfig:
                             save_path=os.path.join(self.logdir, "models")
                         )
 
-                        self.agent.save_model(os.path.join(self.logdir, "models", "agent.pt"))
+                        self.agent.save_model(os.path.join(self.logdir, "models", "a.pt"))
                         best_actor_loss = actor_loss
 
                 # Save rewards

@@ -1,26 +1,31 @@
 """
-TODO
+Interact module. 
+
+=================
+
+This module is intended to be used to interact with the environment using the pretrained models. It selects the right configuration
+and performs a number of steps in the environment. It also saves the dense log of the episode and the rewards in a csv file.
+
+---
+
+
 """
-import logging
 import os
-import shutil
-import json
-import pickle
-import time
-import random
-from datetime import datetime
-import numpy as np
-
-import toml
 import torch
+import pickle
+import random
+import shutil
+import logging
+import numpy as np
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-from src.interact import plotting
 
-from src.common import EmptyModel, test_mapping
-from src.train.dt_ql_train import DtTrainConfig
-from src.train.ppo_train import PpoTrainConfig
+from tqdm import tqdm
+
+from src.interact import plotting
 from src.train.ppo_dt import PPODtTrainConfig
+from src.train.ppo_train import PpoTrainConfig
+from src.train.dt_ql_train import DtTrainConfig
+from src.common import EmptyModel, test_mapping
 
 
 class InteractConfig:
@@ -193,12 +198,15 @@ class InteractConfig:
                 )
 
                 with open(
-                    os.path.join(self.path, "logs", "dt.csv"), "a"
+                    os.path.join(self.path, "logs", "Simulation.csv"), "a"
                 ) as reward_file:
                     for rew in rewards:
-                        reward_file.write(
-                            f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n"
-                        )
+                        for val in rew.values():
+                            reward_file.write(f"{val.item()},")
+                        # reward_file.write(
+                        #     f"{rew['0']},{rew['1']},{rew['2']},{rew['3']},{rew['p']}\n"
+                        # )
+                        reward_file.write("\n")
 
                 with open(
                     os.path.join(self.path, "logs", "dense_logs.pkl"), "wb"
@@ -354,24 +362,32 @@ class InteractConfig:
         ) as all_builds_file:
             pickle.dump(all_builds, all_builds_file)
 
-        plt.close()
+        plt.close(fig0)
+        plt.close(fig1)
+        plt.close(fig2)
 
         total_tax_paid = 0
         total_income = 0
         with open(
-            os.path.join(self.path, "logs", "PeriodicTax.log"), "+w"
+            os.path.join(self.path, "logs", "PeriodicTax.md"), "+w"
         ) as f:
+            f.write(f"# Periodic Tax\n\n")
             for idx, tax in enumerate(dense_logs.get('PeriodicTax')):
                 if len(tax) > 0:
-                    f.write(f"Step {idx+1} has (income, tax_paid): \n\t")
+                    f.write(f"## Step {idx+1}\n\nEach agent earned and paid:\n")
                     for key, values in tax.items():
                         if key in ['0', '1', '2', '3']:
-                            f.write(f"{key}: ({values.get('income', -1):.2f}, {values.get('tax_paid', -1):.2f}), ")
-                            total_tax_paid += values.get('tax_paid', 0)
-                            total_income += values.get('income', 0)
+                            _income = values.get('income')
+                            _tax_paid = values.get('tax_paid')
+                            if _income <= 0:
+                                f.write(f" - Agent {key} has income {_income:.2f} and paid in taxes {_tax_paid:.2f} (0.0 %)\n")
+                            else:
+                                f.write(f" - Agent {key} has income {_income:.2f} and paid in taxes {_tax_paid:.2f} ({round((_tax_paid/_income)*100, 1)} %)\n")
+                            total_tax_paid += _tax_paid
+                            total_income += _income
                     f.write("\n\n")
 
-            f.write(f"\nTotal paid taxes are {total_tax_paid:.2f} over the total income {total_income:.2f} with ratio ({total_tax_paid/total_income:.2f})")
+            f.write(f"## Total\n\nTo sum up:\n - Total paid taxes is {total_tax_paid:.2f}\n - Total incomes is {total_income:.2f}\n - Ratio(tax/income) = {round((total_tax_paid/total_income)*100, 2)} %")
 
         agent_1 = np.empty((0))
         agent_2 = np.empty((0))
@@ -385,8 +401,6 @@ class InteractConfig:
             agent_3 = np.append(agent_3, val.get('2', -np.inf))
             agent_4 = np.append(agent_4, val.get('3', -np.inf))
             planner = np.append(planner, val.get('p', -np.inf))
-
-        all_sum = np.sum([agent_1, agent_2, agent_3, agent_4, planner])
 
         fig, axs = plt.subplots(3, 2, figsize=(20, 30))
 
