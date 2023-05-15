@@ -200,6 +200,9 @@ if __name__ == "__main__":
                     "p": args.path_dt,
                 },
             )
+    
+        dense_logs = interact.run_stepper()
+        interact.output_plots(dense_logs)
     else:
         raise ValueError("Invalid mode")
     

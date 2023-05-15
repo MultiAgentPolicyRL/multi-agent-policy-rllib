@@ -56,38 +56,7 @@ class InteractConfig:
         self.validate_config(env=env)
         self.setup_logs_and_dirs()
 
-        # Build correct stepper (build and load specific models)
-        dense_logs = self.run_stepper()
-
-        (fig0, fig1, fig2), incomes, endows, c_trades, all_builds = plotting.breakdown(
-            dense_logs
-        )
-
-        fig0.savefig(fname=os.path.join(self.path, "plots", "Global.png"))
-
-        fig1.savefig(fname=os.path.join(self.path, "plots", "Trend.png"))
-
-        fig2.savefig(fname=os.path.join(self.path, "plots", "Movements.png"))
-
-        with open(
-            os.path.join(self.path, "logs", "incomes.pkl"), "+wb"
-        ) as incomes_file:
-            pickle.dump(incomes, incomes_file)
-
-        with open(os.path.join(self.path, "logs", "endows.pkl"), "+wb") as endows_file:
-            pickle.dump(endows, endows_file)
-
-        with open(
-            os.path.join(self.path, "logs", "c_trades.pkl"), "+wb"
-        ) as c_trades_file:
-            pickle.dump(c_trades, c_trades_file)
-
-        with open(
-            os.path.join(self.path, "logs", "all_builds.pkl"), "+wb"
-        ) as all_builds_file:
-            pickle.dump(all_builds, all_builds_file)
-
-        plt.close()
+        return        
 
     def run_stepper(self):
         if self.trainer == PpoTrainConfig:
@@ -351,3 +320,149 @@ class InteractConfig:
             self.phase = "P1"
 
         logging.info("Config validation: OK!")
+
+    def output_plots(self, dense_logs: dict) -> None:
+        """
+        Plot the rewards and save the plots in the experiment's directory.
+        """
+
+        (fig0, fig1, fig2), incomes, endows, c_trades, all_builds = plotting.breakdown(
+            dense_logs
+        )
+
+        fig0.savefig(fname=os.path.join(self.path, "plots", "Global.png"))
+
+        fig1.savefig(fname=os.path.join(self.path, "plots", "Trend.png"))
+
+        fig2.savefig(fname=os.path.join(self.path, "plots", "Movements.png"))
+
+        with open(
+            os.path.join(self.path, "logs", "incomes.pkl"), "+wb"
+        ) as incomes_file:
+            pickle.dump(incomes, incomes_file)
+
+        with open(os.path.join(self.path, "logs", "endows.pkl"), "+wb") as endows_file:
+            pickle.dump(endows, endows_file)
+
+        with open(
+            os.path.join(self.path, "logs", "c_trades.pkl"), "+wb"
+        ) as c_trades_file:
+            pickle.dump(c_trades, c_trades_file)
+
+        with open(
+            os.path.join(self.path, "logs", "all_builds.pkl"), "+wb"
+        ) as all_builds_file:
+            pickle.dump(all_builds, all_builds_file)
+
+        plt.close()
+
+        total_tax_paid = 0
+        total_income = 0
+        with open(
+            os.path.join(self.path, "logs", "PeriodicTax.log"), "+w"
+        ) as f:
+            for idx, tax in enumerate(dense_logs.get('PeriodicTax')):
+                if len(tax) > 0:
+                    f.write(f"Step {idx+1} has (income, tax_paid): \n\t")
+                    for key, values in tax.items():
+                        if key in ['0', '1', '2', '3']:
+                            f.write(f"{key}: ({values.get('income', -1):.2f}, {values.get('tax_paid', -1):.2f}), ")
+                            total_tax_paid += values.get('tax_paid', 0)
+                            total_income += values.get('income', 0)
+                    f.write("\n\n")
+
+            f.write(f"\nTotal paid taxes are {total_tax_paid:.2f} over the total income {total_income:.2f} with ratio ({total_tax_paid/total_income:.2f})")
+
+        agent_1 = np.empty((0))
+        agent_2 = np.empty((0))
+        agent_3 = np.empty((0))
+        agent_4 = np.empty((0))
+        planner = np.empty((0))
+
+        for val in dense_logs.get('rewards'):
+            agent_1 = np.append(agent_1, val.get('0', -np.inf))
+            agent_2 = np.append(agent_2, val.get('1', -np.inf))
+            agent_3 = np.append(agent_3, val.get('2', -np.inf))
+            agent_4 = np.append(agent_4, val.get('3', -np.inf))
+            planner = np.append(planner, val.get('p', -np.inf))
+
+        all_sum = np.sum([agent_1, agent_2, agent_3, agent_4, planner])
+
+        fig, axs = plt.subplots(3, 2, figsize=(20, 30))
+
+        axs[0][0].scatter(np.arange(1, agent_1.shape[0]+1), agent_1, label='Rewards')
+        agent_sum = []
+        for rew in agent_1:
+            to_add = np.sum(agent_sum[-1]+rew) if len(agent_sum) > 0 else rew
+            agent_sum.append(to_add)
+        axs[0][0].plot(np.arange(1, len(agent_sum)+1), agent_sum, label='Rewards Sum')
+        axs[0][0].set_title('Agent 1')
+        axs[0][0].set_xlabel('Episode')
+        axs[0][0].set_ylabel('Reward')
+        axs[0][0].legend()
+
+        axs[0][1].scatter(np.arange(1, agent_2.shape[0]+1), agent_2, label='Rewards')
+        agent_sum = []
+        for rew in agent_2:
+            to_add = np.sum(agent_sum[-1]+rew) if len(agent_sum) > 0 else rew
+            agent_sum.append(to_add)
+        axs[0][1].plot(np.arange(1, len(agent_sum)+1), agent_sum, label='Rewards Sum')
+        axs[0][1].set_title('Agent 2')
+        axs[0][1].set_xlabel('Episode')
+        axs[0][1].set_ylabel('Reward')
+        axs[0][1].legend()
+
+        axs[1][0].scatter(np.arange(1, agent_3.shape[0]+1), agent_3, label='Rewards')
+        agent_sum = []
+        for rew in agent_3:
+            to_add = np.sum(agent_sum[-1]+rew) if len(agent_sum) > 0 else rew
+            agent_sum.append(to_add)
+        axs[1][0].plot(np.arange(1, len(agent_sum)+1), agent_sum, label='Rewards Sum')
+        axs[1][0].set_title('Agent 3')
+        axs[1][0].set_xlabel('Episode')
+        axs[1][0].set_ylabel('Reward')
+        axs[1][0].legend()
+
+        axs[1][1].scatter(np.arange(1, agent_4.shape[0]+1), agent_4, label='Rewards')
+        agent_sum = []
+        for rew in agent_4:
+            to_add = np.sum(agent_sum[-1]+rew) if len(agent_sum) > 0 else rew
+            agent_sum.append(to_add)
+        axs[1][1].plot(np.arange(1, len(agent_sum)+1), agent_sum, label='Rewards Sum')
+        axs[1][1].set_title('Agent 4')
+        axs[1][1].set_xlabel('Episode')
+        axs[1][1].set_ylabel('Reward')
+        axs[1][1].legend()
+
+        axs[2][0].scatter(np.arange(1, planner.shape[0]+1), planner, label='Rewards')
+        agent_sum = []
+        for rew in planner:
+            to_add = np.sum(agent_sum[-1]+rew) if len(agent_sum) > 0 else rew
+            agent_sum.append(to_add)
+        axs[2][0].plot(np.arange(1, len(agent_sum)+1), agent_sum, label='Rewards Sum')
+        axs[2][0].set_title('Planner')
+        axs[2][0].set_xlabel('Episode')
+        axs[2][0].set_ylabel('Reward')
+        axs[2][0].legend()
+
+        total = []
+        for a1, a2, a3, a4, p in zip(agent_1, agent_2, agent_3, agent_4, planner):
+            total.append(a1+a2+a3+a4+p)
+
+        axs[2][1].scatter(np.arange(1, len(total)+1), total, label='Rewards')
+        agent_sum = []
+        for rew in total:
+            to_add = np.sum(agent_sum[-1]+rew) if len(agent_sum) > 0 else rew
+            agent_sum.append(to_add)
+        axs[2][1].plot(np.arange(1, len(agent_sum)+1), agent_sum, label='Rewards Sum')
+        axs[2][1].set_title('Total')
+        axs[2][1].set_xlabel('Episode')
+        axs[2][1].set_ylabel('Reward')
+        axs[2][1].legend()
+
+
+        fig.savefig(os.path.join(self.path, 'plots', 'Rewards.png'))
+
+        plt.close(fig)
+
+        return
