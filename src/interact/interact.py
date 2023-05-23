@@ -10,6 +10,7 @@ and performs a number of steps in the environment. It also saves the dense log o
 
 
 """
+import datetime
 import os
 import torch
 import pickle
@@ -67,6 +68,7 @@ class InteractConfig:
         if self.trainer == PpoTrainConfig:
             # PPO
             if self.phase == "P1":
+                print("PHASE 1")
                 self.models = {
                     "a": torch.load(
                         "experiments/" + self.mapped_agents.get("a") + "/models/a.pt"
@@ -77,6 +79,7 @@ class InteractConfig:
                     ),
                 }
             else:
+                print("PHASE 2")
                 self.models = {
                     "a": torch.load(
                         "experiments/" + self.mapped_agents["a"] + "/models/a.pt"
@@ -222,9 +225,9 @@ class InteractConfig:
         Creates this experiment directory and a log file.
         """
 
-        folder_dir = self.mapped_agents.get("p").split("_")
-        date = folder_dir[-3] #+ "_" + folder_dir[-2]
-        id = folder_dir[-2]
+        # folder_dir = self.mapped_agents.get("p").split("_")
+        # date = folder_dir[-3] #+ "_" + folder_dir[-2]
+        # id = folder_dir[-2]
         algorithm_name = "PPO" 
         if self.trainer ==  DtTrainConfig:
             algorithm_name = "DT"
@@ -232,7 +235,7 @@ class InteractConfig:
             algorithm_name = "PPO_DT"
 
         experiment_name = (
-            f"INT_{algorithm_name}_{date}_{id}"
+            f"INT_{algorithm_name}_{datetime.datetime.now()}"
         )
         self.path = f"experiments/{experiment_name}"
 
@@ -242,35 +245,12 @@ class InteractConfig:
             os.makedirs(self.path + "/plots")
 
         # Copy all the self.mapped_agents.get("a") content in the new dir
-        shutil.copytree(
-            os.path.join("experiments", self.mapped_agents.get("p")),
-            self.path,
-            dirs_exist_ok=True,
-        )
-
-        # # Create config.txt log file
-        # with open(self.path + "/config.toml", "w") as config_file:
-        #     config_dict = {
-        #         "common": {
-        #             "algorithm_name": algorithm_name,
-        #             "step": self.env.env.episode_length,
-        #             "seed": self.seed,
-        #             "device": self.device,
-        #             "mapped_agents": self.mapped_agents,
-        #         }
-        #     }
-
-        #     # Algorithm's specific infos
-        #     if algorithm_name == {"PPO"}:
-        #         # TODO: save PPO's config
-        #         # (learning rate but it's kinda useless)
-
-        #         pass
-        #     else:
-        #         # TODO: save DT's config
-        #         pass
-
-        #     toml.dump(config_dict, config_file)
+        if self.phase == "P2":
+            shutil.copytree(
+                os.path.join("experiments", self.mapped_agents.get("p")),
+                self.path,
+                dirs_exist_ok=True,
+            )
 
         with open(self.path + "/logs/Simulation.csv", "a+") as log_file:
             log_file.write("0,1,2,3,p\n")

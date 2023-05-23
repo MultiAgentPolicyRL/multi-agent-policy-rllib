@@ -19,8 +19,6 @@ from deap import base, creator, tools
 
 from datetime import datetime
 
-from joblib import parallel_backend
-
 from deap import base, creator, tools
 from typing import Dict, List, Tuple, Union
 from src.train.dt import ForestTree#PythonDT
