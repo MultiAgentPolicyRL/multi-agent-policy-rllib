@@ -25,23 +25,3 @@ Train AI-Economist agents with PPO (as in the paper) and the social planner with
 `pip install -r requirementsUpdated.txt`  
 4. The 3 Levels custom training is located at  
 `ai-economist/tutorials/rllib/training_2_algos.py`  
-
-## Notes:
-- Project is not ready yet for any type of deployment
-- Python's `requirements` is not correct/full, it needs to be fixed
-  `pip install ai-economist>=1.5  
-  pip install gym  
-  pip install tensorflow  
-  pip install "ray[rllib]==0.8.4"`   
-  
-  otherwise `tutorials/rllib/tf_models.py` will give an error with `RecurrentTFModelV2`
-  - Probably many actual reqs are avoidable
-
-## Dev TODO:
-- upgrade RLLib from v0.8.4 to v2.0.0 (issues w/`tutorials/rllib/tf_models.py` - `RecurrentTFModelV2`)
-  - simplify saving/loading weights
-  - simplify saving/loading snapshots
-- add configs for multiple algorithms
-- add [DT algorithm](##Algorithms)
-
-## TEST
